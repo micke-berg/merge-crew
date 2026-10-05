@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Engine, Queries, RepoState, ScriptStep } from "@/engine/types";
 import { getLevel, levels, solutions } from "./index";
+import { git, write } from "./script";
 
 // ---------------------------------------------------------------------------
 // Engine probe. The engine lands in parallel with these levels, so it is loaded dynamically:
@@ -151,5 +152,123 @@ describe.skipIf(!probe.mod)(`levels through the engine${probe.mod ? "" : ` (skip
     // The player's reflog still knows where main was.
     const previous = mod.queries.resolve(afterIntro.state, "player", "main@{1}");
     expect(previous && afterIntro.state.commits[previous].message).toBe("Add iced tea to the prices");
+  });
+
+  // -------------------------------------------------------------------------
+  // Act 2, levels 2 to 5: other fair solutions pass, shortcuts that lose or rewrite work fail.
+  // -------------------------------------------------------------------------
+
+  /** Run setup, intro and the given steps; every step must succeed. Returns the ids of goals that fail. */
+  function failedGoals(ctx: { skip: (note?: string) => never }, id: string, steps: ScriptStep[]): string[] {
+    const level = getLevel(id)!;
+    const r = runSteps(mod, mod.engine.createRepo(), [...level.setup, ...level.intro, ...steps]);
+    if (r.unsupported) ctx.skip(`engine gap: ${r.unsupported}`);
+    expect(r.failures).toEqual([]);
+    return level.goals.filter((g) => !g.check(r.state, mod.queries)).map((g) => g.id);
+  }
+
+  it.each(levels.map((l) => [l.id, l] as const))(
+    "%s: every suggestion is a command the engine knows",
+    (_id, level) => {
+      const r = runSteps(mod, mod.engine.createRepo(), [...level.setup, ...level.intro]);
+      expect(r.failures).toEqual([]);
+      for (const line of level.suggestions) {
+        const result = mod.engine.run(r.state, { actor: "player", argv: mod.engine.parseCommandLine(line) });
+        expect(result.output.map((l) => l.text).join("\n"), line).not.toMatch(UNSUPPORTED);
+      }
+    },
+  );
+
+  it("act2-02: the merge stops on a conflict in sign.txt only", (ctx) => {
+    const level = getLevel("act2-02")!;
+    const r = runSteps(mod, mod.engine.createRepo(), [...level.setup, ...level.intro, git("player", "merge", "drift")]);
+    if (r.unsupported) ctx.skip(`engine gap: ${r.unsupported}`);
+    expect(r.failures).toEqual([]);
+    expect(Object.keys(r.state.worktrees.player.conflicts)).toEqual(["sign.txt"]);
+    expect(r.state.worktrees.player.workingTree["sign.txt"]).toContain("<<<<<<< HEAD");
+  });
+
+  it("act2-02: rebasing a copy of Drift's branch also wins, with the lines in either order", (ctx) => {
+    const failed = failedGoals(ctx, "act2-02", [
+      git("player", "switch", "-c", "drift-fresh", "drift"),
+      git("player", "rebase", "main"),
+      write("player", "sign.txt", "LEMONADE\nOpen 9 to 5\nEvery cup comes with a cloud\nNow with iced tea\n"),
+      git("player", "add", "sign.txt"),
+      git("player", "rebase", "--continue"),
+      git("player", "switch", "main"),
+      git("player", "merge", "drift-fresh"),
+      git("player", "push"),
+    ]);
+    expect(failed).toEqual([]);
+  });
+
+  it("act2-02: keeping only main's side of the conflict does not win", (ctx) => {
+    const failed = failedGoals(ctx, "act2-02", [
+      git("player", "merge", "drift"),
+      write("player", "sign.txt", "LEMONADE\nOpen 9 to 5\nNow with iced tea\n"),
+      git("player", "add", "sign.txt"),
+      git("player", "commit"),
+      git("player", "push"),
+    ]);
+    expect(failed).toEqual(["both-lines"]);
+  });
+
+  it("act2-02: committing the conflict markers does not win", (ctx) => {
+    const failed = failedGoals(ctx, "act2-02", [
+      git("player", "merge", "drift"),
+      git("player", "add", "sign.txt"),
+      git("player", "commit"),
+      git("player", "push"),
+    ]);
+    expect(failed).toEqual(["both-lines"]);
+  });
+
+  it("act2-03: popping the recipe onto main also wins", (ctx) => {
+    const failed = failedGoals(ctx, "act2-03", [
+      git("player", "stash", "pop", "stash@{1}"),
+      git("player", "add", "menu.txt"),
+      git("player", "commit", "-m", "Save the fizz recipe"),
+    ]);
+    expect(failed).toEqual([]);
+  });
+
+  it("act2-03: a plain stash pop restores the doodles, not the recipe", (ctx) => {
+    const failed = failedGoals(ctx, "act2-03", [
+      git("player", "stash", "pop"),
+      git("player", "commit", "-am", "Save whatever was in the stash"),
+    ]);
+    expect(failed).toContain("recipe-committed");
+  });
+
+  it("act2-03: clearing the stash throws the work away", (ctx) => {
+    const failed = failedGoals(ctx, "act2-03", [git("player", "stash", "clear")]);
+    expect(failed).toEqual(["recipe-committed", "doodles-safe"]);
+  });
+
+  it("act2-04: reverting by commit id also wins", (ctx) => {
+    const level = getLevel("act2-04")!;
+    const r = runSteps(mod, mod.engine.createRepo(), [...level.setup, ...level.intro]);
+    if (r.unsupported) ctx.skip(`engine gap: ${r.unsupported}`);
+    const blaze = Object.values(r.state.commits).find((c) => c.message === "Make everything FREE")!;
+    const failed = failedGoals(ctx, "act2-04", [
+      git("player", "pull"),
+      git("player", "revert", blaze.oid.slice(0, 7)),
+      git("player", "push"),
+    ]);
+    expect(failed).toEqual([]);
+  });
+
+  it("act2-04: reset --hard and force-push rewrites history and does not win", (ctx) => {
+    const failed = failedGoals(ctx, "act2-04", [
+      git("player", "pull"),
+      git("player", "reset", "--hard", "HEAD~2"),
+      git("player", "push", "--force"),
+    ]);
+    expect(failed).toEqual(["history-kept", "tip-jar-kept"]);
+  });
+
+  it("act2-05: merging Drift's whole branch does not win", (ctx) => {
+    const failed = failedGoals(ctx, "act2-05", [git("player", "merge", "drift"), git("player", "push")]);
+    expect(failed).toEqual(["only-the-fix"]);
   });
 });

@@ -65,7 +65,7 @@ export const level: Level = {
     "Goal: both commits reachable from main, a merge commit on main, the player on main with a clean tree.",
     "The game's merge uses git's default merge message, so no editor or -m flag is needed.",
   ].join("\n"),
-  suggestions: ["git status", "git branch", "git log --oneline --graph --all", "git merge menu", "git merge colors"],
+  suggestions: ["git status", "git branch", "git log --oneline --all", "git merge menu", "git merge colors"],
   outro: [
     say("tidy", "Both lines came home. The stop with two lines going into it is your merge commit.", "celebrate"),
     say("tidy", "That's Act 1. You can save, branch and merge. I'm a little proud. Don't tell Blaze.", "happy"),

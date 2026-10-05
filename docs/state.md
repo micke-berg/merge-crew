@@ -4,19 +4,18 @@ Updated: 2026-10-05
 
 ## Where things stand
 
-- Spec approved.
-- Pocket Machines robot art (CC0, recorded in `ASSETS.md`) is in the game: animated sprites on the history map (idle, mood, hop onto a new commit, move along the line, mirrored when moving left), in dialogue portraits, on the start-screen crew cards (signature move on arrival and hover) and on the win panel. The player is a blue pawn, not a robot. `npm run sprites` (`scripts/build-sprites.mjs`) builds cropped WebP sheets in `public/assets/pocket-machines/web/` (about 2 MB for all, from 18.8 MB of source PNGs) and `src/components/robots/sheets.generated.ts`; a level preloads only the sheets it plays (about 0.7 MB for act2-01). Code: `src/components/robots/`. Credit link on the start screen footer.
-- `main` has wave 1 (PR #1): engine, real-git comparison tests (45 scenarios), history map, four levels.
-- Branch `feat/playable-level`: all four levels playable at `/level/[id]` with a start screen. Scenes with dialogue, a terminal with history and suggestions, files panel, goals panel, brief and win panels, progress saved in the browser. act2-01 was played start to win in a browser by the lead.
-- In progress on the same branch: engine wave 2 (rebase, cherry-pick, revert, stash, diff, cat, ls) in `src/engine/` and `tests/oracle/`.
+- Live at https://merge-crew.vercel.app (auto-deploys from `main`).
+- Playable: Act 1 levels 1-3, Act 2 levels 1-5. Pocket Machines robot art in the game.
+- Branch `feat/act2-levels`: Act 2 levels 2-5, conflict editor, robot gibberish voices and event sounds (`src/components/sound/`, mute button in the level header; robot lines type at 45 characters a second). Sound parameters are untested by ear.
+- Hints: parked by the owner (2026-10-05).
 
 ## Next
 
-1. Finish engine wave 2, open the PR for this branch, merge when green (the owner gave a standing OK for green PRs).
-2. Deploy to Vercel so the game is playable online.
-3. More levels: the rest of Act 2 (Drift diverges, Hoarder never commits) and Act 3 with rule cards. A conflict editor is needed for levels that end in a merge conflict.
-4. Hints: Tidy hint button backed by a low-cost model, with a spending cap, evals and tracing.
-5. Polish requests: `by` field on scripted git steps that a robot runs in another worktree; speech bubbles anchored to robots (needs robot positions from the map); map polish list from wave 1.
+1. Merge `feat/act2-levels`.
+2. Owner listens to the voices and effects; tune in `src/components/sound/voices.ts` and `effects.ts`.
+3. First-run experience: the owner needed several plays to understand the game. Keep goals visible at every window width (they fall below the fold at ~800 px), and a guided first level where Tidy points at the map, the terminal, the goals and the files panel.
+4. Act 3: all robots at once and rule cards.
+5. `git log --graph` in the engine; `revert -m` for merge commits.
 
 ## Open questions
 

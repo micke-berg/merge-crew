@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { actorColor } from "@/components/map/palette";
+import { useLineVoice } from "@/components/sound";
 import type { Bubble } from "./game";
 import { RobotPortrait } from "./RobotPortrait";
 
@@ -45,16 +46,20 @@ export function DialogueBox({ bubble, lineKey, awaitingClick, onNext, reduce }: 
   );
 }
 
+/** Typing speed of robot lines. Slow enough to read along and for the voice blips to land. */
+const CHARS_PER_SECOND = 45;
+
 function Line({ bubble, awaitingClick, onNext, reduce }: Omit<Props, "lineKey" | "bubble"> & { bubble: Bubble }) {
   const c = actorColor(bubble.actor);
   const full = bubble.text;
   const [shown, setShown] = useState(reduce ? full.length : 0);
   const ref = useRef<HTMLDivElement>(null);
   const done = shown >= full.length;
+  useLineVoice(bubble.actor, bubble.mood, full, { typing: !done, instant: reduce, charsPerSecond: CHARS_PER_SECOND });
 
   useEffect(() => {
     if (done) return;
-    const t = window.setInterval(() => setShown((n) => Math.min(full.length, n + 2)), 22);
+    const t = window.setInterval(() => setShown((n) => Math.min(full.length, n + 1)), 1000 / CHARS_PER_SECOND);
     return () => window.clearInterval(t);
   }, [done, full.length]);
 
