@@ -2,5 +2,7 @@
 
 What we learned about building this with AI agents. Newest first, one dated line each.
 
+- 2026-10-05 — CI failed twice on the first push: a lockfile made with a global `legacy-peer-deps` setting (fixed by the project `.npmrc`), and Next.js 16 route types that exist only after a local build (fixed by running `next typegen` in the typecheck script). Local checks passing is not proof. Wait for CI.
+- 2026-10-05 — The privacy check blocked a licence line containing the owner's first name. Licences use the full legal name.
 - 2026-10-05 — The project scaffolder made the first commit with the machine's global git email before the repository's own identity was set. Set the commit identity before anything creates a commit.
 - 2026-10-05 — Earlier attempts at this idea drifted when agents built things outside the goal. Countermeasure: a written spec with a "not in v1" list, an ideas file as the only place for new ideas, and review against the spec before merging.
