@@ -4,7 +4,7 @@ import { hintLevel, hintLevelIds } from "./data";
 import { MAX_HINT_CHARS, MAX_HINT_SENTENCES, checkLeak, cleanHint, countSentences, normalise, vetHint } from "./leak";
 import { buildHintPrompt } from "./prompt";
 import { RateLimiter, clientKey } from "./rateLimit";
-import { aiAvailability, getHint, scriptedHint } from "./server";
+import { aiAvailability, getHint, scriptedHint, servedModel } from "./server";
 import { recordSafetyCheck, stableSpanName, tracingEnabled, tracingEnvironment } from "./telemetry";
 import { failingModel, hangingModel, replyModel } from "./test-helpers";
 import { LIMITS, MAX_HINTS_PER_RUN, type HintRequest } from "./types";
@@ -237,6 +237,14 @@ describe("getHint", () => {
     expect(tracingEnabled({})).toBe(false);
     expect(tracingEnabled({ LANGFUSE_PUBLIC_KEY: "pk", LANGFUSE_SECRET_KEY: "sk" })).toBe(true);
     expect(() => recordSafetyCheck("raw", { ok: false, reason: "leak-force" })).not.toThrow();
+  });
+
+  it("names the model that actually answered when the Gateway fell back", () => {
+    expect(servedModel({ gateway: { routing: { canonicalSlug: "google/gemini-2.5-flash-lite", originalModelId: "x" } } })).toBe(
+      "google/gemini-2.5-flash-lite",
+    );
+    expect(servedModel(undefined)).toBeUndefined();
+    expect(servedModel({ gateway: {} })).toBeUndefined();
   });
 
   it("gives AI SDK spans stable names without the model in them", () => {

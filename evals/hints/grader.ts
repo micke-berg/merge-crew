@@ -4,7 +4,12 @@
 import { generateText, type LanguageModel } from "ai";
 
 /** A stronger model than the hint model, through the AI Gateway. */
-export const GRADER_MODEL = "anthropic/claude-sonnet-5";
+/**
+ * A grader from a different model family than the hint model, so it is not grading its own family's
+ * writing. Available on the AI Gateway's free credits. It reasons before answering, hence the larger
+ * token budget and low reasoning effort.
+ */
+export const GRADER_MODEL = "openai/gpt-5-mini";
 
 export const CRITERIA = {
   towardNextIdea: "Points the player toward the right next idea for their situation and the current goal.",
@@ -64,8 +69,8 @@ export async function grade(
   const { text } = await generateText({
     model,
     prompt: graderPrompt(input),
-    temperature: 0,
-    maxOutputTokens: 300,
+    maxOutputTokens: 2000,
+    providerOptions: { openai: { reasoningEffort: "low" } },
     maxRetries: 1,
     timeout: 30_000,
   });

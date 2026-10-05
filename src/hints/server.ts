@@ -9,10 +9,13 @@ import { recordSafetyCheck } from "./telemetry";
 import { buildHintPrompt } from "./prompt";
 import type { FallbackReason, HintRequest, HintResponse } from "./types";
 
-/** The hint model, as a plain AI Gateway model string. */
-export const HINT_MODEL = "anthropic/claude-haiku-4.5";
-/** A cheaper model the Gateway tries if the first one fails. */
-export const FALLBACK_MODEL = "google/gemini-2.5-flash-lite";
+/**
+ * The hint model, as a plain AI Gateway model string. Gemini 2.5 Flash-Lite is available on the
+ * Gateway's free credits; Claude Haiku 4.5 needs paid credits. Measure a change with `npm run eval:hints`.
+ */
+export const HINT_MODEL = "google/gemini-2.5-flash-lite";
+/** Models the Gateway may try if the hint model fails. Each must be available on the account's plan. */
+export const FALLBACK_MODELS: readonly string[] = [];
 export const MAX_OUTPUT_TOKENS = 120;
 export const TEMPERATURE = 0.2;
 /** The player is waiting with Tidy "thinking": past this, the scripted hint is better than waiting. */
@@ -38,6 +41,15 @@ export function scriptedHint(data: HintLevel, hintNumber: number): string {
 
 function scripted(data: HintLevel, hintNumber: number, reason: FallbackReason): HintResponse {
   return { text: scriptedHint(data, hintNumber), source: "scripted", reason };
+}
+
+/**
+ * The model that actually answered. When the Gateway falls back to another model, the AI SDK still
+ * reports the one that was asked for; the Gateway's routing metadata names the one that served it.
+ */
+export function servedModel(providerMetadata: unknown): string | undefined {
+  const routing = (providerMetadata as { gateway?: { routing?: { canonicalSlug?: unknown } } } | undefined)?.gateway?.routing;
+  return typeof routing?.canonicalSlug === "string" ? routing.canonicalSlug : undefined;
 }
 
 export type HintDeps = {
@@ -90,12 +102,12 @@ export async function getHint(request: HintRequest, data: HintLevel, deps: HintD
       // The Gateway's model fallback is the retry; a second attempt would only make the player wait.
       maxRetries: 0,
       abortSignal: controller.signal,
-      providerOptions: { gateway: { models: [FALLBACK_MODEL], tags: ["merge-crew-hint", request.levelId] } },
+      providerOptions: { gateway: { models: [...FALLBACK_MODELS], tags: ["merge-crew-hint", request.levelId] } },
       runtimeContext: { levelId: request.levelId, hintNumber: request.hintNumber },
       telemetry: deps.telemetry ?? { isEnabled: false },
     });
     raw = result.text;
-    model = result.response?.modelId;
+    model = servedModel(result.providerMetadata) ?? result.response?.modelId;
   } catch {
     return scripted(data, request.hintNumber, timedOut ? "timeout" : "model-error");
   } finally {
