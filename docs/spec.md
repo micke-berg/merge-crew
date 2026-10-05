@@ -31,6 +31,10 @@ You are the lead developer of a small crew of robot coding agents. They all work
 
 A level is won when its goal check passes. Examples: "these commits are reachable from main", "the working tree is clean and nothing was lost".
 
+## Sound
+
+The robots speak in cartoon gibberish: short synthesized beeps and blips while their text types out, a different voice per robot. Simple effects mark game events (a commit appears, a robot hops, a force-push, a win). Sounds are generated in the browser with no audio files, start only after the player's first interaction, default to a low volume, and have a mute button that is remembered.
+
 ## Hints
 
 The player can ask Tidy for a hint. Hints come from a low-cost AI model with a hard monthly spending cap. A hint points the player toward the fix and must never contain the full answer command. The hint quality is measured with evals, and every hint call is traced.
@@ -47,7 +51,7 @@ The player can ask Tidy for a hint. Hints come from a low-cost AI model with a h
 
 ## Not in v1
 
-3D, photo mode, accounts, a backend database, multiplayer, live AI-driven robots, local models in the browser, payments, a level editor, sound beyond simple effects, mobile layout beyond "playable on a tablet".
+3D, photo mode, accounts, a backend database, multiplayer, live AI-driven robots, local models in the browser, payments, a level editor, music or recorded speech, mobile layout beyond "playable on a tablet".
 
 ## Finished means
 

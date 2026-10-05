@@ -45,6 +45,7 @@ Each parallel agent owns specific folders, named in its task. Do not edit files 
 
 ## Processes
 
+- Scratch files go in a folder you create with a unique name, and you delete exactly that path. Never delete with wildcards in shared places such as the system temp folder.
 - Stop only processes you started, by their process id (`kill <pid>`) or with the tool that started them. Never use `pkill -f`, `killall` or any name or pattern match. A pattern like "cat" also matches "Application", which closed most of the owner's apps on 2026-10-05.
 
 ## Workflow notes

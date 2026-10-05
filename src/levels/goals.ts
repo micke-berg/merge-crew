@@ -147,3 +147,49 @@ export const someBranchAheadOf =
         name !== base && !except.includes(name) && tip !== baseTip && !queries.isAncestor(state, tip, baseTip),
     );
   };
+
+// ---------------------------------------------------------------------------
+// Checks added for Act 2 (conflicts, stash, revert, cherry-pick).
+// ---------------------------------------------------------------------------
+
+const CONFLICT_MARKER = /^(<{7}|={7}|>{7})( |$)/m;
+
+/**
+ * The file in the target's tip commit contains every one of these lines, in any order, and no
+ * conflict markers. Use it when a conflict may be resolved in more than one fair way.
+ */
+export const fileInTipHasLines =
+  (target: RefTarget, path: Path, lines: string[]): Check =>
+  (state, queries) => {
+    const tip = tipOf(state, queries, target);
+    const content = tip ? state.commits[tip]?.tree[path] : undefined;
+    if (content === undefined || CONFLICT_MARKER.test(content)) return false;
+    const have = new Set(content.split("\n"));
+    return lines.every((line) => have.has(line));
+  };
+
+/** No commit with this message is reachable from the target. */
+export const noCommitWithMessageReachableFrom =
+  (target: RefTarget, message: string): Check =>
+  (state, queries) =>
+    !historyOf(state, queries, target).some((c) => c.message === message);
+
+/** The tip of some local branch has every one of these files with exactly this content. */
+export const someBranchTipHasFiles =
+  (files: Readonly<Record<Path, string>>): Check =>
+  (state) =>
+    Object.values(state.branches).some((tip) => {
+      const tree = state.commits[tip]?.tree;
+      return tree !== undefined && Object.entries(files).every(([path, content]) => tree[path] === content);
+    });
+
+/** A stash entry whose message contains this text is still in the stash list. */
+export const stashHasEntry =
+  (text: string): Check =>
+  (state) =>
+    state.stash.some((entry) => entry.message.includes(text));
+
+export const anyOf =
+  (...checks: Check[]): Check =>
+  (state, queries) =>
+    checks.some((c) => c(state, queries));

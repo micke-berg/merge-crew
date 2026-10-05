@@ -2,6 +2,8 @@
 
 What we learned about building this with AI agents. Newest first, one dated line each.
 
+- 2026-10-05 — Levels lane, Act 2 levels 2 to 5: a new test that runs every suggestion button through the engine found that `git log --graph` is not supported, and an Act 1 level had offered it as a button since wave 1. Testing the buttons, not only the solutions, is cheap and catches what players will actually click.
+- 2026-10-05 — Levels lane: real git refused `git rebase main drift` because the branch is checked out in the robot's own worktree. Robots holding their branches in linked worktrees limits what the player can do to those branches; the Drift conflict level is solved by merging (or by rebasing a copy), and the goals accept both.
 - 2026-10-05 — An agent ran `pkill -f "cat"` to stop a hung command. "Application" contains "cat", so it closed most of the owner's open apps. Rule added to AGENTS.md: stop processes only by their own id.
 - 2026-10-05 — Engine wave 2: the oracle compares reflogs by commit, not by wording, and still caught two git rules no one had written down: a detached HEAD that does not move gets no reflog line (a branch HEAD does), and remote-tracking refs need their own reflog because pull --rebase finds its fork point there. Probing real git in a throwaway folder before writing each command was faster than reading git's source.
 - 2026-10-05 — Engine wave 2: rebase, cherry-pick and revert copy commits with the same message, which broke the oracle's "labels are messages" rule; scenarios that copy commits now say so with a flag, and oids inside messages and conflict markers are replaced by labels.

@@ -8,6 +8,10 @@ Newest first. Each entry: date, what was decided, why.
 - Delivery is transparent PNG sprite sheets, four 512 by 512 px frames per row, with a shared ground anchor and manifest. Artwork is licensed under CC0-1.0; see `ASSETS.md`.
 - The asset import does not change the current game components. Use the supplied manifest and drawing helper when replacing the placeholders.
 
+## 2026-10-05 — Robot gibberish voices
+
+- **Robots speak in cartoon gibberish beeps, plus simple event sounds.** Owner's request after playing. Generated in the browser (no audio files, no cost), muted until the first interaction, with a mute button. Music and recorded speech stay out of v1.
+
 ## 2026-10-05 — Engine wave 1: refused commands change nothing
 
 - **A refused command returns the unchanged state, even where real git leaves partial changes.** Teaching git's half-finished failure states is not a goal, and a clean rule keeps levels predictable. Known differences from git: a failed pull drops the fetched refs; a push with several refspecs applies none if one is rejected; `worktree add` on a used path creates no branch.
