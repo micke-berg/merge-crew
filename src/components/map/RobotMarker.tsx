@@ -29,13 +29,6 @@ export const ROBOT_HEIGHT = 64;
 /** The player's pawn is shorter than the robots. */
 export const PLAYER_HEIGHT = 40;
 
-/**
- * Roughly how wide each marker is on the map, used to space markers that share a stop.
- * From the idle artwork at ROBOT_HEIGHT.
- */
-export const MARKER_WIDTH: Record<string, number> = { player: 28, tidy: 46, blaze: 54, drift: 48, hoarder: 62 };
-export const markerWidth = (actor: ActorId) => MARKER_WIDTH[actor] ?? MARKER_WIDTH.player;
-
 export function RobotMarker({ actor, mood, facing, still = false, action = null }: RobotMarkerProps) {
   if (!isSpriteRobot(actor)) {
     return (

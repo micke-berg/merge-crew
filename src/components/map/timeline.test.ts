@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { crew, fakeOid, forcePush, linear } from "./fixtures";
-import { ACTOR_COLORS, PAPER, contrast } from "./palette";
 import { CRACK_MS, buildSchedule, stopMoveAt } from "./timeline";
 
 describe("buildSchedule", () => {
@@ -43,15 +42,6 @@ describe("buildSchedule", () => {
   it("warns a robot on conflict", () => {
     const scene = crew.scenes[1];
     expect(buildSchedule(scene.events, scene.after).conflict.get("blaze")).toBe(0);
-  });
-});
-
-describe("palette", () => {
-  it("keeps every robot line readable on the paper and every label readable in white", () => {
-    for (const [id, c] of Object.entries(ACTOR_COLORS)) {
-      expect(contrast(c.line, PAPER), `${id} line`).toBeGreaterThanOrEqual(3);
-      expect(contrast("#FFFFFF", c.deep), `${id} label`).toBeGreaterThanOrEqual(4.5);
-    }
   });
 });
 

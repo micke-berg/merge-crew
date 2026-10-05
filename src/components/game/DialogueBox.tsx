@@ -1,8 +1,8 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
-import { actorColor } from "@/components/map/palette";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { actorColor } from "@/lib/palette";
 import { useLineVoice } from "@/components/sound";
 import type { Bubble } from "./game";
 import { RobotPortrait } from "./RobotPortrait";
@@ -67,23 +67,20 @@ function Line({ bubble, awaitingClick, onNext, reduce }: Omit<Props, "lineKey" |
     if (!done) setShown(full.length);
     else if (awaitingClick) onNext();
   };
-  const pressRef = useRef(press);
-  useEffect(() => {
-    pressRef.current = press;
-  });
+  const onAdvanceKey = useEffectEvent(press);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!isAdvanceKey(e) || targetIsControl(e) || e.repeat) return;
       e.preventDefault();
-      pressRef.current();
+      onAdvanceKey();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   useEffect(() => {
-    // Keep keyboard focus on the line so screen readers follow the scene.
+    // Keep keyboard focus on the line, so Enter and Space keep working without a click.
     const active = document.activeElement;
     if (!active || active === document.body || active.closest("[data-dialogue]")) ref.current?.focus({ preventScroll: true });
   }, []);
@@ -94,13 +91,14 @@ function Line({ bubble, awaitingClick, onNext, reduce }: Omit<Props, "lineKey" |
       data-dialogue=""
       role="button"
       tabIndex={0}
-      aria-label={`${c.name}: ${full}. Press Enter to continue.`}
+      // The line itself is announced by the level screen's live region, so it is not read twice.
+      aria-label="Continue the scene (Enter)"
       onClick={press}
       initial={{ opacity: 0, y: 10, scale: 0.99 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 6, transition: { duration: 0.12 } }}
       transition={{ type: "spring", stiffness: 420, damping: 32 }}
-      className="relative flex w-full cursor-pointer items-start gap-3 rounded-[22px] border-2 bg-[#FFFDF8] p-3 pr-5 text-left shadow-[0_14px_36px_-14px_rgba(60,44,20,0.55)] outline-none focus-visible:ring-4 focus-visible:ring-[#2563C9]/40 md:gap-4 md:p-4 md:pr-6"
+      className="relative flex w-full cursor-pointer items-start gap-3 rounded-[22px] border-2 bg-card p-3 pr-5 text-left shadow-[0_14px_36px_-14px_rgba(60,44,20,0.55)] outline-none focus-visible:ring-4 focus-visible:ring-focus/40 md:gap-4 md:p-4 md:pr-6"
       style={{ borderColor: c.line }}
     >
       <RobotPortrait actor={bubble.actor} mood={bubble.mood} size={58} still={reduce} />
@@ -108,16 +106,16 @@ function Line({ bubble, awaitingClick, onNext, reduce }: Omit<Props, "lineKey" |
         <p className="text-[12px] font-bold tracking-wide uppercase" style={{ color: c.deep }}>
           {c.name}
         </p>
-        <p className="mt-0.5 text-[16px] leading-snug font-medium text-[#26283B] md:text-[17px]" aria-hidden>
+        <p className="mt-0.5 text-[16px] leading-snug font-medium text-ink md:text-[17px]" aria-hidden>
           {full.slice(0, shown)}
           <span className="invisible">{full.slice(shown)}</span>
         </p>
       </div>
       <span
-        className={`absolute right-3 bottom-2 flex items-center gap-1 text-[11px] font-semibold text-[#7A7264] transition-opacity duration-200 ${done && awaitingClick ? "opacity-100" : "opacity-0"}`}
+        className={`absolute right-3 bottom-2 flex items-center gap-1 text-[11px] font-semibold text-muted transition-opacity duration-200 ${done && awaitingClick ? "opacity-100" : "opacity-0"}`}
         aria-hidden
       >
-        <kbd className="rounded-md border border-[#D8CCB5] bg-white px-1.5 py-px font-sans text-[10px] shadow-[0_1px_0_#D8CCB5]">Enter</kbd>
+        <kbd className="rounded-md border border-line bg-white px-1.5 py-px font-sans text-[10px] shadow-[0_1px_0_var(--color-line)]">Enter</kbd>
         <svg width="9" height="9" viewBox="0 0 10 10" className="animate-bounce motion-reduce:animate-none">
           <path d="M1 2 L9 2 L5 8 Z" fill="currentColor" />
         </svg>

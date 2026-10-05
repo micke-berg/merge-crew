@@ -1,20 +1,109 @@
 @import "tailwindcss";
 
-:root {
-  --background: #f7f1e5;
-  --foreground: #26283b;
-}
-
+/*
+ * Colour tokens. The values live in src/lib/palette.ts: the root layout writes each one as a
+ * --mc-* variable on <html>, and this block turns them into Tailwind colours (bg-ink, text-muted,
+ * ring-focus/30, bg-robot-tidy). src/lib/palette.test.ts keeps both lists in step.
+ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --color-paper: var(--mc-paper);
+  --color-paper-dot: var(--mc-paper-dot);
+  --color-desk: var(--mc-desk);
+  --color-panel: var(--mc-panel);
+  --color-card: var(--mc-card);
+  --color-sunk: var(--mc-sunk);
+  --color-wash: var(--mc-wash);
+  --color-chip: var(--mc-chip);
+  --color-overlay: var(--mc-overlay);
+  --color-shadow: var(--mc-shadow);
+  --color-shadow-dark: var(--mc-shadow-dark);
+  --color-line: var(--mc-line);
+  --color-line-soft: var(--mc-line-soft);
+  --color-line-strong: var(--mc-line-strong);
+  --color-line-button: var(--mc-line-button);
+  --color-divider: var(--mc-divider);
+  --color-ink: var(--mc-ink);
+  --color-ink-shadow: var(--mc-ink-shadow);
+  --color-trunk: var(--mc-trunk);
+  --color-body: var(--mc-body);
+  --color-soft: var(--mc-soft);
+  --color-muted: var(--mc-muted);
+  --color-map-soft: var(--mc-map-soft);
+  --color-ghost: var(--mc-ghost);
+  --color-ghost-band: var(--mc-ghost-band);
+  --color-ghost-fill: var(--mc-ghost-fill);
+  --color-tag-remote: var(--mc-tag-remote);
+  --color-tag-stash: var(--mc-tag-stash);
+  --color-art-ink: var(--mc-art-ink);
+  --color-focus: var(--mc-focus);
+  --color-success: var(--mc-success);
+  --color-success-strong: var(--mc-success-strong);
+  --color-success-deep: var(--mc-success-deep);
+  --color-success-ink: var(--mc-success-ink);
+  --color-success-wash: var(--mc-success-wash);
+  --color-success-soft: var(--mc-success-soft);
+  --color-success-tint: var(--mc-success-tint);
+  --color-success-edge: var(--mc-success-edge);
+  --color-warn: var(--mc-warn);
+  --color-warn-deep: var(--mc-warn-deep);
+  --color-warn-text: var(--mc-warn-text);
+  --color-warn-ink: var(--mc-warn-ink);
+  --color-warn-note: var(--mc-warn-note);
+  --color-warn-wash: var(--mc-warn-wash);
+  --color-warn-soft: var(--mc-warn-soft);
+  --color-warn-tint: var(--mc-warn-tint);
+  --color-warn-chip: var(--mc-warn-chip);
+  --color-warn-edge: var(--mc-warn-edge);
+  --color-warn-step: var(--mc-warn-step);
+  --color-warn-strike: var(--mc-warn-strike);
+  --color-warn-glow: var(--mc-warn-glow);
+  --color-modified-wash: var(--mc-modified-wash);
+  --color-modified-text: var(--mc-modified-text);
+  --color-deleted-text: var(--mc-deleted-text);
+  --color-mine-text: var(--mc-mine-text);
+  --color-mine-wash: var(--mc-mine-wash);
+  --color-mine-edge: var(--mc-mine-edge);
+  --color-mine-dot: var(--mc-mine-dot);
+  --color-mine-mark: var(--mc-mine-mark);
+  --color-theirs-text: var(--mc-theirs-text);
+  --color-theirs-wash: var(--mc-theirs-wash);
+  --color-theirs-edge: var(--mc-theirs-edge);
+  --color-theirs-dot: var(--mc-theirs-dot);
+  --color-theirs-fill: var(--mc-theirs-fill);
+  --color-theirs-mark: var(--mc-theirs-mark);
+  --color-term-deep: var(--mc-term-deep);
+  --color-term-muted: var(--mc-term-muted);
+  --color-term-dim: var(--mc-term-dim);
+  --color-term-out: var(--mc-term-out);
+  --color-term-key: var(--mc-term-key);
+  --color-term-edge: var(--mc-term-edge);
+  --color-term-edge-soft: var(--mc-term-edge-soft);
+  --color-term-prompt: var(--mc-term-prompt);
+  --color-term-hint: var(--mc-term-hint);
+  --color-term-error: var(--mc-term-error);
+  --color-robot-player: var(--mc-robot-player);
+  --color-robot-player-deep: var(--mc-robot-player-deep);
+  --color-robot-player-tint: var(--mc-robot-player-tint);
+  --color-robot-tidy: var(--mc-robot-tidy);
+  --color-robot-tidy-deep: var(--mc-robot-tidy-deep);
+  --color-robot-tidy-tint: var(--mc-robot-tidy-tint);
+  --color-robot-blaze: var(--mc-robot-blaze);
+  --color-robot-blaze-deep: var(--mc-robot-blaze-deep);
+  --color-robot-blaze-tint: var(--mc-robot-blaze-tint);
+  --color-robot-drift: var(--mc-robot-drift);
+  --color-robot-drift-deep: var(--mc-robot-drift-deep);
+  --color-robot-drift-tint: var(--mc-robot-drift-tint);
+  --color-robot-hoarder: var(--mc-robot-hoarder);
+  --color-robot-hoarder-deep: var(--mc-robot-hoarder-deep);
+  --color-robot-hoarder-tint: var(--mc-robot-hoarder-tint);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 

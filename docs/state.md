@@ -9,6 +9,10 @@ Updated: 2026-10-05
 - Branch `feat/act2-levels`: Act 2 levels 2-5, conflict editor, robot gibberish voices and event sounds (`src/components/sound/`, mute button in the level header; robot lines type at 45 characters a second). Sound parameters are untested by ear.
 - Hints: parked by the maintainer (2026-10-05).
 
+## Review cleanup (2026-10-05)
+
+Two independent code reviews (Claude and Codex) were run on the whole codebase. Fixed on `chore/review-cleanup`: special names like `constructor` breaking the engine; level tests that skipped instead of failing; level solutions now also checked in real git; solutions kept out of the browser bundle; colour tokens and contrast; the map and conflict editor split into smaller parts; the map uses the engine's reachability; source art and verification files moved out of the served folder; `/play` dev page moved to `/dev/map` (development only); security headers; contributor-facing docs. Still open: hint context ships to the browser (move server-side when hints are built).
+
 ## Next
 
 1. Merge `feat/act2-levels`.

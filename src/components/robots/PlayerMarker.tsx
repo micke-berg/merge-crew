@@ -1,11 +1,11 @@
 // The player is not a robot. "You" is a game piece: a rounded pawn drawn in the same flat,
 // dark-outlined style as the Pocket Machines, in the player's blue. Origin is the base centre.
 
-import { actorColor } from "@/components/map/palette";
+import { TOKENS, actorColor } from "@/lib/palette";
 import type { ActorId } from "@/engine/types";
 
 /** Outline colour of the Pocket Machines art. */
-export const ART_INK = "#2B2433";
+export const ART_INK = TOKENS["art-ink"];
 
 /** Height of the pawn in its own units, before `height` scaling. */
 const BASE = 40;
@@ -27,7 +27,7 @@ export function PlayerMarker({ height = BASE, actor = "player" }: { height?: num
       <rect x={-7.4} y={-23.6} width={14.8} height={4.6} rx={2.3} fill={c.tint} stroke={ART_INK} strokeWidth={stroke} />
       {/* head */}
       <circle cx={0} cy={-31.2} r={8.4} fill={c.line} stroke={ART_INK} strokeWidth={stroke} />
-      <ellipse cx={-2.8} cy={-34} rx={2.6} ry={1.8} fill="#FFFFFF" opacity={0.55} transform="rotate(-30 -2.8 -34)" />
+      <ellipse cx={-2.8} cy={-34} rx={2.6} ry={1.8} fill="white" opacity={0.55} transform="rotate(-30 -2.8 -34)" />
     </g>
   );
 }

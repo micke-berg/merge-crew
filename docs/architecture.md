@@ -57,9 +57,14 @@ The map draws history like a metro map in four steps:
 1. **`layout.ts` places commits on a grid.** main runs straight, each branch gets its own line, and lost commits drop to a separate band.
 2. **`geometry.ts` turns the grid into pixels.**
 3. **`timeline.ts` decides what animates when.** It turns a list of engine events into a schedule.
-4. **`HistoryMap.tsx` draws the SVG and plays the schedule** with motion.
+4. **`HistoryMap.tsx` draws the SVG and plays the schedule** with motion. It is split into layers: `MapEdges`, `MapStops`, `MapTags` and `MapHeads`.
 
-Steps 1 to 3 are pure and unit tested.
+Steps 1 to 3 are pure and unit tested, as are the helpers for tags (`tags.ts`), robot placement (`placement.ts`) and movement timing (`motion.ts`). The map asks the engine's `queries` which commits are reachable or lost, so the map and the goals always agree. Next to the drawing, a list of commits is kept for screen readers. A development-only viewer for map scenes is at `/dev/map`.
+
+## Shared helpers (`src/lib`)
+
+- `palette.ts`: every colour in the game, defined once. The root layout writes the colours as CSS variables, Tailwind maps them to classes such as `bg-ink` and `text-muted`, and the SVG map reads the same constants. A test checks the contrast of every text and background pair.
+- `storage.ts`: browser storage with an in-memory fallback, used for level progress and the mute setting.
 
 ## Robots and sound
 
