@@ -65,6 +65,8 @@ function spawnGit(cwd: string, args: string[], env: NodeJS.ProcessEnv, input?: s
     child.on("close", (code) =>
       resolve({ code: code ?? 1, stdout: Buffer.concat(out), stderr: Buffer.concat(err).toString("utf8") }),
     );
+    // git may exit before reading stdin (most commands ignore it); that EPIPE is harmless.
+    child.stdin.on("error", () => {});
     child.stdin.end(input ?? "");
   });
 }
