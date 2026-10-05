@@ -4,7 +4,7 @@
 // the commit's tree added, which is the same on both sides when the trees match.
 //
 // Full oids inside working files (pull conflict markers name the fetched commit) are replaced by
-// "<label>" on both sides.
+// "<label>" on both sides, and so are 7-character abbreviations of known commits.
 
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -97,8 +97,33 @@ function labelCommits(raw: RawCommit[]): Labeling {
   for (const [msg, group] of byMessage) {
     for (const c of group) labels.set(c.id, group.length === 1 ? msg : `${msg} {tree:${treeHash(c.tree)}}`);
   }
+  // A message that names another commit by full oid ("This reverts commit <oid>.") names it by
+  // label instead. A commit can only name older commits, so this always terminates.
+  const resolved = new Map<string, string>();
+  const finalLabel = (id: string, depth = 0): string => {
+    const done = resolved.get(id);
+    if (done !== undefined) return done;
+    const raw = labels.get(id) ?? `<unknown ${id.slice(0, 7)}>`;
+    const out =
+      depth > 50
+        ? raw
+        : raw.replace(/\b[0-9a-f]{40}\b/g, (oid) => (labels.has(oid) && oid !== id ? `<${finalLabel(oid, depth + 1)}>` : oid));
+    resolved.set(id, out);
+    return out;
+  };
+  for (const id of [...labels.keys()]) finalLabel(id);
+  for (const [id, label] of resolved) labels.set(id, label);
   const label = (id: string) => labels.get(id) ?? `<unknown ${id.slice(0, 7)}>`;
-  const text = (s: string) => s.replace(/\b[0-9a-f]{40}\b/g, (oid) => (labels.has(oid) ? `<${labels.get(oid)}>` : oid));
+  // Abbreviated oids (rebase and cherry-pick conflict markers say ">>>>>>> 1a2b3c4 (Subject)") are
+  // replaced too when exactly one known commit starts with them.
+  const byPrefix = (short: string) => {
+    const hits = [...labels.keys()].filter((id) => id.startsWith(short));
+    return hits.length === 1 ? `<${labels.get(hits[0])}>` : short;
+  };
+  const text = (s: string) =>
+    s
+      .replace(/\b[0-9a-f]{40}\b/g, (oid) => (labels.has(oid) ? `<${labels.get(oid)}>` : oid))
+      .replace(/\b[0-9a-f]{7}\b/g, byPrefix);
   const commits: Record<string, CommitSnap> = {};
   for (const c of raw) {
     commits[label(c.id)] = { parents: c.parents.map(label), author: c.author, tree: sortKeys(c.tree) };

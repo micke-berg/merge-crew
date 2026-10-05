@@ -3,10 +3,12 @@
 import { flag, parseArgs, value } from "../args";
 import { fail, failWith, notSupported, type Ctx } from "../context";
 import { shortOid } from "../objects";
-import { isAncestor, resolveRev } from "../revisions";
+import { forkPoint, isAncestor, resolveRev, trackingReflogKey } from "../revisions";
 import type { Oid, OutputLine } from "../types";
 import { setUpstream } from "./branch";
+import { requireCleanTree } from "../sequencer";
 import { checkNoMergeInProgress, intoSuffix, runMerge } from "./merge";
+import { startRebase } from "./rebase";
 
 function requireRemote(ctx: Ctx, name: string): void {
   if (!ctx.state.remotes[name]) {
@@ -29,13 +31,20 @@ function defaultRemote(ctx: Ctx): string {
   return "origin";
 }
 
-function setTracking(ctx: Ctx, key: string, to: Oid | null): void {
+function setTracking(ctx: Ctx, key: string, to: Oid | null, message: string): void {
   const from = ctx.state.remoteTracking[key] ?? null;
   if (from === to) return;
-  if (to === null) delete ctx.state.remoteTracking[key];
-  else ctx.state.remoteTracking[key] = to;
+  const logKey = trackingReflogKey(key);
+  if (to === null) {
+    delete ctx.state.remoteTracking[key];
+    delete ctx.state.branchReflogs[logKey];
+  } else {
+    ctx.state.remoteTracking[key] = to;
+    (ctx.state.branchReflogs[logKey] ??= []).push({ oid: to, previous: from, message, time: ctx.time });
+  }
   ctx.emit({ type: "remote-tracking-updated", actor: ctx.actor, ref: key, from, to });
 }
+
 
 /**
  * What --force-with-lease expects the remote branch to be: the remote-tracking ref by default, or
@@ -217,13 +226,13 @@ export function push(ctx: Ctx, args: string[]): void {
       else remoteState.branches[u.dst] = u.oid;
       ctx.emit({ type: "remote-updated", actor: ctx.actor, remote, branch: u.dst, from: old, to: u.oid, forced });
     }
-    setTracking(ctx, `${remote}/${u.dst}`, u.oid);
+    setTracking(ctx, `${remote}/${u.dst}`, u.oid, "update by push");
     if (flag(p, "-u") && u.srcBranch) setUpstream(ctx, u.srcBranch, `${remote}/${u.dst}`);
   }
 }
 
 /** Copy the remote's branches into remote-tracking refs. `only` limits it to one branch. */
-function fetchRemote(ctx: Ctx, remote: string, opts: { only?: string; prune?: boolean }): void {
+function fetchRemote(ctx: Ctx, remote: string, opts: { only?: string; prune?: boolean; action?: string }): void {
   const remoteState = ctx.state.remotes[remote];
   const lines: string[] = [];
   const names = opts.only !== undefined ? [opts.only] : Object.keys(remoteState.branches).sort();
@@ -236,14 +245,14 @@ function fetchRemote(ctx: Ctx, remote: string, opts: { only?: string; prune?: bo
     if (from === null) lines.push(` * [new branch]      ${name} -> ${key}`);
     else if (isAncestor(ctx.state, from, to)) lines.push(`   ${shortOid(from)}..${shortOid(to)}  ${name} -> ${key}`);
     else lines.push(` + ${shortOid(from)}...${shortOid(to)} ${name} -> ${key}  (forced update)`);
-    setTracking(ctx, key, to);
+    setTracking(ctx, key, to, `${opts.action ?? "fetch"}: ${from === null ? "storing head" : isAncestor(ctx.state, from, to) ? "fast-forward" : "forced-update"}`);
   }
   if (opts.prune) {
     for (const key of Object.keys(ctx.state.remoteTracking).sort()) {
       if (!key.startsWith(`${remote}/`)) continue;
       if (remoteState.branches[key.slice(remote.length + 1)] === undefined) {
         lines.push(` - [deleted]         (none) -> ${key}`);
-        setTracking(ctx, key, null);
+        setTracking(ctx, key, null, "");
       }
     }
   }
@@ -281,9 +290,10 @@ export function pull(ctx: Ctx, args: string[]): void {
     "-q": {},
     "--quiet": { alias: "-q" },
   });
-  if (flag(p, "--rebase")) notSupported("git pull --rebase");
   const wt = ctx.wt;
+  const rebasing = flag(p, "--rebase") && !flag(p, "--no-rebase");
   checkNoMergeInProgress(ctx, "Pulling");
+  if (rebasing && ctx.headOid()) requireCleanTree(ctx, "pull with rebase");
   const current = wt.head.kind === "branch" ? wt.head.name : null;
   const [remoteArg, branchArg, ...extra] = p.positional;
   if (extra.length) notSupported("Pulling several branches at once");
@@ -329,14 +339,24 @@ export function pull(ctx: Ctx, args: string[]): void {
     branch = up.branch;
   }
   requireRemote(ctx, remote);
-  fetchRemote(ctx, remote, { only: branchArg ? branch : undefined });
+  // pull --rebase replays only the commits made since the remote-tracking ref was last seen (the
+  // fork point), so commits the remote dropped by a force push are not brought back.
+  const startHead = ctx.headOid();
+  const fork = rebasing && startHead ? forkPoint(ctx.state, `${remote}/${branch}`, startHead) : null;
+  fetchRemote(ctx, remote, { only: branchArg ? branch : undefined, action: "pull" });
   const theirs = ctx.state.remotes[remote].branches[branch];
   if (theirs === undefined) fail(`fatal: couldn't find remote ref ${branch}`);
+  const head = ctx.headOid();
+  const reflogPrefix = ["pull", ...args].join(" ");
+  if (rebasing && head && !isAncestor(ctx.state, head, theirs)) {
+    startRebase(ctx, { upstream: fork ?? theirs, onto: theirs, ontoLabel: theirs, branchArg: null, action: reflogPrefix });
+    return;
+  }
   runMerge(ctx, {
     theirs,
     label: theirs,
     message: `Merge branch '${branch}' of ${remote}${intoSuffix(ctx)}`,
-    reflogPrefix: ["pull", ...args].join(" "),
-    ff: flag(p, "--ff-only") ? "only" : flag(p, "--no-ff") ? "never" : "allow",
+    reflogPrefix,
+    ff: rebasing ? "only" : flag(p, "--ff-only") ? "only" : flag(p, "--no-ff") ? "never" : "allow",
   });
 }

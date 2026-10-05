@@ -2,6 +2,9 @@
 
 What we learned about building this with AI agents. Newest first, one dated line each.
 
+- 2026-10-05 — Engine wave 2: the oracle compares reflogs by commit, not by wording, and still caught two git rules no one had written down: a detached HEAD that does not move gets no reflog line (a branch HEAD does), and remote-tracking refs need their own reflog because pull --rebase finds its fork point there. Probing real git in a throwaway folder before writing each command was faster than reading git's source.
+- 2026-10-05 — Engine wave 2: rebase, cherry-pick and revert copy commits with the same message, which broke the oracle's "labels are messages" rule; scenarios that copy commits now say so with a flag, and oids inside messages and conflict markers are replaced by labels.
+- 2026-10-05 — Asset handoffs need the PNG files, frame metadata, a redistribution licence and an ASSETS.md entry. Check the copied documentation for private names and machine paths before adding it to the public repository.
 - 2026-10-05 — CI failed twice on the first push: a lockfile made with a global `legacy-peer-deps` setting (fixed by the project `.npmrc`), and Next.js 16 route types that exist only after a local build (fixed by running `next typegen` in the typecheck script). Local checks passing is not proof. Wait for CI.
 - 2026-10-05 — The privacy check blocked a licence line containing the owner's first name. Licences use the full legal name.
 - 2026-10-05 — The project scaffolder made the first commit with the machine's global git email before the repository's own identity was set. Set the commit identity before anything creates a commit.

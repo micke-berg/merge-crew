@@ -3,11 +3,11 @@
 import { flag, parseArgs, value } from "../args";
 import { fail, type Ctx } from "../context";
 import { shortOid, subject } from "../objects";
-import { resolveRev, walk } from "../revisions";
-import type { Oid, ReflogEntry } from "../types";
+import { remoteTrackingKey, resolveRev, walk } from "../revisions";
+import type { Commit, Oid, ReflogEntry } from "../types";
 
 /** "(HEAD -> main, origin/main, feature)" style labels for each commit. */
-function decorations(ctx: Ctx): Map<Oid, string[]> {
+export function decorations(ctx: Ctx): Map<Oid, string[]> {
   const map = new Map<Oid, string[]>();
   const add = (oid: Oid, label: string) => {
     const list = map.get(oid) ?? [];
@@ -26,6 +26,15 @@ function decorations(ctx: Ctx): Map<Oid, string[]> {
     if (i > 0) list.unshift(...list.splice(i, 1));
   }
   return map;
+}
+
+/** The long form of a commit as `git log` and `git show` print it, ending with a blank line. */
+export function commitHeader(c: Commit, decor: Map<Oid, string[]>): string[] {
+  const labels = decor.get(c.oid);
+  const lines = [`commit ${c.oid}${labels ? ` (${labels.join(", ")})` : ""}`];
+  if (c.parents.length > 1) lines.push(`Merge: ${c.parents.map(shortOid).join(" ")}`);
+  lines.push(`Author: ${c.author}`, "", ...c.message.split("\n").map((l) => `    ${l}`), "");
+  return lines;
 }
 
 export function log(ctx: Ctx, args: string[]): void {
@@ -71,13 +80,8 @@ export function log(ctx: Ctx, args: string[]): void {
   for (const c of commits) {
     const labels = decor.get(c.oid);
     const d = labels ? ` (${labels.join(", ")})` : "";
-    if (flag(p, "--oneline")) {
-      ctx.out(`${shortOid(c.oid)}${d} ${subject(c.message)}`);
-    } else {
-      ctx.out(`commit ${c.oid}${d}`);
-      if (c.parents.length > 1) ctx.out(`Merge: ${c.parents.map(shortOid).join(" ")}`);
-      ctx.out(`Author: ${c.author}`, "", ...c.message.split("\n").map((l) => `    ${l}`), "");
-    }
+    if (flag(p, "--oneline")) ctx.out(`${shortOid(c.oid)}${d} ${subject(c.message)}`);
+    else ctx.out(...commitHeader(c, decor));
   }
 }
 
@@ -92,9 +96,13 @@ export function reflog(ctx: Ctx, args: string[]): void {
   if (ref === "HEAD" || ref === "@") {
     entries = wt.headReflog;
     label = "HEAD";
+  } else if (ref === "stash" || ref === "refs/stash") {
+    ctx.state.stash.forEach((e, i) => ctx.out(`${shortOid(e.oid)} stash@{${i}}: ${e.message}`));
+    return;
   } else {
     const name = ref.startsWith("refs/heads/") ? ref.slice(11) : ref;
-    const log = ctx.state.branchReflogs[name];
+    const trackingKey = remoteTrackingKey(ctx.state, name);
+    const log = trackingKey ? ctx.state.branchReflogs[`refs/remotes/${trackingKey}`] : ctx.state.branchReflogs[name];
     if (!log) {
       fail(
         `fatal: ambiguous argument '${ref}': unknown revision or path not in the working tree.`,

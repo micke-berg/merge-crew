@@ -68,8 +68,9 @@ describe("run: contract", () => {
 
   it("reports later-wave commands and shell commands as not supported", () => {
     const r = new Repo();
-    expect(r.fails("rebase main").output[0].text).toMatch(/not supported in Merge Crew yet/);
-    const shell = engine.run(r.state, { actor: "player", argv: ["ls"] });
+    expect(r.fails("tag v1").output[0].text).toMatch(/not supported in Merge Crew yet/);
+    expect(r.fails("rebase -i main").output[0].text).toMatch(/not supported in Merge Crew yet/);
+    const shell = engine.run(r.state, { actor: "player", argv: ["rm", "a.txt"] });
     expect(shell.ok).toBe(false);
     expect(shell.output[0].text).toMatch(/not supported/);
     expect(r.fails("commit --fixup HEAD").output[0].text).toMatch(/not supported/);

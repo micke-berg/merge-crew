@@ -4,7 +4,9 @@ import { flag, parseArgs } from "../args";
 import { fail, type Ctx } from "../context";
 import { cleanupMessage, createCommit, shortOid, subject, treesEqual } from "../objects";
 import type { Oid } from "../types";
+import { pickState, type PickInProgress } from "../sequencer";
 import { stageTracked } from "./files";
+import { pickMessage } from "./pick";
 import { statusLines } from "./status";
 
 export function unmergedFailure(ctx: Ctx, what: string): never {
@@ -22,13 +24,15 @@ export function commitIndex(
   const wt = ctx.wt;
   if (Object.keys(wt.conflicts).length) unmergedFailure(ctx, "Committing");
   const merge = wt.inProgress?.kind === "merge" ? wt.inProgress : null;
-  if (wt.inProgress && !merge) fail(`fatal: a ${wt.inProgress.kind} is in progress`);
+  // A stopped cherry-pick or revert is concluded by a plain commit, with the picked commit's message.
+  const pick = pickState(ctx);
   const head = ctx.headOid();
   let parents: Oid[];
   let message = opts.message;
 
   if (opts.amend) {
     if (merge) fail("fatal: You are in the middle of a merge -- cannot amend.");
+    if (pick) fail(`fatal: You are in the middle of a ${pick.kind} -- cannot amend.`);
     if (!head) fail("fatal: You have nothing to amend.");
     const old = ctx.state.commits[head];
     parents = [...old.parents];
@@ -46,6 +50,9 @@ export function commitIndex(
     if (merge) {
       parents.push(merge.theirs);
       if (message === undefined) message = merge.message;
+    } else if (pick) {
+      if (message === undefined) message = pickMessage(ctx, pick.kind, pick.oid);
+      if (!opts.allowEmpty && treesEqual(ctx.headTree(), wt.index)) fail(...statusLines(ctx, false));
     } else if (!opts.allowEmpty && treesEqual(ctx.headTree(), wt.index)) {
       fail(...statusLines(ctx, false));
     }
@@ -60,17 +67,25 @@ export function commitIndex(
     parents,
     message,
     tree: wt.index,
-    author: ctx.actor,
+    author: pick?.kind === "cherry-pick" ? ctx.state.commits[pick.oid].author : ctx.actor,
     time: ctx.time,
   });
   const subj = subject(message);
-  const kind = opts.amend ? "commit (amend)" : merge ? "commit (merge)" : parents.length === 0 ? "commit (initial)" : "commit";
+  const kind = opts.amend
+    ? "commit (amend)"
+    : merge
+      ? "commit (merge)"
+      : pick?.kind === "cherry-pick"
+        ? "commit (cherry-pick)"
+        : parents.length === 0
+          ? "commit (initial)"
+          : "commit";
   const branch = wt.head.kind === "branch" ? wt.head.name : null;
   ctx.emit({ type: "commit-created", actor: ctx.actor, oid: commit.oid, parents: commit.parents, branch });
   ctx.advanceHead(commit.oid, opts.amend ? "amend" : merge ? "merge" : "commit", `${kind}: ${subj}`);
-  if (merge) {
+  if (merge || pick) {
     wt.inProgress = null;
-    ctx.emit({ type: "operation", actor: ctx.actor, kind: "merge", phase: "completed" });
+    ctx.emit({ type: "operation", actor: ctx.actor, kind: merge ? "merge" : (pick as PickInProgress).kind, phase: "completed" });
   }
   const where = branch ?? "detached HEAD";
   ctx.out(`[${where}${parents.length === 0 ? " (root-commit)" : ""} ${shortOid(commit.oid)}] ${subj}`);

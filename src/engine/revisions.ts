@@ -67,6 +67,7 @@ function resolveBase(state: RepoState, wt: Worktree | undefined, base: string): 
     }
     if (!/^\d+$/.test(sel)) return null;
     const n = Number(sel);
+    if ((ref === "stash" || ref === "refs/stash") && state.stash.length) return state.stash[n]?.oid ?? null;
     if (ref === "HEAD" || ref === "@") return wt ? nthReflog(wt.headReflog, n) : null;
     if (ref === "") {
       if (!wt) return null;
@@ -75,9 +76,15 @@ function resolveBase(state: RepoState, wt: Worktree | undefined, base: string): 
     }
     const name = ref.startsWith("refs/heads/") ? ref.slice(11) : ref;
     const log = state.branchReflogs[name];
-    return log ? nthReflog(log, n) : null;
+    if (log && !name.startsWith("refs/")) return nthReflog(log, n);
+    // Remote-tracking refs keep their reflog under the full ref name (see trackingReflogKey).
+    const key = remoteTrackingKey(state, name);
+    const tracking = key ? state.branchReflogs[trackingReflogKey(key)] : undefined;
+    return tracking ? nthReflog(tracking, n) : null;
   }
   if (base === "HEAD" || base === "@") return wt ? headOid(state, wt) : null;
+  // refs/stash comes before refs/heads in git's lookup order.
+  if ((base === "stash" || base === "refs/stash") && state.stash.length) return state.stash[0].oid;
   const byRef = resolveRefName(state, base);
   if (byRef) return byRef;
   if (/^[0-9a-f]{4,40}$/.test(base)) {
@@ -199,4 +206,27 @@ export function walk(state: RepoState, starts: Oid[], exclude: Set<Oid> = new Se
 
 export function countBetween(state: RepoState, from: Oid, to: Oid): number {
   return walk(state, [to], ancestors(state, from)).length;
+}
+
+/**
+ * Where a remote-tracking ref's reflog is kept. types.ts has no field for these, so they live in
+ * branchReflogs under their full ref name, which no branch can have. pull --rebase reads them to find
+ * the fork point, and `origin/main@{1}` resolves through them.
+ */
+export function trackingReflogKey(key: string): string {
+  return `refs/remotes/${key}`;
+}
+
+/**
+ * git's fork point (merge-base --fork-point): the newest value the remote-tracking ref has had that
+ * the branch is built on, found through the ref's reflog. null when there is none.
+ */
+export function forkPoint(state: RepoState, key: string, head: Oid): Oid | null {
+  const revs = (state.branchReflogs[trackingReflogKey(key)] ?? []).map((e) => e.oid);
+  if (revs.length === 0) return null;
+  const fromRevs = new Set<Oid>();
+  for (const r of revs) for (const o of ancestors(state, r)) fromRevs.add(o);
+  const common = [...ancestors(state, head)].filter((o) => fromRevs.has(o));
+  const best = common.filter((c) => !common.some((other) => other !== c && isAncestor(state, c, other)));
+  return best.length === 1 && revs.includes(best[0]) ? best[0] : null;
 }
