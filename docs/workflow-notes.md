@@ -1,23 +1,38 @@
-# Workflow notes
+# Building with parallel AI agents: lessons
 
-What we learned about building this with AI agents. Newest first, one dated line each.
+Merge Crew is built by several AI coding agents working at the same time, each owning specific folders, against a shared spec (`docs/spec.md`) and a shared type contract (`src/engine/types.ts`). These are the lessons, newest first within each section. Add one dated line when something helps or hurts.
 
-- 2026-10-05 — Levels lane, Act 2 levels 2 to 5: a new test that runs every suggestion button through the engine found that `git log --graph` is not supported, and an Act 1 level had offered it as a button since wave 1. Testing the buttons, not only the solutions, is cheap and catches what players will actually click.
-- 2026-10-05 — Levels lane: real git refused `git rebase main drift` because the branch is checked out in the robot's own worktree. Robots holding their branches in linked worktrees limits what the player can do to those branches; the Drift conflict level is solved by merging (or by rebasing a copy), and the goals accept both.
-- 2026-10-05 — An agent ran `pkill -f "cat"` to stop a hung command. "Application" contains "cat", so it closed most of the owner's open apps. Rule added to AGENTS.md: stop processes only by their own id.
-- 2026-10-05 — Engine wave 2: the oracle compares reflogs by commit, not by wording, and still caught two git rules no one had written down: a detached HEAD that does not move gets no reflog line (a branch HEAD does), and remote-tracking refs need their own reflog because pull --rebase finds its fork point there. Probing real git in a throwaway folder before writing each command was faster than reading git's source.
-- 2026-10-05 — Engine wave 2: rebase, cherry-pick and revert copy commits with the same message, which broke the oracle's "labels are messages" rule; scenarios that copy commits now say so with a flag, and oids inside messages and conflict markers are replaced by labels.
-- 2026-10-05 — Asset handoffs need the PNG files, frame metadata, a redistribution licence and an ASSETS.md entry. Check the copied documentation for private names and machine paths before adding it to the public repository.
-- 2026-10-05 — CI failed twice on the first push: a lockfile made with a global `legacy-peer-deps` setting (fixed by the project `.npmrc`), and Next.js 16 route types that exist only after a local build (fixed by running `next typegen` in the typecheck script). Local checks passing is not proof. Wait for CI.
-- 2026-10-05 — The privacy check blocked a licence line containing the owner's first name. Licences use the full legal name.
-- 2026-10-05 — The project scaffolder made the first commit with the machine's global git email before the repository's own identity was set. Set the commit identity before anything creates a commit.
-- 2026-10-05 — Earlier attempts at this idea drifted when agents built things outside the goal. Countermeasure: a written spec with a "not in v1" list, an ideas file as the only place for new ideas, and review against the spec before merging.
-- 2026-10-05 — Levels lane: dry-running the Act 2 force-push story in real git before writing it showed that in a shared repository the commits stay reachable through the robot's own branch and worktree HEAD, and that a plain pull refuses to drop diverged commits. The scene had to reset both checkouts. Verify a level's story in real git first, not just its commands.
-- 2026-10-05 — Oracle lane: the first real-git harness took about a minute because node spawns git at roughly 40 ms a call on this machine. Reading the whole object store with one cat-file call, reading reflogs and HEAD files from disk, and running scenarios concurrently brought the suite to about 8 seconds. Writing each scenario step's expected real-git outcome into the scenario caught a wrong assumption (branch -f cannot move a branch checked out elsewhere) before any engine comparison ran.
-- 2026-10-05 — Map view: building against hand-made RepoState fixtures (with a small builder) let the map lane work fully in parallel with the engine; `types.ts` was enough of a contract. The global Playwright CLI had no browser installed, so the visual check ran in an in-app browser pane instead, whose screenshots lag behind animations: wait a few seconds or read the DOM before judging a frame.
-- 2026-10-05 — Engine and oracle agents agreed conventions by direct message early (reflog order, zero oids, pull merge messages), so the first oracle run was 94 of 96 green. A throwaway fuzz of the merge code against `git merge-file` found a 2% mismatch the scenario tests missed: tie-breaking between equally short diffs. Porting xdiff's own diff fixed it.
-- 2026-10-05 — Game lane: the speech bubble first sat over the bottom of the map and hid the origin/main tag during the force-push, the one moment the scene is about. Moving the dialogue into the command box (which is idle during scenes) fixed it. Only playing the level in a browser showed this; the unit tests were green throughout.
-- 2026-10-05 — Game lane: goal ticks evaluated during the scripted scene showed "2/3 done" before Blaze had even reset anyone. Goals that are true mid-scene are half-truths; the game now checks goals only from the player turn on.
-- 2026-10-05 — Art integration: the robot names on the map covered the player's pawn after a merge, because the new art is wider than the placeholders and a neighbouring group's labels reached into the next column. Only playing the documented solution in a browser showed it; the unit tests and a static first screen looked fine. Measuring the artwork's bounding boxes with a throwaway script before writing the build script gave a safe shared crop (about half the pixels) and the per-robot widths used for spacing.
-- 2026-10-05 — Conflict editor: a second `next dev` in the same folder refuses to start while another agent's server runs (Next 16 points to the running one), so parallel agents share one dev server per checkout. In the in-app browser pane, clicks and typing stopped reaching the page while a custom viewport size was emulated; at the pane's own size they worked, and driving the page through its DOM covered the wide screenshots.
-- 2026-10-05 — Conflict editor: building the end-to-end check as a unit test with a tiny inline level (two branches, one line) proved merge, resolve, add and commit before any UI existed, and needed no level from the levels lane.
+## Contracts and coordination
+
+- 2026-10-05 — Earlier attempts at this idea drifted when agents built things outside the goal. What held this time: a written spec with an explicit "not in v1" list, an ideas file as the only place for new ideas, and a review against the spec before every merge.
+- 2026-10-05 — Writing the shared types before starting any parallel work let four agents build the engine, the real-git tests, the map and the levels at the same time. The map was built against hand-made state fixtures, before the engine existed.
+- 2026-10-05 — The engine and test agents agreed on conventions directly and early (reflog order, how empty ids are written, pull merge messages), so the first comparison run was 94 of 96 green.
+- 2026-10-05 — Agents that verify their work in a shell must never stop processes by name or delete with wildcards. A pattern match on "cat" also matches "Application" and stopped unrelated programs on the development machine. A wildcard delete in the shared temp folder could remove another agent's files. Both are now rules in `AGENTS.md`.
+
+## Real git as the referee
+
+- 2026-10-05 — A throwaway fuzz of the merge code against `git merge-file` found a 2% mismatch that the scenario tests missed: tie-breaking between equally short diffs. Porting git's own diff algorithm fixed it.
+- 2026-10-05 — Writing each scenario step's expected real-git outcome (ok, error, stopped) into the scenario caught a wrong assumption before any engine comparison ran: `branch -f` cannot move a branch checked out in another worktree.
+- 2026-10-05 — The comparison caught git rules nobody had written down: a detached HEAD that does not move gets no reflog line, and remote-tracking refs need their own reflog because `pull --rebase` finds its fork point there.
+- 2026-10-05 — Rebase, cherry-pick and revert copy commits with the same message, which broke the "commits are identified by message" rule of the snapshots. Scenarios that copy commits now declare it, and ids inside messages and conflict markers are replaced by labels.
+- 2026-10-05 — The first real-git harness took about a minute, because starting a git process costs about 40 ms. Reading the whole object store with one `cat-file` call, reading reflogs and HEAD files from disk, and running scenarios concurrently brought it to about 10 seconds.
+
+## Levels
+
+- 2026-10-05 — Check a level's story in real git, not just its commands. In a shared repository, commits "lost" to a force-push stay reachable through the robot's own branch and worktree, and a plain pull refuses to drop diverged commits. The force-push scene had to reset both checkouts to make the loss real.
+- 2026-10-05 — Real git refuses `git rebase main drift` when `drift` is checked out in a robot's worktree. Robots holding their branches limits what the player can do to them, so goals must accept every fair route (merge, or rebasing a copy).
+- 2026-10-05 — Running every suggestion button through the engine, not only the solutions, found a button offering `git log --graph`, which the engine did not support.
+- 2026-10-05 — Goals evaluated during a scripted scene showed "2/3 done" before the problem had even happened. Goals are now checked from the player's turn on.
+
+## Interface
+
+- 2026-10-05 — Several layout problems appeared only when playing a level to the end in a browser; the unit tests were green throughout. A speech bubble hid the one tag the force-push scene is about, and robot name labels covered the player's marker after a merge once the wider final art arrived.
+- 2026-10-05 — Measuring the artwork's bounding boxes with a throwaway script gave a safe shared crop (about half the pixels) and the per-robot widths used for spacing. The web sprites are about 11% of the source size.
+- 2026-10-05 — Next.js 16 allows one dev server per checkout, so parallel agents share it. Browser automation screenshots can lag behind animations; wait, or read the DOM, before judging a frame.
+
+## Tooling and CI
+
+- 2026-10-05 — Local checks passing is not proof. CI failed on the first push twice: a lockfile made with a global `legacy-peer-deps` setting (fixed by the project `.npmrc`), and Next.js route types that exist only after a local build (fixed by running `next typegen` before typechecking).
+- 2026-10-05 — Set the repository's commit identity before anything creates a commit. The project scaffolder committed with the machine's global identity.
+- 2026-10-05 — Asset handoffs need the files, frame metadata, a redistribution licence and an `ASSETS.md` entry. Source files and tool verification output belong outside the folder the website serves.
+- 2026-10-05 — Dependabot runs cannot read repository secrets, so checks that need one must have it added as a Dependabot secret too. Packages that must move together (React and React DOM) need a Dependabot group.

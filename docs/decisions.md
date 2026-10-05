@@ -4,15 +4,15 @@ Newest first. Each entry: date, what was decided, why.
 
 ## 2026-10-05 — Pocket Machines character art
 
-- The owner chose Pocket Machines from three directions. Tidy walks, Blaze rolls, Drift hovers and Hoarder shuffles. Each has eight standard states and one signature action.
+- The maintainer chose Pocket Machines from three directions. Tidy walks, Blaze rolls, Drift hovers and Hoarder shuffles. Each has eight standard states and one signature action.
 - Delivery is transparent PNG sprite sheets, four 512 by 512 px frames per row, with a shared ground anchor and manifest. Artwork is licensed under CC0-1.0; see `ASSETS.md`.
 - The asset import does not change the current game components. Use the supplied manifest and drawing helper when replacing the placeholders.
 
 ## 2026-10-05 — Robot gibberish voices
 
-- **Robots speak in cartoon gibberish beeps, plus simple event sounds.** Owner's request after playing. Generated in the browser (no audio files, no cost), muted until the first interaction, with a mute button. Music and recorded speech stay out of v1.
+- **Robots speak in cartoon gibberish beeps, plus simple event sounds.** Maintainer's request after playing. Generated in the browser (no audio files, no cost), muted until the first interaction, with a mute button. Music and recorded speech stay out of v1.
 
-## 2026-10-05 — Engine wave 1: refused commands change nothing
+## 2026-10-05 — Engine: refused commands change nothing
 
 - **A refused command returns the unchanged state, even where real git leaves partial changes.** Teaching git's half-finished failure states is not a goal, and a clean rule keeps levels predictable. Known differences from git: a failed pull drops the fetched refs; a push with several refspecs applies none if one is rejected; `worktree add` on a used path creates no branch.
 - **A merge or pull that stops on a conflict is `ok: true`** with a conflict event, because the state did change.
@@ -27,7 +27,7 @@ Newest first. Each entry: date, what was decided, why.
 
 ## 2026-10-05 — Spec approved, art route changed
 
-- **Spec approved by the owner as written.**
+- **Spec approved by the maintainer as written.**
 - **Not the Rive robot.** It did not appeal. Art comes from an external AI art tool working from `docs/art-brief.md`, which fixes the game's technical needs and leaves the style open. Free toy-like characters with many poses (Kenney) are the reference for charm. Game code uses placeholder shapes until the art is chosen.
 
 ## 2026-10-05 — Project start

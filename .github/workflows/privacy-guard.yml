@@ -42,6 +42,10 @@ jobs:
         run: |
           guard=".github/public-guard.py"
           if [ -z "$PUBLIC_GUARD_LIST_TEXT" ]; then
+            if [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
+              echo "::notice::Pull request from a fork: repository secrets are not available, so the private-word check is skipped. A maintainer re-checks before merging."
+              exit 0
+            fi
             echo "The PUBLIC_GUARD_LIST secret is not available to this run, so nothing can be checked. Failing."
             exit 1
           fi
