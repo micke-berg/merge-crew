@@ -120,6 +120,10 @@ export type OutputLine = {
 };
 
 export type CommandResult = {
+  /**
+   * false when the command was refused and nothing changed. A merge, pull or similar that stops on a
+   * conflict is ok: true (git exits non-zero there, but the state did change), with a "conflict" event.
+   */
   ok: boolean;
   /** The new state. Equal to the input state when `ok` is false. */
   state: RepoState;
