@@ -4,16 +4,19 @@ Updated: 2026-10-05
 
 ## Where things stand
 
-- Repository scaffolded (Next.js, TypeScript, Tailwind v4).
-- Privacy check (private word list), secret scan (gitleaks), lint, typecheck and build run in CI.
-- `docs/spec.md` approved by the owner (2026-10-05).
-- Art: the free Rive robot was rejected. `docs/art-brief.md` goes to an external art tool; its three style directions come back to the owner to choose from.
+- Spec approved. Art brief is with the owner (external AI art tool); robots are code-drawn stand-ins until then.
+- Branch `feat/engine-foundation` holds wave 1, all green: typecheck, lint, 185 tests.
+  - `src/engine/`: git simulator. add, rm, commit, status, log, reflog, branch, switch, checkout, restore, reset, merge with git-identical conflicts, push, fetch, pull, worktrees, full revision syntax. Known differences from git: `docs/decisions.md`.
+  - `tests/oracle/`: 45 scenarios run through real git and the engine and compared. All match.
+  - `src/levels/`: act1-01 to act1-03 and act2-01 (Blaze force-pushes). Each level's documented solution passes in the engine.
+  - `src/components/map/` and `/play`: metro-style history map, animated from engine events, with a dev showcase page.
 
 ## Next
 
-1. Owner runs the art brief and picks a style direction. Until then, build with simple placeholder shapes so the art can be swapped in.
-2. Shared types in `src/engine/types.ts` (repository state, command, event, level).
-3. First playable slice: one Act 2 level (Blaze force-pushes, the player recovers the commits), fully animated.
+1. Owner merges the wave 1 pull request.
+2. First playable level: a `/level/[id]` page that wires the engine, a level, the map, the command box, speech bubbles and goal checks together. Start with act2-01.
+3. Engine wave 2: rebase, cherry-pick, revert, stash, diff, simple shell commands (cat, ls). Move the 27 extra edge-case scenarios from the engine lane into `tests/oracle`.
+4. Map polish from the map lane's list: tighter long histories, measured label widths, faster force-push scene, speech-bubble anchors.
 
 ## Open questions
 

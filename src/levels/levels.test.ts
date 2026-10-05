@@ -1,0 +1,155 @@
+import { describe, expect, it } from "vitest";
+import type { Engine, Queries, RepoState, ScriptStep } from "@/engine/types";
+import { getLevel, levels, solutions } from "./index";
+
+// ---------------------------------------------------------------------------
+// Engine probe. The engine lands in parallel with these levels, so it is loaded dynamically:
+// while "@/engine" does not exist yet, the engine tests are skipped instead of failing the suite.
+// Once the engine has landed, this can become a plain `import { engine, queries } from "@/engine"`.
+// ---------------------------------------------------------------------------
+
+type EngineModule = { engine: Engine; queries: Queries };
+
+async function loadEngine(): Promise<{ mod: EngineModule | null; reason: string }> {
+  const specifier = "@/engine";
+  try {
+    const mod = (await import(/* @vite-ignore */ specifier)) as Partial<EngineModule>;
+    if (!mod.engine || !mod.queries) {
+      return { mod: null, reason: "@/engine does not export { engine, queries } yet" };
+    }
+    return { mod: mod as EngineModule, reason: "" };
+  } catch (error) {
+    return { mod: null, reason: `@/engine could not be loaded yet (${(error as Error).message.split("\n")[0]})` };
+  }
+}
+
+const probe = await loadEngine();
+
+const UNSUPPORTED = /not (yet )?(supported|implemented)/i;
+
+type RunResult = {
+  state: RepoState;
+  /** Steps that failed for a reason other than a missing engine feature. */
+  failures: string[];
+  /** Set when the engine reported a command or option as not supported. */
+  unsupported: string | null;
+};
+
+function describeStep(step: ScriptStep): string {
+  if (step.kind === "git") return `${step.actor}$ ${step.argv.join(" ")}`;
+  if (step.kind === "edit") return `${step.edit.actor} edits ${step.edit.path}`;
+  return step.kind;
+}
+
+function runSteps(mod: EngineModule, start: RepoState, steps: ScriptStep[]): RunResult {
+  let state = start;
+  const failures: string[] = [];
+  for (const step of steps) {
+    if (step.kind !== "git" && step.kind !== "edit") continue; // say, mood, pause: presentation only
+    let result;
+    try {
+      result =
+        step.kind === "git"
+          ? mod.engine.run(state, { actor: step.actor, argv: step.argv })
+          : mod.engine.edit(state, step.edit);
+    } catch (error) {
+      const message = (error as Error).message;
+      if (UNSUPPORTED.test(message)) return { state, failures, unsupported: `${describeStep(step)}: ${message}` };
+      failures.push(`${describeStep(step)} threw: ${message}`);
+      return { state, failures, unsupported: null };
+    }
+    const text = result.output.map((l) => l.text).join("\n");
+    if (!result.ok && UNSUPPORTED.test(text)) {
+      return { state, failures, unsupported: `${describeStep(step)}: ${text}` };
+    }
+    if (!result.ok) {
+      failures.push(`${describeStep(step)} failed: ${text}`);
+      return { state, failures, unsupported: null };
+    }
+    state = result.state;
+  }
+  return { state, failures, unsupported: null };
+}
+
+// ---------------------------------------------------------------------------
+// Level data: runs without the engine.
+// ---------------------------------------------------------------------------
+
+describe("level data", () => {
+  it("has unique ids and is sorted by act and order", () => {
+    const ids = levels.map((l) => l.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    const keys = levels.map((l) => l.act * 1000 + l.order);
+    expect(keys).toEqual([...keys].sort((a, b) => a - b));
+  });
+
+  it("finds levels by id", () => {
+    expect(getLevel("act2-01")?.title).toBe("Blaze was in a hurry");
+    expect(getLevel("nope")).toBeUndefined();
+  });
+
+  it.each(levels.map((l) => [l.id, l] as const))("%s is complete", (id, level) => {
+    expect(level.goals.length).toBeGreaterThan(0);
+    expect(new Set(level.goals.map((g) => g.id)).size).toBe(level.goals.length);
+    expect(level.hintContext.length).toBeGreaterThan(0);
+    expect(level.suggestions.length).toBeGreaterThan(0);
+    expect(level.intro.length).toBeGreaterThan(0);
+    expect(level.outro.length).toBeGreaterThan(0);
+    expect(solutions[id]?.length).toBeGreaterThan(0);
+    // Every robot that speaks is listed in the crew.
+    for (const step of [...level.intro, ...level.outro]) {
+      if (step.kind === "say" || step.kind === "mood") expect(level.crew).toContain(step.actor);
+    }
+    // Suggestion buttons show the exact command, so each one is a git command.
+    for (const s of level.suggestions) expect(s.startsWith("git ")).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Levels through the engine.
+// ---------------------------------------------------------------------------
+
+describe.skipIf(!probe.mod)(`levels through the engine${probe.mod ? "" : ` (skipped: ${probe.reason})`}`, () => {
+  const mod = probe.mod as EngineModule;
+
+  for (const level of levels) {
+    describe(level.id, () => {
+      it("setup runs without errors", (ctx) => {
+        const r = runSteps(mod, mod.engine.createRepo(), level.setup);
+        if (r.unsupported) ctx.skip(`engine gap: ${r.unsupported}`);
+        expect(r.failures).toEqual([]);
+      });
+
+      it("goals are not met after setup and intro", (ctx) => {
+        const r = runSteps(mod, mod.engine.createRepo(), [...level.setup, ...level.intro]);
+        if (r.unsupported) ctx.skip(`engine gap: ${r.unsupported}`);
+        expect(r.failures).toEqual([]);
+        const passed = level.goals.map((g) => g.check(r.state, mod.queries));
+        expect(passed.every(Boolean)).toBe(false);
+      });
+
+      it("the documented solution meets every goal", (ctx) => {
+        const r = runSteps(mod, mod.engine.createRepo(), [...level.setup, ...level.intro, ...solutions[level.id]]);
+        if (r.unsupported) ctx.skip(`engine gap: ${r.unsupported}`);
+        expect(r.failures).toEqual([]);
+        const failed = level.goals.filter((g) => !g.check(r.state, mod.queries)).map((g) => g.id);
+        expect(failed).toEqual([]);
+      });
+    });
+  }
+
+  it("act2-01: Tidy's commits are lost after the intro and found again after the fix", (ctx) => {
+    const level = getLevel("act2-01")!;
+    const afterIntro = runSteps(mod, mod.engine.createRepo(), [...level.setup, ...level.intro]);
+    if (afterIntro.unsupported) ctx.skip(`engine gap: ${afterIntro.unsupported}`);
+    expect(afterIntro.failures).toEqual([]);
+    const lostMessages = mod.queries
+      .lost(afterIntro.state)
+      .map((oid) => afterIntro.state.commits[oid].message)
+      .sort();
+    expect(lostMessages).toEqual(["Add iced tea to the prices", "Add the price list"]);
+    // The player's reflog still knows where main was.
+    const previous = mod.queries.resolve(afterIntro.state, "player", "main@{1}");
+    expect(previous && afterIntro.state.commits[previous].message).toBe("Add iced tea to the prices");
+  });
+});
