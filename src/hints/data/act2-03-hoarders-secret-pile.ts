@@ -22,8 +22,8 @@ export const hints: LevelHints = {
   ].join("\n"),
   /** Used when the model is off, fails, or its hint is rejected. Gentle first, then more specific. */
   scripted: [
-    "Hoarder's stash is a list, newest first. git stash list shows what's in the pile.",
-    "The fizz recipe isn't the newest stash. Look inside each entry with git stash show -p before you restore anything.",
+    "Hoarder's stash is a pile of saved changes, newest on top. Is the newest one really the recipe?",
+    "The fizz recipe isn't the newest entry in the stash list. Look inside each entry before you restore anything.",
     "git stash branch can turn one stash entry into a new branch of its own. Then add and commit what it brings back.",
   ],
 };

@@ -14,7 +14,7 @@ export const hints: LevelHints = {
   ].join("\n"),
   /** Used when the model is off, fails, or its hint is rejected. Gentle first, then more specific. */
   scripted: [
-    "Start by asking git what it sees: git status lists the files that changed. Which one is waiting to be saved?",
+    "Start by asking git what it sees. Which file changed since the last save, and is it ready to be saved yet?",
     "A save in git takes two moves. First you put the file on the staging area, then you commit what is staged.",
     "Use git add with the file's name, then git commit with -m and a short message in quotes.",
   ],

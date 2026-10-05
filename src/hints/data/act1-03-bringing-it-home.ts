@@ -16,7 +16,7 @@ export const hints: LevelHints = {
   ].join("\n"),
   /** Used when the model is off, fails, or its hint is rejected. Gentle first, then more specific. */
   scripted: [
-    "Two branches hold my work. git log --oneline --all shows where they sit next to main.",
+    "Two branches hold my work, and main has neither of them yet. Branches can be joined back into the one you're on.",
     "Stay on main and bring each branch in, one at a time.",
     "git merge with a branch name brings that branch into the one you're on. Do it once for each of my branches.",
   ],

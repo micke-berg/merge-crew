@@ -23,8 +23,8 @@ export const hints: LevelHints = {
   ].join("\n"),
   /** Used when the model is off, fails, or its hint is rejected. Gentle first, then more specific. */
   scripted: [
-    "Drift's branch and main both changed the end of sign.txt. git log --oneline --all shows how far apart they are.",
+    "Drift's branch and main both changed the end of sign.txt. Bringing them together means choosing which lines to keep.",
     "Merge Drift's branch into main. When git stops on the conflict, open sign.txt and keep both lines.",
-    "After git merge drift stops, fix sign.txt in the editor and git add it. Then commit and push, no rebase needed.",
+    "When the merge stops, fix sign.txt in the editor and git add it. Then git commit and git push, no rebase needed.",
   ],
 };

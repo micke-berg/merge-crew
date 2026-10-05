@@ -354,6 +354,11 @@ export type LevelModel = {
   hint: HintView | null;
   /** Hints asked for in this run (restart starts a new run). At most MAX_HINTS_PER_RUN. */
   hintsUsed: number;
+  /**
+   * The hint texts Tidy has shown in this run, oldest first. Refunded answers (the offline and busy
+   * lines) are not hints and are left out. The next hint request sends these as `previousHints`.
+   */
+  hintsShown: string[];
 };
 
 /** `key` ties an answer to the request that asked for it, so a late answer after a restart is dropped. */
@@ -384,7 +389,7 @@ export type LevelAction =
 const NO_WAIT: Wait = { kind: "none" };
 
 export function initLevelModel(level: Level): LevelModel {
-  return { game: startLevel(level), wait: NO_WAIT, run: 0, tour: null, hint: null, hintsUsed: 0 };
+  return { game: startLevel(level), wait: NO_WAIT, run: 0, tour: null, hint: null, hintsUsed: 0, hintsShown: [] };
 }
 
 /** Hints left in this run. */
@@ -429,6 +434,7 @@ export function levelReducer(m: LevelModel, a: LevelAction): LevelModel {
         ...m,
         hint: m.game.phase === "play" ? { key: a.key, status: "shown", text: a.text } : null,
         hintsUsed: a.refund ? Math.max(0, m.hintsUsed - 1) : m.hintsUsed,
+        hintsShown: a.refund ? m.hintsShown : [...m.hintsShown, a.text],
       };
     case "hint-dismiss":
       return m.hint ? { ...m, hint: null } : m;

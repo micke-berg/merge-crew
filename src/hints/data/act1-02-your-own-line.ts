@@ -16,8 +16,8 @@ export const hints: LevelHints = {
   ].join("\n"),
   /** Used when the model is off, fails, or its hint is rejected. Gentle first, then more specific. */
   scripted: [
-    "The bolts don't belong on main yet. git status tells you which branch you're on and what changed.",
+    "The bolts don't belong on main yet. Which branch are you on right now, and where should this change live?",
     "Make a branch of your own and switch to it, and your unsaved change comes along. Save it there, then go home to main.",
-    "git switch -c makes a new branch and moves you onto it in one go. After you commit there, git switch takes you back to main.",
+    "git switch -c makes a new branch and moves you onto it in one go. After you commit there, head home with git switch.",
   ],
 };

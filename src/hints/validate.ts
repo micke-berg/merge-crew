@@ -1,6 +1,6 @@
 // Strict parsing of a hint request body. Pure: no level knowledge beyond what the caller passes in.
 
-import { LIMITS, MAX_HINTS_PER_RUN, MAX_RECENT_COMMANDS, type HintRequest, type RecentCommand } from "./types";
+import { LIMITS, MAX_HINTS_PER_RUN, MAX_PREVIOUS_HINTS, MAX_RECENT_COMMANDS, type HintRequest, type RecentCommand } from "./types";
 
 export type ParseResult = { ok: true; request: HintRequest } | { ok: false; error: string };
 
@@ -30,7 +30,7 @@ function text(v: unknown, max: number): string | null {
  */
 export function parseHintRequest(body: unknown, goalCountFor: (levelId: string) => number | undefined): ParseResult {
   if (!isPlainObject(body)) return { ok: false, error: "body must be an object" };
-  if (!onlyKeys(body, ["levelId", "hintNumber", "recentCommands", "goals", "statusSummary", "runId"])) {
+  if (!onlyKeys(body, ["levelId", "hintNumber", "recentCommands", "goals", "statusSummary", "previousHints", "runId"])) {
     return { ok: false, error: "unknown field" };
   }
   const levelId = text(body.levelId, LIMITS.levelId);
@@ -68,6 +68,21 @@ export function parseHintRequest(body: unknown, goalCountFor: (levelId: string) 
   const statusSummary = text(body.statusSummary, LIMITS.statusSummary);
   if (statusSummary === null) return { ok: false, error: "statusSummary" };
 
+  // Hint n can follow at most n - 1 shown hints. Empty or oversized entries never come from a real client.
+  let previousHints: string[] | undefined;
+  if (body.previousHints !== undefined) {
+    const list = body.previousHints;
+    if (!Array.isArray(list) || list.length > MAX_PREVIOUS_HINTS || list.length > hintNumber - 1) {
+      return { ok: false, error: "previousHints" };
+    }
+    previousHints = [];
+    for (const h of list) {
+      const t = text(h, LIMITS.previousHint);
+      if (t === null || !t.trim()) return { ok: false, error: "previousHints" };
+      previousHints.push(t);
+    }
+  }
+
   let runId: string | undefined;
   if (body.runId !== undefined) {
     if (typeof body.runId !== "string" || !RUN_ID.test(body.runId)) return { ok: false, error: "runId" };
@@ -76,6 +91,6 @@ export function parseHintRequest(body: unknown, goalCountFor: (levelId: string) 
 
   return {
     ok: true,
-    request: { levelId, hintNumber, recentCommands, goals: goals as boolean[], statusSummary, ...(runId ? { runId } : {}) },
+    request: { levelId, hintNumber, recentCommands, goals: goals as boolean[], statusSummary, ...(previousHints ? { previousHints } : {}), ...(runId ? { runId } : {}) },
   };
 }
