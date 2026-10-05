@@ -6,7 +6,7 @@ import { useEffect, useReducer } from "react";
 import { useReducedMotion } from "motion/react";
 import type { Level } from "@/engine/types";
 import { buildSchedule } from "@/components/map/timeline";
-import { initLevelModel, levelReducer, type GameState, type Wait } from "./game";
+import { initLevelModel, levelReducer, shownBubble, type GameState, type PointStep, type Wait } from "./game";
 import { markLevelComplete } from "./progress";
 
 /** How long to hold after a scripted git step so its animation can play. */
@@ -28,6 +28,7 @@ export function useLevel(level: Level) {
   const reduce = useReducedMotion() ?? false;
   const { game, wait } = model;
   const inScene = game.phase === "intro" || game.phase === "outro";
+  const touring = model.tour !== null;
 
   useEffect(() => {
     if (!inScene) return;
@@ -44,8 +45,16 @@ export function useLevel(level: Level) {
   return {
     game,
     run: model.run,
+    /** The robot line on screen: the scene's, or the screen tour's while it shows. */
+    bubble: shownBubble(model),
+    /** True while the "?" screen tour plays over the player turn. */
+    touring,
+    /** Position in the tour, for the dialogue's typewriter key. */
+    tourAt: model.tour?.at ?? -1,
     /** True while a robot line is on screen and waits for the player to read it. */
-    awaitingClick: inScene && wait.kind === "click",
+    awaitingClick: touring || (inScene && wait.kind === "click"),
+    /** Play the screen tour over the player turn. */
+    tour: (steps: PointStep[]) => dispatch({ type: "tour", steps }),
     begin: () => dispatch({ type: "begin" }),
     next: () => dispatch({ type: "continue" }),
     skip: () => dispatch({ type: "skip" }),

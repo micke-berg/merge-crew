@@ -47,6 +47,8 @@ A level is data, not code paths in the UI:
 
 A `say` step may name the working files it talks about (`files`). The files panel highlights them while the line shows, and the line offers them as chips that open the file. The player's current task is always shown in the "Your job" bar above the terminal: the first goal not yet met.
 
+A `point` step is a guided-tour line: the robot says it like a `say` line, and while it shows the screen dims softly around the region it names (`map`, `jobbar`, `terminal`, `suggestions`, `goals`, `files`) and outlines it in the robot's colour (`TourSpotlight.tsx`; each region marks itself with a `data-tour` attribute). A map `focus` also lights up commits by message, branch lines by name, or the lost band, inside the map (`map/focus.ts`, `map/MapFocus.tsx`). The "?" button in the level header replays the first level's point steps over the player turn as a standalone tour; it lives in the level reducer (`LevelModel.tour`) and never touches the game state.
+
 Every level has a documented solution, kept in a test-only `*.solution.ts` file so it never reaches the browser. The tests run setup, intro and solution through the engine and require a win. They also check that wrong approaches fail.
 
 ## Game state machine (`src/components/game/game.ts`)

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import { engine } from "@/engine";
 import type { Level } from "@/engine/types";
 import { levels } from "@/levels";
-import { git, say, write } from "@/levels/script";
+import { git, point, say, write } from "@/levels/script";
 import { solutions } from "@/levels/solutions";
 import {
   advance,
@@ -195,5 +195,38 @@ describe("command line errors", () => {
     expect(s.repo).toBe(before);
     expect(s.log.at(-1)?.kind).toBe("error");
     expect(s.log.at(-1)?.text).toMatch(/unclosed double quote/);
+  });
+});
+
+describe("point steps", () => {
+  const touring = (): Level => ({
+    ...testLevel(() => false),
+    intro: [
+      point("tidy", "map", "This line is main.", { focus: { branches: ["main"] } }),
+      point("tidy", "terminal", "Type here.", { mood: "happy" }),
+    ],
+  });
+
+  it("shows the line like a spoken one, carries the target and waits for a click", () => {
+    const s = begin(startLevel(touring()));
+    const first = advance(s);
+    expect(first.wait).toEqual({ kind: "click" });
+    expect(first.state.bubble).toEqual({
+      actor: "tidy",
+      text: "This line is main.",
+      mood: "talking",
+      files: [],
+      point: { target: "map", focus: { branches: ["main"] } },
+    });
+    const second = advance(first.state);
+    expect(second.state.bubble?.point).toEqual({ target: "terminal", focus: null });
+    expect(second.state.moods.tidy).toBe("happy");
+  });
+
+  it("changes nothing in the repository and ends in the player turn", () => {
+    const s = begin(startLevel(touring()));
+    const end = advanceUntilClick(advanceUntilClick(advanceUntilClick(s)));
+    expect(end.repo).toBe(s.repo);
+    expect(end.phase).toBe("play");
   });
 });

@@ -1,6 +1,6 @@
 import type { Level } from "@/engine/types";
 import { allOf, currentBranchIs, someBranchAheadOf, workingTreeClean } from "./goals";
-import { git, say, write } from "./script";
+import { git, point, say, write } from "./script";
 
 export const level: Level = {
   id: "act1-02",
@@ -24,7 +24,9 @@ export const level: Level = {
     write("player", "snacks.txt", "Robot snacks\n- bolts\n"),
   ],
   intro: [
-    say("tidy", "See the line on the map? That's main, the version the café's website uses. We keep it calm.", "talking"),
+    point("tidy", "map", "See this line? That's main, the version the café's website uses. We keep it calm.", {
+      focus: { branches: ["main"] },
+    }),
     say("tidy", "You've added bolts to the snack menu, snacks.txt. Bold. Let's not put that on main yet.", "thinking", ["snacks.txt"]),
     say("tidy", "A branch is your own line to try things on. Unsaved changes come along when you switch to it.", "talking"),
     say("tidy", "Save the bolts on a new branch: git switch -c bolts, then git add snacks.txt and git commit.", "talking", ["snacks.txt"]),
@@ -53,7 +55,12 @@ export const level: Level = {
   ].join("\n"),
   suggestions: ["git status", "git branch", "git switch -c bolts", "git add snacks.txt", 'git commit -m "Add bolts"', "git switch main"],
   outro: [
-    say("tidy", "Look, two lines on the map. Main is calm, and your idea has its own line.", "celebrate"),
+    // The player names the branch; "bolts" is what the job bar suggests. If it is called something
+    // else, the map highlights every branch line instead (see HistoryMap's focus).
+    point("tidy", "map", "A branch is a line that splits off main. Main stayed calm, and your idea has its own line.", {
+      mood: "celebrate",
+      focus: { branches: ["bolts"] },
+    }),
     say("tidy", "The bolts are safe on their branch. Safer than with Blaze around, anyway.", "happy"),
   ],
 };

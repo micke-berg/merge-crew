@@ -12,6 +12,7 @@ import type {
   Path,
   RepoState,
   RobotId,
+  ScreenTarget,
   ScriptStep,
 } from "@/engine/types";
 
@@ -26,8 +27,26 @@ export type TermLine =
 /** A terminal line before it gets its id. */
 type NewLine = TermLine extends infer T ? (T extends TermLine ? Omit<T, "id"> : never) : never;
 
-/** A robot line on screen. `files` are working files the line mentions, highlighted in the files panel. */
-export type Bubble = { actor: RobotId; text: string; mood: Mood; files: readonly Path[] };
+/** A guided-tour step: the screen region a robot is pointing at, and what to single out on the map. */
+export type PointStep = Extract<ScriptStep, { kind: "point" }>;
+export type Pointer = { target: ScreenTarget; focus: NonNullable<PointStep["focus"]> | null };
+
+/**
+ * A robot line on screen. `files` are working files the line mentions, highlighted in the files panel.
+ * `point` is set for a guided-tour line: the game highlights that part of the screen while it shows.
+ */
+export type Bubble = { actor: RobotId; text: string; mood: Mood; files: readonly Path[]; point?: Pointer };
+
+/** The bubble a point step shows. Shared by scenes and the on-demand screen tour. */
+export function pointBubble(step: PointStep): Bubble {
+  return {
+    actor: step.actor,
+    text: step.text,
+    mood: step.mood ?? "talking",
+    files: [],
+    point: { target: step.target, focus: step.focus ?? null },
+  };
+}
 
 export type GameState = {
   level: Level;
@@ -175,6 +194,14 @@ export function advance(s: GameState): { state: GameState; wait: Wait } {
         wait: { kind: "click" },
       };
     }
+    case "point": {
+      // Spoken like a say line; the bubble also carries what to highlight.
+      const bubble = pointBubble(step);
+      return {
+        state: { ...next, bubble, moods: { ...s.moods, [step.actor]: bubble.mood } },
+        wait: { kind: "click" },
+      };
+    }
     case "mood":
       return { state: { ...next, moods: { ...s.moods, [step.actor]: step.mood } }, wait: { kind: "none" } };
     case "pause":
@@ -314,6 +341,11 @@ export type LevelModel = {
   wait: Wait;
   /** Bumped on restart so the map remounts instead of animating back. */
   run: number;
+  /**
+   * The on-demand screen tour, played over the player turn: point steps only, no git. null when
+   * no tour is showing. It never touches the game state, so the level carries on where it was.
+   */
+  tour: { steps: PointStep[]; at: number } | null;
 };
 
 export type LevelAction =
@@ -325,16 +357,27 @@ export type LevelAction =
   | { type: "skip" }
   | { type: "command"; line: string }
   | { type: "edit"; path: string; content: string }
-  | { type: "restart"; level: Level };
+  | { type: "restart"; level: Level }
+  /** Show the screen tour (the "?" button). Only during the player turn. */
+  | { type: "tour"; steps: PointStep[] };
 
 const NO_WAIT: Wait = { kind: "none" };
 
 export function initLevelModel(level: Level): LevelModel {
-  return { game: startLevel(level), wait: NO_WAIT, run: 0 };
+  return { game: startLevel(level), wait: NO_WAIT, run: 0, tour: null };
+}
+
+/** The line on screen: the tour's current step while a tour shows, otherwise the scene's. */
+export function shownBubble(m: LevelModel): Bubble | null {
+  if (m.tour) return pointBubble(m.tour.steps[m.tour.at]);
+  return m.game.bubble;
 }
 
 export function levelReducer(m: LevelModel, a: LevelAction): LevelModel {
+  if (m.tour) return tourReducer(m, m.tour, a);
   switch (a.type) {
+    case "tour":
+      return m.game.phase === "play" && a.steps.length > 0 ? { ...m, tour: { steps: a.steps, at: 0 } } : m;
     case "begin":
       return m.game.phase === "brief" ? { ...m, game: begin(m.game), wait: NO_WAIT } : m;
     case "step": {
@@ -366,5 +409,21 @@ export function levelReducer(m: LevelModel, a: LevelAction): LevelModel {
     }
     case "restart":
       return { ...initLevelModel(a.level), run: m.run + 1 };
+  }
+}
+
+/** While the screen tour shows: continue walks it, skip (Esc) ends it, restart restarts. The rest waits. */
+function tourReducer(m: LevelModel, tour: NonNullable<LevelModel["tour"]>, a: LevelAction): LevelModel {
+  switch (a.type) {
+    case "continue": {
+      const at = tour.at + 1;
+      return { ...m, tour: at < tour.steps.length ? { ...tour, at } : null };
+    }
+    case "skip":
+      return { ...m, tour: null };
+    case "restart":
+      return levelReducer({ ...m, tour: null }, a);
+    default:
+      return m;
   }
 }

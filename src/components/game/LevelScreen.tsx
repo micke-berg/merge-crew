@@ -4,7 +4,7 @@ import Link from "next/link";
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "motion/react";
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { queries } from "@/engine";
-import type { Level } from "@/engine/types";
+import type { Level, ScriptStep } from "@/engine/types";
 import { HistoryMap } from "@/components/map/HistoryMap";
 import { actorColor } from "@/lib/palette";
 import { getLevel, levels } from "@/levels";
@@ -21,8 +21,15 @@ import { ConflictEditor } from "./ConflictEditor";
 import { conflictSource } from "./conflicts";
 import { BriefCard, FileViewer, WinCard, levelLabel } from "./Overlays";
 import { Terminal, type TerminalHandle } from "./Terminal";
+import { TARGET_NAMES, TourSpotlight } from "./TourSpotlight";
+import type { PointStep } from "./game";
 import { useLevel } from "./useLevel";
 import { MuteButton, useGameSounds } from "@/components/sound";
+
+/** The screen tour the "?" button replays: the first level's point steps, without its story or git. */
+const SCREEN_TOUR: PointStep[] = (getLevel("act1-01")?.intro ?? []).filter(
+  (step: ScriptStep): step is PointStep => step.kind === "point",
+);
 
 export function LevelScreen({ levelId }: { levelId: string }) {
   const level = getLevel(levelId);
@@ -45,8 +52,14 @@ export function LevelGame({ level }: { level: Level }) {
   // A first-time player who lands straight on a level gets the opening story before the brief.
   const premiseSeen = usePremiseSeen();
 
+  const touring = g.touring;
   const inScene = game.phase === "intro" || game.phase === "outro";
   const playing = game.phase === "play";
+  // A line that talks over the screen: a scene, or the "?" tour during the player turn.
+  const talking = inScene || touring;
+  const bubble = talking ? g.bubble : null;
+  const pointer = bubble?.point ?? null;
+  const pointColor = bubble ? actorColor(bubble.actor).line : undefined;
   const branch = queries.currentBranch(game.repo, "player");
   const head = game.repo.worktrees.player?.head;
   // On an unborn branch there is no commit yet, but the prompt still names the branch.
@@ -54,10 +67,10 @@ export function LevelGame({ level }: { level: Level }) {
   const index = levels.findIndex((l) => l.id === level.id);
   const next = levels[index + 1] ?? null;
 
-  // Esc skips the rest of a scene.
+  // Esc skips the rest of a scene, or ends the tour.
   const skip = useEffectEvent(() => g.skip());
   useEffect(() => {
-    if (!inScene || open) return;
+    if (!talking || open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -66,7 +79,14 @@ export function LevelGame({ level }: { level: Level }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [inScene, open]);
+  }, [talking, open]);
+
+  // Back to the command line when the tour ends.
+  const wasTouring = useRef(false);
+  useEffect(() => {
+    if (wasTouring.current && !touring) requestAnimationFrame(() => terminal.current?.focus());
+    wasTouring.current = touring;
+  }, [touring]);
 
   const closeFile = () => {
     setOpen(null);
@@ -108,6 +128,7 @@ export function LevelGame({ level }: { level: Level }) {
             <h1 className="truncate text-[17px] font-bold tracking-tight">{level.title}</h1>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <TourButton disabled={!playing || touring || SCREEN_TOUR.length === 0} onClick={() => g.tour(SCREEN_TOUR)} />
             <MuteButton />
             <PhaseChip phase={game.phase} />
             <button
@@ -129,6 +150,7 @@ export function LevelGame({ level }: { level: Level }) {
         <main className="grid min-h-0 flex-1 grid-cols-1 gap-3 px-4 pb-4 md:grid-cols-2 md:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:grid-rows-[minmax(0,1fr)_minmax(220px,34dvh)]">
           {/* map */}
           <section
+            data-tour="map"
             aria-label="History map"
             className="relative h-[40dvh] min-h-[300px] overflow-hidden rounded-3xl border border-line shadow-[0_1px_0_white_inset,0_10px_30px_-12px_rgba(74,58,32,0.35)] md:col-span-2 lg:col-span-1 lg:h-auto"
           >
@@ -138,19 +160,21 @@ export function LevelGame({ level }: { level: Level }) {
               events={game.events}
               moods={game.moods}
               className="absolute inset-0"
+              focus={pointer?.target === "map" ? pointer.focus : null}
+              focusColor={pointColor}
             />
             <Legend actors={cast.filter((a) => game.repo.worktrees[a])} />
             <AnimatePresence>
-              {inScene && (
+              {talking && (
                 <motion.button
                   type="button"
                   onClick={g.skip}
                   initial={{ opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
-                  className="absolute top-3 right-3 inline-flex items-center gap-2 rounded-full bg-ink/90 px-3.5 py-1.5 text-[13px] font-semibold text-paper shadow-md backdrop-blur-sm transition-colors hover:bg-ink focus-visible:ring-4 focus-visible:ring-focus/40 focus-visible:outline-none"
+                  className="absolute top-3 right-3 z-[41] inline-flex items-center gap-2 rounded-full bg-ink/90 px-3.5 py-1.5 text-[13px] font-semibold text-paper shadow-md backdrop-blur-sm transition-colors hover:bg-ink focus-visible:ring-4 focus-visible:ring-focus/40 focus-visible:outline-none"
                 >
-                  Skip scene
+                  {touring ? "End tour" : "Skip scene"}
                   <kbd className="rounded border border-term-edge-soft px-1 font-sans text-[10px] text-term-key">Esc</kbd>
                 </motion.button>
               )}
@@ -164,7 +188,7 @@ export function LevelGame({ level }: { level: Level }) {
               repo={game.repo}
               where={where}
               onOpen={setOpen}
-              highlight={inScene && game.bubble?.files.length ? { actor: game.bubble.actor, files: game.bubble.files } : null}
+              highlight={bubble?.files.length ? { actor: bubble.actor, files: bubble.files } : null}
             />
           </div>
 
@@ -174,21 +198,25 @@ export function LevelGame({ level }: { level: Level }) {
             <Terminal
               ref={terminal}
               log={game.log}
-              active={playing && !open}
+              active={playing && !open && !touring}
               where={where}
               path={player?.path ?? "/repo"}
               suggestions={level.suggestions}
               onRun={g.command}
+              showControls={pointer?.target === "terminal" || pointer?.target === "suggestions"}
               scene={
-                inScene ? (
+                talking ? (
+                // Above the tour's dim, so the robot's line stays bright whatever it points at.
+                <div className="relative z-[41]">
                 <DialogueBox
-                  bubble={game.bubble}
-                  lineKey={game.cursor + (game.phase === "outro" ? 10_000 : 0)}
+                  bubble={bubble}
+                  lineKey={touring ? 20_000 + g.tourAt : game.cursor + (game.phase === "outro" ? 10_000 : 0)}
                   awaitingClick={g.awaitingClick}
                   onNext={g.next}
                   reduce={reduce}
                   onOpenFile={(path) => setOpen({ path, area: "working" })}
                 />
+                </div>
                 ) : undefined
               }
             />
@@ -219,9 +247,13 @@ export function LevelGame({ level }: { level: Level }) {
           )}
         </AnimatePresence>
 
+        <TourSpotlight target={open ? null : (pointer?.target ?? null)} color={pointColor ?? actorColor("tidy").line} reduce={reduce} />
+
         {/* The scene's current line, announced once. The dialogue box itself is a plain "next" button. */}
         <p className="sr-only" aria-live="polite">
-          {inScene && game.bubble ? `${actorColor(game.bubble.actor).name}: ${game.bubble.text}` : ""}
+          {bubble
+            ? `${actorColor(bubble.actor).name}${pointer ? `, pointing at ${TARGET_NAMES[pointer.target]}` : ""}: ${bubble.text}`
+            : ""}
         </p>
       </div>
     </MotionConfig>
@@ -260,5 +292,21 @@ function Legend({ actors }: { actors: readonly string[] }) {
         );
       })}
     </ul>
+  );
+}
+
+/** Replays the screen tour: what the map, the files, the job bar and the command box are. */
+function TourButton({ disabled, onClick }: { disabled: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label="Show me around the screen"
+      title={disabled ? "The tour is available on your turn" : "Show me around the screen"}
+      className="grid h-8 w-8 place-items-center rounded-full border border-line-button text-[15px] font-extrabold text-soft transition-colors hover:bg-sunk hover:text-ink focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent disabled:hover:text-soft"
+    >
+      ?
+    </button>
   );
 }

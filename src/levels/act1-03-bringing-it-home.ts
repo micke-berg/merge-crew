@@ -7,7 +7,7 @@ import {
   hasMergeCommit,
   workingTreeClean,
 } from "./goals";
-import { git, say, write } from "./script";
+import { git, point, say, write } from "./script";
 
 export const level: Level = {
   id: "act1-03",
@@ -72,7 +72,12 @@ export const level: Level = {
   ].join("\n"),
   suggestions: ["git status", "git branch", "git log --oneline --all", "git merge menu", "git merge colors"],
   outro: [
-    say("tidy", "Both lines came home. The stop with two lines going into it is your merge commit.", "celebrate"),
-    say("tidy", "That's Act 1. You can save, branch and merge. I'm a little proud. Don't tell Blaze.", "happy"),
+    say("tidy", "Both lines came home.", "celebrate"),
+    // Whichever branch the player merged second made the merge commit.
+    point("tidy", "map", "A stop with two lines going into it is a merge. That one is yours.", {
+      mood: "happy",
+      focus: { commits: ["Merge branch 'colors'", "Merge branch 'menu'"] },
+    }),
+    say("tidy", "Save, branch, merge: done. Next, sharing your work with origin. I'm a little proud.", "happy"),
   ],
 };

@@ -12,6 +12,8 @@ import { GHOST, INK, INK_SOFT, PAPER, PAPER_DOT, TOKENS, WARN, WHITE, actorName 
 import { geometry } from "./geometry";
 import { layoutRepo, type HeadMarker, type MapLayout } from "./layout";
 import { MapEdges } from "./MapEdges";
+import { resolveFocus, type MapFocus } from "./focus";
+import { MapFocusOver, MapFocusUnder } from "./MapFocus";
 import { MapRobotNames, MapRobots } from "./MapHeads";
 import { describeStop, MapStops } from "./MapStops";
 import { LineEndLabels, StopTags } from "./MapTags";
@@ -28,11 +30,15 @@ export type HistoryMapProps = {
   /** Mood per actor. Defaults to scared while conflicted, otherwise idle. */
   moods?: Partial<Record<ActorId, Mood>>;
   className?: string;
+  /** A guided-tour highlight: commits, branch lines or the lost band, outlined in `focusColor`. */
+  focus?: MapFocus | null;
+  /** The colour of the robot pointing at the map. */
+  focusColor?: string;
 };
 
 const NO_EVENTS: EngineEvent[] = [];
 
-export function HistoryMap({ state, events = NO_EVENTS, moods, className }: HistoryMapProps) {
+export function HistoryMap({ state, events = NO_EVENTS, moods, className, focus, focusColor = TOKENS.focus }: HistoryMapProps) {
   const reduce = useReducedMotion() ?? false;
   const uid = useId().replace(/:/g, "");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -93,6 +99,7 @@ export function HistoryMap({ state, events = NO_EVENTS, moods, className }: Hist
   useEffect(() => follow(newestX), [newestX, g.scrolls, view.w]);
 
   const tags = buildTags(layout, state);
+  const focused = resolveFocus(layout, focus);
   const ghostY = layout.ghostRow !== null ? g.y(layout.ghostRow) : null;
   const firstLoss = Math.min(...[...schedule.lose.values(), Infinity]);
   const { sec } = scene;
@@ -153,12 +160,15 @@ export function HistoryMap({ state, events = NO_EVENTS, moods, className }: Hist
             )}
           </AnimatePresence>
 
+          <MapFocusUnder scene={scene} focus={focused} accent={focusColor} />
           <MapEdges scene={scene} />
           <MapStops scene={scene} hover={hover} onHover={(oid, over) => setHover((h) => (over ? oid : h === oid ? null : h))} />
+          <MapFocusOver scene={scene} focus={focused} accent={focusColor} part="fill" />
           <LineEndLabels scene={scene} />
           <StopTags scene={scene} tags={tags} />
           <MapRobots scene={scene} moods={moods} />
           <MapRobotNames scene={scene} />
+          <MapFocusOver scene={scene} focus={focused} accent={focusColor} part="ring" />
 
           {/* hover card */}
           {hover && stopsByOid.has(hover) && (() => {

@@ -72,7 +72,7 @@ describe("level data", () => {
     }
     // Every robot that speaks is listed in the crew.
     for (const step of [...level.intro, ...level.outro]) {
-      if (step.kind === "say" || step.kind === "mood") expect(level.crew).toContain(step.actor);
+      if (step.kind === "say" || step.kind === "mood" || step.kind === "point") expect(level.crew).toContain(step.actor);
     }
     // Suggestion buttons show the exact command, so each one is a git command.
     for (const s of level.suggestions) expect(s.startsWith("git ")).toBe(true);
@@ -84,6 +84,8 @@ describe("level data", () => {
     expect(level.mission?.practise.length).toBeGreaterThan(0);
     // Short scenes: the story sets the job up, the job bar carries the instructions.
     expect(level.intro.filter((s) => s.kind === "say").length).toBeLessThanOrEqual(5);
+    // A screen tour adds lines, but the whole opening still reads in under a minute.
+    expect(level.intro.filter((s) => s.kind === "say" || s.kind === "point").length).toBeLessThanOrEqual(8);
   });
 
   it.each(levels.map((l) => [l.id, l] as const))("%s: every file a robot line points at is in the player's files", (_, level) => {
@@ -96,6 +98,33 @@ describe("level data", () => {
       } else {
         state = runSteps(state, [step]);
       }
+    }
+  });
+
+  it.each(levels.map((l) => [l.id, l] as const))("%s: every map pointer has something to highlight", (id, level) => {
+    // The state each scene's point steps see: intro points after setup (and earlier intro steps),
+    // outro points after the documented solution.
+    const check = (state: RepoState, step: ScriptStep) => {
+      if (step.kind !== "point" || step.target !== "map" || !step.focus) return;
+      const what = `${step.actor}: "${step.text}"`;
+      const messages = Object.values(state.commits).map((c) => c.message);
+      if (step.focus.commits) expect(step.focus.commits.some((m) => messages.includes(m)), what).toBe(true);
+      if (step.focus.branches) {
+        // A branch the player names may be called something else; the map then lights every branch line.
+        const names = Object.keys(state.branches);
+        expect(step.focus.branches.some((b) => names.includes(b)) || names.some((n) => n !== "main"), what).toBe(true);
+      }
+      if (step.focus.lost) expect(queries.lost(state).length, what).toBeGreaterThan(0);
+    };
+    let state = runSteps(engine.createRepo(), level.setup);
+    for (const step of level.intro) {
+      check(state, step);
+      state = runSteps(state, [step]);
+    }
+    state = runSteps(state, solutions[id]);
+    for (const step of level.outro) {
+      check(state, step);
+      state = runSteps(state, [step]);
     }
   });
 

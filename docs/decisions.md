@@ -2,6 +2,14 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-10-05 — A guided screen tour
+
+- **Tidy points at the screen in the first level.** After playing, the maintainer said nobody explains the map: that the line is main, where the saved versions are. The first level's opening now has Tidy point at the map (every dot is a commit), the main line, the files, the job bar and the command box, one short sentence each, while the game dims everything else softly and outlines that part in Tidy's colour. The tour replaced the opening lines that said the same thing, so the scene grew by four lines, not five.
+- **Later levels point once, at the moment the thing first matters:** the new branch line in act1-02's closing scene, the merge commit in act1-03's, and the grey lost band in act2-01's opening.
+- **A "?" button in every level header replays the screen tour** (the first level's point steps only, no story, no git) during the player turn. Esc ends it, Enter moves it on, like a scene.
+- **A branch the player names is matched loosely.** act1-02 points at "bolts", the name the job bar suggests; if the player picked another name, the map lights every branch line except main instead, so the pointer never points at nothing.
+- **No git behaviour changed.** Only `say` and `point` lines were edited; every setup, intro and outro git step is identical, and the real-git level test is green.
+
 ## 2026-10-05 — Story and first run: Café Cog
 
 - **The crew's world is a small robot café, Café Cog.** The crew builds and runs the café's website (menu, prices, opening hours, the sign); the player is their new lead and keeps the crew's work safe and shipped. Why: after playing, the maintainer had no idea who they were or why they were there, and scenes opened mid-conversation about things never shown. The existing level content (lemonade, prices, sign, iced tea, tip jar) already fit a café.
