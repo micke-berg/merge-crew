@@ -1,0 +1,115 @@
+// Names that are valid in git but collide with JavaScript object members: "constructor",
+// "__proto__", "hasOwnProperty", "toString", "valueOf" and "prototype". The engine keeps branches,
+// files, remotes and worktrees in plain objects, so each of these must behave like any other name.
+// Also pins git's lenient `reset -- <path>` for paths that match nothing.
+
+import { commitFile, fails, git, stops, write, type Scenario } from "../scenario";
+
+const P = "player";
+export const NASTY = ["constructor", "__proto__", "hasOwnProperty", "toString", "valueOf", "prototype"];
+
+export const specialNames: Scenario[] = [
+  {
+    name: "branches named like object members work like any branch",
+    steps: [
+      ...commitFile(P, "a.txt", "a\n", "Base"),
+      ...NASTY.map((n) => git(P, ["branch", n])),
+      fails(git(P, "branch __proto__")),
+      git(P, "switch constructor"),
+      ...commitFile(P, "c.txt", "c\n", "On constructor"),
+      git(P, "switch __proto__"),
+      ...commitFile(P, "p.txt", "p\n", "On proto"),
+      git(P, "switch main"),
+      git(P, "merge constructor"),
+      git(P, "merge __proto__ -m Merge-proto"),
+      git(P, "checkout constructor@{1}"),
+      git(P, "switch main"),
+      git(P, "log --oneline hasOwnProperty"),
+      git(P, "branch -d valueOf"),
+      git(P, "branch -m toString renamed"),
+      git(P, "branch -m prototype toString"),
+      git(P, "push -u origin __proto__"),
+      git(P, "push origin constructor:hasOwnProperty"),
+      git(P, "fetch origin"),
+      git(P, "reset --hard toString"),
+    ],
+  },
+  {
+    name: "object-member names that are not branches or commands are refused",
+    steps: [
+      ...commitFile(P, "a.txt", "a\n", "Base"),
+      fails(git(P, "switch constructor")),
+      fails(git(P, "checkout constructor")),
+      fails(git(P, "checkout constructor@{1}")),
+      fails(git(P, "merge hasOwnProperty")),
+      fails(git(P, "reset --hard toString")),
+      fails(git(P, "branch -d __proto__")),
+      fails(git(P, "push origin valueOf")),
+      fails(git(P, "push constructor main")),
+      fails(git(P, "constructor")),
+      fails(git(P, "hasOwnProperty")),
+      fails(git(P, "__proto__")),
+      fails(git(P, "rebase prototype")),
+      fails(git(P, "branch --set-upstream-to=origin/constructor")),
+    ],
+  },
+  {
+    name: "files named like object members are tracked, changed, merged and removed",
+    steps: [
+      ...commitFile(P, "a.txt", "a\n", "Base"),
+      ...NASTY.map((n) => write(P, n, `${n}\n`)),
+      git(P, "add ."),
+      git(P, "commit -m Members"),
+      git(P, "switch -c side"),
+      write(P, "constructor", "side\n"),
+      write(P, "__proto__", "side proto\n"),
+      git(P, "commit -am Side"),
+      git(P, "switch main"),
+      write(P, "constructor", "main\n"),
+      git(P, "commit -am Main"),
+      stops(git(P, "merge side -m Mg")),
+      git(P, "merge --abort"),
+      git(P, "rm toString"),
+      git(P, "restore --staged toString"),
+      git(P, "restore toString"),
+      write(P, "valueOf", "changed\n"),
+      git(P, "stash"),
+      git(P, "stash pop"),
+      git(P, "add valueOf"),
+      git(P, "reset -- valueOf"),
+      git(P, "checkout -- valueOf"),
+    ],
+  },
+  {
+    name: "a merge conflict in files named like object members",
+    steps: [
+      ...commitFile(P, "__proto__", "base\n", "Base"),
+      git(P, "switch -c side"),
+      ...commitFile(P, "__proto__", "side\n", "Side"),
+      git(P, "switch main"),
+      ...commitFile(P, "__proto__", "main\n", "Main"),
+      stops(git(P, "merge side -m Mg")),
+    ],
+  },
+  {
+    name: "a robot worktree named constructor",
+    steps: [
+      ...commitFile(P, "a.txt", "a\n", "Base"),
+      git(P, "worktree add /crew/constructor -b hasOwnProperty"),
+      ...commitFile("constructor", "b.txt", "b\n", "Robot work"),
+      git(P, "merge hasOwnProperty"),
+    ],
+  },
+  {
+    name: "reset with a pathspec that matches nothing succeeds like git",
+    steps: [
+      ...commitFile(P, "a.txt", "a\n", "Base"),
+      git(P, "reset -- missing.txt"),
+      git(P, "reset HEAD -- missing.txt"),
+      write(P, "a.txt", "changed\n"),
+      git(P, "add a.txt"),
+      git(P, "reset -- a.txt missing.txt"),
+      fails(git(P, "reset missing.txt")),
+    ],
+  },
+];

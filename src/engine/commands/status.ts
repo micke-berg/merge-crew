@@ -2,7 +2,7 @@
 
 import { parseArgs } from "../args";
 import type { Ctx } from "../context";
-import { shortOid, subject } from "../objects";
+import { own, shortOid, subject } from "../objects";
 import type { InProgress, Oid } from "../types";
 import { queries } from "../query";
 import { countBetween } from "../revisions";
@@ -10,11 +10,11 @@ import { countBetween } from "../revisions";
 function trackingLine(ctx: Ctx): string[] {
   const wt = ctx.wt;
   if (wt.head.kind !== "branch") return [];
-  const up = ctx.state.upstreams[wt.head.name];
+  const up = own(ctx.state.upstreams, wt.head.name);
   const head = ctx.headOid();
   if (!up || !head) return [];
   const name = `${up.remote}/${up.branch}`;
-  const tracked = ctx.state.remoteTracking[name];
+  const tracked = own(ctx.state.remoteTracking, name);
   if (!tracked) return [`Your branch is based on '${name}', but the upstream is gone.`];
   const ahead = countBetween(ctx.state, tracked, head);
   const behind = countBetween(ctx.state, head, tracked);
@@ -32,7 +32,7 @@ function plural(n: number, word: string): string {
 }
 
 function rebaseLines(ctx: Ctx, op: Extract<InProgress, { kind: "rebase" }>, conflicts: boolean): string[] {
-  const pick = (oid: Oid) => `   pick ${shortOid(oid)} ${subject(ctx.state.commits[oid]?.message ?? "")}`;
+  const pick = (oid: Oid) => `   pick ${shortOid(oid)} ${subject(own(ctx.state.commits, oid)?.message ?? "")}`;
   const lines: string[] = [];
   if (op.done.length) {
     lines.push(`Last command${op.done.length === 1 ? "" : "s"} done (${plural(op.done.length, "command")} done):`, ...op.done.slice(-2).map(pick));

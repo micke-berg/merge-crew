@@ -1,8 +1,18 @@
-// Three-way file and tree merges, following git's xdiff merge (xmerge.c) at the level git uses for
-// merges (XDL_MERGE_ZEALOUS) with the default "merge" conflict style.
+// Three-way file and tree merges.
+//
+// mergeFile ports xdl_merge from git's xdiff/xmerge.c at the level git uses for merges
+// (XDL_MERGE_ZEALOUS) with the default "merge" conflict style: both sides are diffed against the
+// base with diff.ts, overlapping changes become conflict regions, xdl_refine_conflicts shrinks each
+// conflict to the lines that really differ, and xdl_simplify_non_conflicts joins conflicts that are
+// three lines apart or less.
+//
+// mergeTrees is a path-by-path merge in the spirit of git's ort strategy (merge-ort.c), without
+// rename detection; its messages use ort's wording.
+// Checked against git 2.46.0 through the oracle suite (tests/oracle) and the expected outputs of
+// `git merge-file` in merge3.test.ts.
 
 import { diffLines, splitLines, type Hunk } from "./diff";
-import { get } from "./objects";
+import { get, setOwn } from "./objects";
 import type { ConflictEntry, FileTree, Path } from "./types";
 
 /** mode 0 = conflict, 1 = ours changed, 2 = theirs changed, 4 = both made the same change. */
@@ -238,8 +248,8 @@ export function mergeTrees(
             ? `CONFLICT (add/add): Merge conflict in ${path}`
             : `CONFLICT (content): Merge conflict in ${path}`,
         );
-        result.conflicts[path] = { base: b, ours: o, theirs: t };
-        result.conflictFiles[path] = merged.content;
+        setOwn(result.conflicts, path, { base: b, ours: o, theirs: t });
+        setOwn(result.conflictFiles, path, merged.content);
         continue;
       }
     } else {
@@ -248,11 +258,11 @@ export function mergeTrees(
       result.messages.push(
         `CONFLICT (modify/delete): ${path} deleted in ${deletedIn} and modified in ${modifiedIn}.  Version ${modifiedIn} of ${path} left in tree.`,
       );
-      result.conflicts[path] = { base: b, ours: o, theirs: t };
-      result.conflictFiles[path] = o ?? t;
+      setOwn(result.conflicts, path, { base: b, ours: o, theirs: t });
+      setOwn(result.conflictFiles, path, o ?? t);
       continue;
     }
-    if (value !== null) result.merged[path] = value;
+    if (value !== null) setOwn(result.merged, path, value);
   }
   return result;
 }

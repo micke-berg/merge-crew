@@ -33,7 +33,7 @@ Writing a git simulator is easy to get subtly wrong, so real git is the referee.
 - **Both runs become comparable snapshots.** The real side and the engine generate different commit ids, so commits are identified by their message. A snapshot holds branches, remote branches, each commit's parents and files, each worktree's HEAD, staged files, working files, conflicts and reflog, and the stash.
 - **Every difference fails the test,** and so does a step that succeeds on one side and fails on the other.
 
-There are 116 scenarios, covering commits, branches, reset, merges with conflicts, remotes and force-push, worktrees, rebase, cherry-pick, revert and stash. Git's settings are pinned so the results are the same on every machine.
+There are 122 scenarios, covering commits, branches, reset, merges with conflicts, remotes and force-push, worktrees, rebase, cherry-pick, revert and stash. Git's settings are pinned so the results are the same on every machine. `tests/oracle/levels.test.ts` also plays every level's setup, scene and documented solution in real git and compares the result.
 
 ## Levels (`src/levels`)
 
@@ -44,7 +44,7 @@ A level is data, not code paths in the UI:
 - `goals`: checks on the resulting state, written with the helpers in `goals.ts`. Goals accept any fair solution and reject shortcuts that lose work or rewrite shared history.
 - `hintContext` and `suggestions`: support for the player.
 
-Every level has a documented solution that was checked in real git first. The tests run setup, intro and solution through the engine and require a win. They also check that wrong approaches fail.
+Every level has a documented solution, kept in a test-only `*.solution.ts` file so it never reaches the browser. The tests run setup, intro and solution through the engine and require a win. They also check that wrong approaches fail.
 
 ## Game state machine (`src/components/game/game.ts`)
 
@@ -57,9 +57,14 @@ The map draws history like a metro map in four steps:
 1. **`layout.ts` places commits on a grid.** main runs straight, each branch gets its own line, and lost commits drop to a separate band.
 2. **`geometry.ts` turns the grid into pixels.**
 3. **`timeline.ts` decides what animates when.** It turns a list of engine events into a schedule.
-4. **`HistoryMap.tsx` draws the SVG and plays the schedule** with motion.
+4. **`HistoryMap.tsx` draws the SVG and plays the schedule** with motion. It is split into layers: `MapEdges`, `MapStops`, `MapTags` and `MapHeads`.
 
-Steps 1 to 3 are pure and unit tested.
+Steps 1 to 3 are pure and unit tested, as are the helpers for tags (`tags.ts`), robot placement (`placement.ts`) and movement timing (`motion.ts`). The map asks the engine's `queries` which commits are reachable or lost, so the map and the goals always agree. Next to the drawing, a list of commits is kept for screen readers. A development-only viewer for map scenes is at `/dev/map`.
+
+## Shared helpers (`src/lib`)
+
+- `palette.ts`: every colour in the game, defined once. The root layout writes the colours as CSS variables, Tailwind maps them to classes such as `bg-ink` and `text-muted`, and the SVG map reads the same constants. A test checks the contrast of every text and background pair.
+- `storage.ts`: browser storage with an in-memory fallback, used for level progress and the mute setting.
 
 ## Robots and sound
 

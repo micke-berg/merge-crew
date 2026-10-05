@@ -2,7 +2,7 @@
 
 import { flag, parseArgs } from "../args";
 import { fail, type Ctx } from "../context";
-import { get, sortedTree } from "../objects";
+import { get, has, setOwn, sortedTree } from "../objects";
 import { matchesAsDirectory, normalizeSpec, select } from "../pathspec";
 import type { Path } from "../types";
 
@@ -13,7 +13,7 @@ function stagePaths(ctx: Ctx, paths: Path[]): void {
   for (const path of paths) {
     const w = get(wt.workingTree, path);
     if (w === undefined) delete index[path];
-    else index[path] = w;
+    else setOwn(index, path, w);
     delete conflicts[path];
   }
   wt.index = sortedTree(index);
@@ -78,7 +78,7 @@ export function rm(ctx: Ctx, args: string[]): void {
     const staged: Path[] = [];
     const local: Path[] = [];
     for (const path of paths) {
-      if (wt.conflicts[path]) continue;
+      if (has(wt.conflicts, path)) continue;
       const w = get(wt.workingTree, path);
       if (w === undefined) continue;
       const i = get(wt.index, path);

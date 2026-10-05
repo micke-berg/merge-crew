@@ -15,7 +15,7 @@ Every command you type runs in a simulated git repository that behaves like real
 ## How it is built
 
 - **Git engine:** a pure TypeScript git simulator. It covers commits, branches, merges with conflicts, rebase, cherry-pick, revert, stash, remotes and worktrees.
-- **Tested against real git:** 116 scenarios run through the real `git` command line and through the engine, and the resulting repositories must match.
+- **Tested against real git:** 122 scenarios run through the real `git` command line and through the engine, and the resulting repositories must match.
 - **Levels are data:** each level is a starting repository, a scripted scene and goal checks. Every level's solution is played to the win in the tests.
 - **History map:** SVG and [motion](https://motion.dev), driven by events from the engine.
 - **Stack:** Next.js, React, TypeScript and Tailwind CSS. Sound is synthesized with the Web Audio API.

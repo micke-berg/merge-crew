@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { queries } from "./query";
-import { Repo } from "./test-helpers";
+import { Repo, failOnEngineErrors } from "./test-helpers";
+
+failOnEngineErrors();
 
 describe("queries.resolve", () => {
   function history() {

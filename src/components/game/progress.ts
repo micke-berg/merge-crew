@@ -1,10 +1,10 @@
 "use client";
 
-// Completed level ids, kept in the browser only (no accounts in v1).
-// Storage can be missing or throw (private windows, blocked site data); the game then simply
-// forgets progress between visits.
+// Completed level ids, kept in the browser only (no accounts in v1). When storage is blocked,
+// progress lasts for the page view (see src/lib/storage.ts).
 
 import { useSyncExternalStore } from "react";
+import { readItem, writeItem } from "@/lib/storage";
 
 const KEY = "merge-crew:progress:v1";
 const EVENT = "merge-crew:progress";
@@ -12,16 +12,6 @@ const EMPTY: readonly string[] = [];
 
 let cachedRaw: string | null = null;
 let cached: readonly string[] = EMPTY;
-/** Set when storage refused a write: progress then lives in memory for this page view. */
-let memory: readonly string[] | null = null;
-
-function readRaw(): string | null {
-  try {
-    return window.localStorage.getItem(KEY);
-  } catch {
-    return null;
-  }
-}
 
 function parse(raw: string | null): readonly string[] {
   if (!raw) return EMPTY;
@@ -34,8 +24,7 @@ function parse(raw: string | null): readonly string[] {
 }
 
 function snapshot(): readonly string[] {
-  if (memory) return memory;
-  const raw = readRaw();
+  const raw = readItem(KEY);
   if (raw !== cachedRaw) {
     cachedRaw = raw;
     cached = parse(raw);
@@ -55,12 +44,7 @@ function subscribe(onChange: () => void): () => void {
 export function markLevelComplete(id: string): void {
   const done = snapshot();
   if (done.includes(id)) return;
-  try {
-    window.localStorage.setItem(KEY, JSON.stringify([...done, id]));
-  } catch {
-    // Storage unavailable: progress lasts only for this page view.
-    memory = [...done, id];
-  }
+  writeItem(KEY, JSON.stringify([...done, id]));
   window.dispatchEvent(new Event(EVENT));
 }
 

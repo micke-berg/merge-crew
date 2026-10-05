@@ -2,8 +2,8 @@
 
 import { flag, parseArgs, value } from "../args";
 import { fail, type Ctx } from "../context";
-import { shortOid, subject } from "../objects";
-import { remoteTrackingKey, resolveRev, walk } from "../revisions";
+import { own, shortOid, subject } from "../objects";
+import { remoteTrackingKey, resolveRev, trackingReflogKey, walk } from "../revisions";
 import type { Commit, Oid, ReflogEntry } from "../types";
 
 /** "(HEAD -> main, origin/main, feature)" style labels for each commit. */
@@ -102,7 +102,7 @@ export function reflog(ctx: Ctx, args: string[]): void {
   } else {
     const name = ref.startsWith("refs/heads/") ? ref.slice(11) : ref;
     const trackingKey = remoteTrackingKey(ctx.state, name);
-    const log = trackingKey ? ctx.state.branchReflogs[`refs/remotes/${trackingKey}`] : ctx.state.branchReflogs[name];
+    const log = own(ctx.state.branchReflogs, trackingKey ? trackingReflogKey(trackingKey) : name);
     if (!log) {
       fail(
         `fatal: ambiguous argument '${ref}': unknown revision or path not in the working tree.`,

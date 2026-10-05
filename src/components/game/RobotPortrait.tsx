@@ -1,7 +1,7 @@
 "use client";
 
 import type { ActorId, Mood } from "@/engine/types";
-import { actorColor } from "@/components/map/palette";
+import { actorColor } from "@/lib/palette";
 import { isSpriteRobot, moodState, type Rest } from "@/components/robots/moods";
 import { PlayerMarker } from "@/components/robots/PlayerMarker";
 import { Sprite, spriteBox } from "@/components/robots/Sprite";

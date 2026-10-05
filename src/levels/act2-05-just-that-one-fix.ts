@@ -7,7 +7,7 @@ import {
   remoteBranch,
   remoteBranchContains,
 } from "./goals";
-import { git, pause, mood, say, write, type Solution } from "./script";
+import { git, pause, mood, say, write } from "./script";
 
 const BUILD = "Build the stand";
 const PRICES = "Add the price list";
@@ -124,10 +124,3 @@ export const level: Level = {
     say("tidy", "Next time, a small branch for a small fix. Then it can go home on its own.", "talking"),
   ],
 };
-
-/** Verified against real git 2.46 (GIT_EDITOR=true). See the comment at the top of this file. */
-export const solution: Solution = [
-  git("player", "log", "--oneline", "drift"),
-  git("player", "cherry-pick", "drift~1"),
-  git("player", "push"),
-];

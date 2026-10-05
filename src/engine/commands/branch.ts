@@ -2,7 +2,7 @@
 
 import { flag, parseArgs, value } from "../args";
 import { fail, type Ctx } from "../context";
-import { ZERO_OID, shortOid, subject } from "../objects";
+import { ZERO_OID, has, own, setOwn, shortOid, subject } from "../objects";
 import { isAncestor, remoteTrackingKey, resolveRev } from "../revisions";
 import type { Oid } from "../types";
 
@@ -18,7 +18,7 @@ export function validBranchName(name: string): boolean {
 
 export function checkNewBranchName(ctx: Ctx, name: string, force: boolean): void {
   if (!validBranchName(name)) fail(`fatal: '${name}' is not a valid branch name`);
-  if (!force && ctx.state.branches[name] !== undefined) fail(`fatal: a branch named '${name}' already exists`);
+  if (!force && has(ctx.state.branches, name)) fail(`fatal: a branch named '${name}' already exists`);
 }
 
 export function resolveOrFail(ctx: Ctx, rev: string): Oid {
@@ -37,7 +37,7 @@ export function trackIfRemote(ctx: Ctx, name: string, start: string | undefined)
 
 export function setUpstream(ctx: Ctx, name: string, trackingKey: string): void {
   const slash = trackingKey.indexOf("/");
-  ctx.state.upstreams[name] = { remote: trackingKey.slice(0, slash), branch: trackingKey.slice(slash + 1) };
+  setOwn(ctx.state.upstreams, name, { remote: trackingKey.slice(0, slash), branch: trackingKey.slice(slash + 1) });
   ctx.out(`branch '${name}' set up to track '${trackingKey}'.`);
 }
 
@@ -46,14 +46,14 @@ export function setUpstream(ctx: Ctx, name: string, trackingKey: string): void {
  * normally the start point as typed, or "HEAD".
  */
 export function createBranch(ctx: Ctx, name: string, oid: Oid, startLabel: string): void {
-  const existed = ctx.state.branches[name] !== undefined;
+  const existed = has(ctx.state.branches, name);
   ctx.updateBranch(name, oid, "branch", existed ? `branch: Reset to ${startLabel}` : `branch: Created from ${startLabel}`);
 }
 
 function list(ctx: Ctx, opts: { all: boolean; remotes: boolean; verbose: boolean }): void {
   const wt = ctx.wt;
   const line = (marker: string, name: string, oid: Oid) =>
-    opts.verbose ? `${marker} ${name} ${shortOid(oid)} ${subject(ctx.state.commits[oid]?.message ?? "")}` : `${marker} ${name}`;
+    opts.verbose ? `${marker} ${name} ${shortOid(oid)} ${subject(own(ctx.state.commits, oid)?.message ?? "")}` : `${marker} ${name}`;
   if (!opts.remotes) {
     if (wt.head.kind === "detached") ctx.out(line("*", `(HEAD detached at ${shortOid(wt.head.oid)})`, wt.head.oid));
     for (const name of Object.keys(ctx.state.branches).sort()) {
@@ -74,7 +74,7 @@ function deleteBranches(ctx: Ctx, names: string[], force: boolean): void {
   const errors: string[] = [];
   const hints: string[] = [];
   for (const name of names) {
-    const oid = ctx.state.branches[name];
+    const oid = own(ctx.state.branches, name);
     if (oid === undefined) {
       errors.push(`error: branch '${name}' not found`);
       continue;
@@ -85,8 +85,8 @@ function deleteBranches(ctx: Ctx, names: string[], force: boolean): void {
       continue;
     }
     if (!force) {
-      const up = ctx.state.upstreams[name];
-      const upOid = up ? ctx.state.remoteTracking[`${up.remote}/${up.branch}`] : undefined;
+      const up = own(ctx.state.upstreams, name);
+      const upOid = up ? own(ctx.state.remoteTracking, `${up.remote}/${up.branch}`) : undefined;
       const reference = upOid ?? ctx.headOid();
       if (!reference || !isAncestor(ctx.state, oid, reference)) {
         errors.push(`error: the branch '${name}' is not fully merged`);
@@ -119,23 +119,23 @@ function rename(ctx: Ctx, args: string[], force: boolean): void {
   } else {
     fail("fatal: branch name required");
   }
-  const oid = ctx.state.branches[oldName];
+  const oid = own(ctx.state.branches, oldName);
   const unbornCurrent = oid === undefined && wt.head.kind === "branch" && wt.head.name === oldName;
   if (oid === undefined && !unbornCurrent) fail(`fatal: no branch named '${oldName}'`);
   if (!validBranchName(newName)) fail(`fatal: '${newName}' is not a valid branch name`);
-  if (oldName !== newName && ctx.state.branches[newName] !== undefined && !force) {
+  if (oldName !== newName && has(ctx.state.branches, newName) && !force) {
     fail(`fatal: a branch named '${newName}' already exists`);
   }
   if (oid !== undefined) {
     const message = `Branch: renamed refs/heads/${oldName} to refs/heads/${newName}`;
-    const log = ctx.state.branchReflogs[oldName] ?? [];
+    const log = own(ctx.state.branchReflogs, oldName) ?? [];
     delete ctx.state.branches[oldName];
     delete ctx.state.branchReflogs[oldName];
-    ctx.state.branches[newName] = oid;
-    ctx.state.branchReflogs[newName] = [...log, { oid, previous: oid, message, time: ctx.time }];
-    const up = ctx.state.upstreams[oldName];
+    setOwn(ctx.state.branches, newName, oid);
+    setOwn(ctx.state.branchReflogs, newName, [...log, { oid, previous: oid, message, time: ctx.time }]);
+    const up = own(ctx.state.upstreams, oldName);
     delete ctx.state.upstreams[oldName];
-    if (up) ctx.state.upstreams[newName] = up;
+    if (up) setOwn(ctx.state.upstreams, newName, up);
     ctx.emit({ type: "branch-deleted", actor: ctx.actor, name: oldName, oid });
     ctx.emit({ type: "branch-created", actor: ctx.actor, name: newName, oid });
     // Git logs the delete and the re-create of the checked-out branch to that worktree's HEAD log.
@@ -200,7 +200,7 @@ export function branch(ctx: Ctx, args: string[]): void {
   if (upstream !== undefined) {
     const target = names[0] ?? (wt.head.kind === "branch" ? wt.head.name : null);
     if (!target) fail("fatal: could not set upstream of HEAD when it does not point to any branch");
-    if (ctx.state.branches[target] === undefined) fail(`fatal: branch '${target}' does not exist`);
+    if (!has(ctx.state.branches, target)) fail(`fatal: branch '${target}' does not exist`);
     const key = remoteTrackingKey(ctx.state, upstream);
     if (!key) fail(`fatal: the requested upstream branch '${upstream}' does not exist`);
     setUpstream(ctx, target, key);
@@ -208,7 +208,7 @@ export function branch(ctx: Ctx, args: string[]): void {
   }
   if (flag(p, "--unset-upstream")) {
     const target = names[0] ?? (wt.head.kind === "branch" ? wt.head.name : null);
-    if (!target || !ctx.state.upstreams[target]) fail(`fatal: branch '${target ?? "HEAD"}' has no upstream information`);
+    if (!target || !has(ctx.state.upstreams, target)) fail(`fatal: branch '${target ?? "HEAD"}' has no upstream information`);
     delete ctx.state.upstreams[target];
     return;
   }

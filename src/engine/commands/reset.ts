@@ -2,7 +2,7 @@
 
 import { flag, parseArgs } from "../args";
 import { fail, notSupported, type Ctx } from "../context";
-import { get, sortedTree } from "../objects";
+import { get, setOwn, sortedTree } from "../objects";
 import { select } from "../pathspec";
 import { queries } from "../query";
 import { resolveRev } from "../revisions";
@@ -35,7 +35,7 @@ function resetPaths(ctx: Ctx, oid: Oid | null, specs: string[]): void {
   for (const path of matched) {
     const content = get(tree, path);
     if (content === undefined) delete index[path];
-    else index[path] = content;
+    else setOwn(index, path, content);
     delete conflicts[path];
   }
   wt.index = sortedTree(index);
@@ -53,7 +53,7 @@ export function hardResetFiles(ctx: Ctx, target: FileTree): void {
   ]);
   const working: Record<Path, string> = { ...wt.workingTree };
   for (const path of tracked) if (get(target, path) === undefined) delete working[path];
-  for (const [path, content] of Object.entries(target)) working[path] = content;
+  for (const [path, content] of Object.entries(target)) setOwn(working, path, content);
   wt.index = sortedTree({ ...target });
   wt.workingTree = sortedTree(working);
   if (Object.keys(wt.conflicts).length) ctx.conflictsDiscarded = true;

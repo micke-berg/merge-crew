@@ -1,12 +1,6 @@
-import type { Metadata } from "next";
-import { Showcase } from "./Showcase";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Map showcase · Merge Crew",
-  description: "Development page for reviewing the history map and its animations.",
-  robots: { index: false },
-};
-
+/** An address a visitor might guess for the game. The game starts on the start page. */
 export default function PlayPage() {
-  return <Showcase />;
+  redirect("/");
 }

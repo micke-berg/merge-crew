@@ -1,6 +1,6 @@
 import type { Level } from "@/engine/types";
 import { fileInTipEquals, originalCommitReachableFrom, remoteBranch, allOf } from "./goals";
-import { git, mood, pause, say, write, type Solution } from "./script";
+import { git, mood, pause, say, write } from "./script";
 
 const SIGN = "Paint the sign";
 const PRICES = "Add the price list";
@@ -114,11 +114,3 @@ export const level: Level = {
     say("blaze", "Only once. Probably.", "talking"),
   ],
 };
-
-/** Verified against real git 2.46 (GIT_EDITOR=true, so revert keeps its default message). See the comment at the top of this file. */
-export const solution: Solution = [
-  git("player", "pull"),
-  git("player", "log", "--oneline"),
-  git("player", "revert", "HEAD~1"),
-  git("player", "push"),
-];

@@ -11,6 +11,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, join } from "node:path";
 import type { RepoState, ReflogEntry } from "@/engine/types";
 import { gitOut, readObjectStore, runGit, type GitObject } from "./git-cli";
+import { own, put } from "./records";
 
 export type Files = Record<string, string>;
 
@@ -51,7 +52,6 @@ export type Snapshot = {
 
 /** Branches whose reflog is part of the snapshot. */
 const BRANCH_REFLOGS = ["main"];
-
 const ZERO_OID = /^0{40}$/;
 
 // ---------------------------------------------------------------------------
@@ -62,13 +62,13 @@ type RawCommit = { id: string; parents: string[]; author: string; message: strin
 
 function sortKeys<T>(rec: Record<string, T>): Record<string, T> {
   const out: Record<string, T> = {};
-  for (const key of Object.keys(rec).sort()) out[key] = rec[key];
+  for (const key of Object.keys(rec).sort()) put(out, key, rec[key]);
   return out;
 }
 
 function mapValues<T, U>(rec: Record<string, T>, fn: (v: T) => U): Record<string, U> {
   const out: Record<string, U> = {};
-  for (const key of Object.keys(rec).sort()) out[key] = fn(rec[key]);
+  for (const key of Object.keys(rec).sort()) put(out, key, fn(rec[key]));
   return out;
 }
 
@@ -126,7 +126,7 @@ function labelCommits(raw: RawCommit[]): Labeling {
       .replace(/\b[0-9a-f]{7}\b/g, byPrefix);
   const commits: Record<string, CommitSnap> = {};
   for (const c of raw) {
-    commits[label(c.id)] = { parents: c.parents.map(label), author: c.author, tree: sortKeys(c.tree) };
+    put(commits, label(c.id), { parents: c.parents.map(label), author: c.author, tree: sortKeys(c.tree) });
   }
   return { commits: sortKeys(commits), label, text };
 }
@@ -150,15 +150,16 @@ export function fromEngine(state: RepoState): Snapshot {
     if (wt.head.kind === "detached") starts.push(wt.head.oid);
     starts.push(...reflogOids(wt.headReflog));
   }
-  for (const name of BRANCH_REFLOGS) starts.push(...reflogOids(state.branchReflogs[name]));
+  for (const name of BRANCH_REFLOGS) starts.push(...reflogOids(own(state.branchReflogs, name)));
 
   const seen = new Set<string>();
   const stack = [...starts];
   while (stack.length) {
     const oid = stack.pop()!;
-    if (seen.has(oid) || !state.commits[oid]) continue;
+    const commit = own(state.commits, oid);
+    if (seen.has(oid) || !commit) continue;
     seen.add(oid);
-    stack.push(...state.commits[oid].parents);
+    stack.push(...commit.parents);
   }
   const raw: RawCommit[] = [...seen].map((oid) => {
     const c = state.commits[oid];
@@ -168,19 +169,19 @@ export function fromEngine(state: RepoState): Snapshot {
 
   const worktrees: Record<string, WorktreeSnap> = {};
   for (const [actor, wt] of Object.entries(state.worktrees)) {
-    worktrees[actor] = {
+    put(worktrees, actor, {
       head: wt.head.kind === "branch" ? wt.head.name : `detached:${label(wt.head.oid)}`,
       index: sortKeys({ ...wt.index }),
       working: mapValues({ ...wt.workingTree }, text),
       conflicts: mapValues(wt.conflicts, (c) => ({ base: c.base, ours: c.ours, theirs: c.theirs })),
       inProgress: wt.inProgress?.kind ?? null,
       headReflog: reflogOids(wt.headReflog).map(label),
-    };
+    });
   }
 
   const branchReflogs: Record<string, string[]> = {};
   for (const name of BRANCH_REFLOGS) {
-    if (state.branches[name] !== undefined) branchReflogs[name] = reflogOids(state.branchReflogs[name]).map(label);
+    if (own(state.branches, name) !== undefined) put(branchReflogs, name, reflogOids(own(state.branchReflogs, name)).map(label));
   }
 
   return {
@@ -285,7 +286,7 @@ function readWorkingFiles(dir: string): Files {
       const childAbs = join(abs, name);
       const childRel = rel === "" ? name : `${rel}/${name}`;
       if (statSync(childAbs).isDirectory()) walk(childAbs, childRel);
-      else out[childRel] = readFileSync(childAbs, "utf8");
+      else put(out, childRel, readFileSync(childAbs, "utf8"));
     }
   };
   walk(dir, "");
@@ -323,7 +324,7 @@ function flattenTree(store: Map<string, GitObject>, treeOid: string, prefix = ""
     pos = nul + 21;
     const path = prefix + name;
     if (mode === "40000") flattenTree(store, oid, `${path}/`, out);
-    else if (mode !== "160000") out[path] = store.get(oid)!.data.toString("utf8");
+    else if (mode !== "160000") put(out, path, store.get(oid)!.data.toString("utf8"));
   }
   return out;
 }
@@ -347,10 +348,11 @@ async function readIndex(dir: string, blob: (oid: string) => string): Promise<{ 
     const [, oid, stage] = entry.slice(0, tab).split(" ");
     const path = entry.slice(tab + 1);
     if (stage === "0") {
-      index[path] = blob(oid);
+      put(index, path, blob(oid));
       continue;
     }
-    const c = (conflicts[path] ??= { base: null, ours: null, theirs: null });
+    const c = own(conflicts, path) ?? { base: null, ours: null, theirs: null };
+    put(conflicts, path, c);
     if (stage === "1") c.base = blob(oid);
     else if (stage === "2") c.ours = blob(oid);
     else c.theirs = blob(oid);
@@ -372,8 +374,9 @@ export async function fromRealGit(layout: RealGitLayout): Promise<Snapshot> {
   const refs = await refMap(repo, ["refs/heads", "refs/remotes"]);
   const remoteRefs: Record<string, Record<string, string>> = {};
   for (const [name, dir] of Object.entries(layout.remotes)) {
-    remoteRefs[name] = {};
-    for (const [ref, { oid }] of await refMap(dir, ["refs/heads"])) remoteRefs[name][ref.slice("refs/heads/".length)] = oid;
+    const remoteBranches: Record<string, string> = {};
+    put(remoteRefs, name, remoteBranches);
+    for (const [ref, { oid }] of await refMap(dir, ["refs/heads"])) put(remoteBranches, ref.slice("refs/heads/".length), oid);
   }
 
   const worktreeList = listWorktrees(repo).map((wt) => {
@@ -420,24 +423,24 @@ export async function fromRealGit(layout: RealGitLayout): Promise<Snapshot> {
   for (const [ref, { oid, upstream }] of refs) {
     if (ref.startsWith("refs/heads/")) {
       const name = ref.slice("refs/heads/".length);
-      branches[name] = label(oid);
-      if (upstream) upstreams[name] = upstream;
+      put(branches, name, label(oid));
+      if (upstream) put(upstreams, name, upstream);
     } else if (!ref.endsWith("/HEAD")) {
-      remoteTracking[ref.slice("refs/remotes/".length)] = label(oid);
+      put(remoteTracking, ref.slice("refs/remotes/".length), label(oid));
     }
   }
 
   const worktrees: Record<string, WorktreeSnap> = {};
   for (const wt of worktreeList) {
     const { index, conflicts } = await readIndex(wt.dir, blob);
-    worktrees[wt.actor] = {
+    put(worktrees, wt.actor, {
       head: wt.headRef ? wt.headRef.replace(/^refs\/heads\//, "") : `detached:${label(wt.headOid!)}`,
       index,
       working: mapValues(readWorkingFiles(wt.dir), text),
       conflicts,
       inProgress: inProgressKind(wt.gitDir),
       headReflog: wt.reflog.map(label),
-    };
+    });
   }
 
   const stash = readReflog(join(commonDir, "logs", "refs", "stash")).subjects.reverse().map(normaliseStash);

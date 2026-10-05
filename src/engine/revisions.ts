@@ -1,30 +1,32 @@
 // Revision parsing and commit-graph walks.
 
-import { ZERO_OID } from "./objects";
+import { ZERO_OID, has, own } from "./objects";
 import type { ActorId, Commit, Oid, ReflogEntry, RepoState, Worktree } from "./types";
 
 export function headOid(state: RepoState, wt: Worktree): Oid | null {
   if (wt.head.kind === "detached") return wt.head.oid;
-  return state.branches[wt.head.name] ?? null;
+  return own(state.branches, wt.head.name) ?? null;
 }
 
 /** Look up a ref name the way git's ref DWIM rules do: refs/heads first, then refs/remotes. */
 export function resolveRefName(state: RepoState, name: string): Oid | null {
-  if (name.startsWith("refs/heads/")) return state.branches[name.slice(11)] ?? null;
-  if (name.startsWith("refs/remotes/")) return state.remoteTracking[name.slice(13)] ?? null;
-  if (Object.prototype.hasOwnProperty.call(state.branches, name)) return state.branches[name];
-  if (Object.prototype.hasOwnProperty.call(state.remoteTracking, name)) return state.remoteTracking[name];
-  if (name.startsWith("remotes/")) return state.remoteTracking[name.slice(8)] ?? null;
+  if (name.startsWith("refs/heads/")) return own(state.branches, name.slice(11)) ?? null;
+  if (name.startsWith("refs/remotes/")) return own(state.remoteTracking, name.slice(13)) ?? null;
+  const branch = own(state.branches, name);
+  if (branch !== undefined) return branch;
+  const tracking = own(state.remoteTracking, name);
+  if (tracking !== undefined) return tracking;
+  if (name.startsWith("remotes/")) return own(state.remoteTracking, name.slice(8)) ?? null;
   return null;
 }
 
 /** If `name` names a remote-tracking ref, its "remote/branch" key. */
 export function remoteTrackingKey(state: RepoState, name: string): string | null {
-  if (Object.prototype.hasOwnProperty.call(state.branches, name)) return null;
+  if (has(state.branches, name)) return null;
   let key = name;
   if (key.startsWith("refs/remotes/")) key = key.slice(13);
   else if (key.startsWith("remotes/")) key = key.slice(8);
-  return Object.prototype.hasOwnProperty.call(state.remoteTracking, key) ? key : null;
+  return has(state.remoteTracking, key) ? key : null;
 }
 
 function nthReflog(entries: ReflogEntry[], n: number): Oid | null {
@@ -61,9 +63,9 @@ function resolveBase(state: RepoState, wt: Worktree | undefined, base: string): 
     }
     if (sel === "u" || sel === "upstream") {
       const branch = ref === "" ? (wt?.head.kind === "branch" ? wt.head.name : null) : ref;
-      const up = branch ? state.upstreams[branch] : undefined;
+      const up = branch ? own(state.upstreams, branch) : undefined;
       if (!up) return null;
-      return state.remoteTracking[`${up.remote}/${up.branch}`] ?? null;
+      return own(state.remoteTracking, `${up.remote}/${up.branch}`) ?? null;
     }
     if (!/^\d+$/.test(sel)) return null;
     const n = Number(sel);
@@ -72,14 +74,14 @@ function resolveBase(state: RepoState, wt: Worktree | undefined, base: string): 
     if (ref === "") {
       if (!wt) return null;
       if (wt.head.kind === "detached") return nthReflog(wt.headReflog, n);
-      return nthReflog(state.branchReflogs[wt.head.name] ?? [], n);
+      return nthReflog(own(state.branchReflogs, wt.head.name) ?? [], n);
     }
     const name = ref.startsWith("refs/heads/") ? ref.slice(11) : ref;
-    const log = state.branchReflogs[name];
+    const log = own(state.branchReflogs, name);
     if (log && !name.startsWith("refs/")) return nthReflog(log, n);
     // Remote-tracking refs keep their reflog under the full ref name (see trackingReflogKey).
     const key = remoteTrackingKey(state, name);
-    const tracking = key ? state.branchReflogs[trackingReflogKey(key)] : undefined;
+    const tracking = key ? own(state.branchReflogs, trackingReflogKey(key)) : undefined;
     return tracking ? nthReflog(tracking, n) : null;
   }
   if (base === "HEAD" || base === "@") return wt ? headOid(state, wt) : null;
@@ -88,7 +90,7 @@ function resolveBase(state: RepoState, wt: Worktree | undefined, base: string): 
   const byRef = resolveRefName(state, base);
   if (byRef) return byRef;
   if (/^[0-9a-f]{4,40}$/.test(base)) {
-    if (base.length === 40) return state.commits[base] ? base : null;
+    if (base.length === 40) return has(state.commits, base) ? base : null;
     let found: Oid | null = null;
     for (const oid of Object.keys(state.commits)) {
       if (oid.startsWith(base)) {
@@ -115,7 +117,7 @@ export function splitRev(rev: string): { base: string; suffix: string } {
 
 export function resolveRev(state: RepoState, actor: ActorId, rev: string): Oid | null {
   if (!rev) return null;
-  const wt = state.worktrees[actor];
+  const wt = own(state.worktrees, actor);
   const { base, suffix } = splitRev(rev);
   let oid = resolveBase(state, wt, base === "" ? "HEAD" : base);
   const re = /([~^])(\d*)/y;
@@ -127,12 +129,12 @@ export function resolveRev(state: RepoState, actor: ActorId, rev: string): Oid |
     pos = re.lastIndex;
     const n = m[2] === "" ? 1 : Number(m[2]);
     if (m[1] === "~") {
-      for (let i = 0; i < n && oid; i++) oid = state.commits[oid]?.parents[0] ?? null;
+      for (let i = 0; i < n && oid; i++) oid = own(state.commits, oid)?.parents[0] ?? null;
     } else if (n > 0) {
-      oid = state.commits[oid]?.parents[n - 1] ?? null;
+      oid = own(state.commits, oid)?.parents[n - 1] ?? null;
     }
   }
-  return oid && state.commits[oid] ? oid : null;
+  return oid && has(state.commits, oid) ? oid : null;
 }
 
 export function ancestors(state: RepoState, from: Oid): Set<Oid> {
@@ -141,7 +143,7 @@ export function ancestors(state: RepoState, from: Oid): Set<Oid> {
   while (stack.length) {
     const oid = stack.pop() as Oid;
     if (seen.has(oid)) continue;
-    const commit = state.commits[oid];
+    const commit = own(state.commits, oid);
     if (!commit) continue;
     seen.add(oid);
     for (const p of commit.parents) stack.push(p);
@@ -222,7 +224,7 @@ export function trackingReflogKey(key: string): string {
  * the branch is built on, found through the ref's reflog. null when there is none.
  */
 export function forkPoint(state: RepoState, key: string, head: Oid): Oid | null {
-  const revs = (state.branchReflogs[trackingReflogKey(key)] ?? []).map((e) => e.oid);
+  const revs = (own(state.branchReflogs, trackingReflogKey(key)) ?? []).map((e) => e.oid);
   if (revs.length === 0) return null;
   const fromRevs = new Set<Oid>();
   for (const r of revs) for (const o of ancestors(state, r)) fromRevs.add(o);

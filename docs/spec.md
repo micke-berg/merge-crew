@@ -1,6 +1,6 @@
 # Merge Crew — v1 spec
 
-Status: approved by the owner on 2026-10-05. Anything not written here is not in v1. New ideas go to `docs/ideas.md`, never into code.
+Status: approved by the maintainer on 2026-10-05. Anything not written here is not in v1. New ideas go to `docs/ideas.md`, never into code.
 
 ## The game in one paragraph
 
@@ -10,7 +10,7 @@ You are the lead developer of a small crew of robot coding agents. They all work
 
 - **The history map.** The git history is drawn like a metro map: `main` is one line, each branch is a coloured line, every commit is a stop. The layout is flat 2D, with soft shadows and layering for depth only. No 3D.
 - **The crew.** Small animated robot characters move along their own branch and hop onto each new commit they make. They react with emotions: idle, happy, celebrate, scared, guilty, surprised.
-- **The command box** at the bottom. The player types real git commands. For beginners there are suggestion buttons, and every button shows the exact command it runs.
+- **The command box** at the bottom. The player types real git commands. For beginners there are suggestion buttons. A button fills in the exact command, and the player presses Enter to run it.
 - **Speech bubbles** from the robots carry story lines, problem reports and hints.
 - **The files panel.** It shows working files, the staging area and their status, because the gap in existing git games is everything except the commit graph.
 

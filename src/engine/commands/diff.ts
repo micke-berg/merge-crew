@@ -2,7 +2,7 @@
 
 import { flag, parseArgs } from "../args";
 import { fail, type Ctx } from "../context";
-import { get } from "../objects";
+import { get, has, setOwn } from "../objects";
 import { matches, normalizeSpec } from "../pathspec";
 import { mergeBases, resolveRev } from "../revisions";
 import type { FileTree, Oid, Path } from "../types";
@@ -53,9 +53,9 @@ function trackedWorking(ctx: Ctx, extra: FileTree = {}): FileTree {
   const out: Record<Path, string> = {};
   const paths = new Set<Path>([...Object.keys(wt.index), ...Object.keys(wt.conflicts), ...Object.keys(extra)]);
   for (const path of paths) {
-    if (get(wt.index, path) === undefined && !wt.conflicts[path]) continue;
+    if (get(wt.index, path) === undefined && !has(wt.conflicts, path)) continue;
     const w = get(wt.workingTree, path);
-    if (w !== undefined) out[path] = w;
+    if (w !== undefined) setOwn(out, path, w);
   }
   return out;
 }

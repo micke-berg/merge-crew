@@ -1,10 +1,12 @@
 // Engine behaviour tests. The oracle suite in tests/oracle compares whole scenarios with real git;
 // these pin down engine-specific contract details (events, clock, errors) and git rules case by case.
 
-import { describe, expect, it } from "vitest";
-import { engine, queries } from "./index";
-import { Repo } from "./test-helpers";
+import { describe, expect, it, vi } from "vitest";
+import { engine, queries, validateCommandLine } from "./index";
+import { Repo, failOnEngineErrors } from "./test-helpers";
 import type { EngineEvent } from "./types";
+
+failOnEngineErrors();
 
 const types = (events: EngineEvent[]) => events.map((e) => e.type);
 
@@ -31,6 +33,46 @@ describe("parseCommandLine", () => {
     ]);
     expect(engine.parseCommandLine(`  git   commit -m ""  `)).toEqual(["git", "commit", "-m", ""]);
     expect(engine.parseCommandLine(`echo "say \\"hi\\"" a\\ b`)).toEqual(["echo", 'say "hi"', "a b"]);
+  });
+
+  it("reports an unclosed quote instead of guessing", () => {
+    expect(validateCommandLine(`git commit -m "Add login`)).toBe(
+      'error: unclosed double quote ("). Add the closing " and run the command again.',
+    );
+    expect(validateCommandLine(`git commit -m 'oops`)).toMatch(/unclosed single quote/);
+    expect(validateCommandLine(`git commit -m "it's fine"`)).toBeNull();
+    expect(validateCommandLine(`git commit -m 'say "hi"'`)).toBeNull();
+    expect(validateCommandLine(`echo a\\"b`)).toBeNull();
+    // parseCommandLine itself stays lenient, so existing callers keep working.
+    expect(engine.parseCommandLine(`git commit -m "Add login`)).toEqual(["git", "commit", "-m", "Add login"]);
+  });
+});
+
+describe("run: crashes", () => {
+  const broken = () => {
+    const state = engine.createRepo();
+    return { ...state, worktrees: { player: { ...state.worktrees.player, workingTree: null as never } } };
+  };
+
+  it("shows players a short message and logs the real error for developers", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const result = engine.run(broken(), { actor: "player", argv: ["git", "status"] });
+    expect(result.ok).toBe(false);
+    expect(result.output).toHaveLength(1);
+    expect(result.output[0].text).toMatch(/^internal engine error: /);
+    expect(spy).toHaveBeenCalledWith("Merge Crew engine error", expect.any(TypeError));
+    spy.mockClear(); // this crash is the point of the test
+  });
+
+  it("does not log in production builds", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      expect(engine.run(broken(), { actor: "player", argv: ["git", "status"] }).ok).toBe(false);
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });
 
@@ -66,7 +108,7 @@ describe("run: contract", () => {
     expect(r.state.branchReflogs.feature[0].time).toBe(clock + 1);
   });
 
-  it("reports later-wave commands and shell commands as not supported", () => {
+  it("reports unsupported git commands and shell commands as not supported", () => {
     const r = new Repo();
     expect(r.fails("tag v1").output[0].text).toMatch(/not supported in Merge Crew yet/);
     expect(r.fails("rebase -i main").output[0].text).toMatch(/not supported in Merge Crew yet/);

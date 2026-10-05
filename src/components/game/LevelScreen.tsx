@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { queries } from "@/engine";
 import type { Level } from "@/engine/types";
 import { HistoryMap } from "@/components/map/HistoryMap";
-import { actorColor } from "@/components/map/palette";
+import { actorColor } from "@/lib/palette";
 import { getLevel, levels } from "@/levels";
 import { levelSheets } from "@/components/robots/preload";
 import { preloadSheets } from "@/components/robots/Sprite";
@@ -33,7 +33,8 @@ export function LevelGame({ level }: { level: Level }) {
   const g = useLevel(level);
   const { game } = g;
   // Fetch the robot sheets this level plays, so no state change waits on the network.
-  preloadSheets(levelSheets(level));
+  const sheets = useMemo(() => levelSheets(level), [level]);
+  useEffect(() => preloadSheets(sheets), [sheets]);
   const reduce = useReducedMotion() ?? false;
   useGameSounds({ events: game.events, repo: game.repo, goals: game.goals, phase: game.phase, log: game.log, reduce });
   const terminal = useRef<TerminalHandle>(null);
@@ -43,21 +44,19 @@ export function LevelGame({ level }: { level: Level }) {
   const playing = game.phase === "play";
   const branch = queries.currentBranch(game.repo, "player");
   const head = game.repo.worktrees.player?.head;
-  const where = branch ?? (head?.kind === "detached" ? `detached ${head.oid.slice(0, 7)}` : "main");
+  // On an unborn branch there is no commit yet, but the prompt still names the branch.
+  const where = branch ?? (head?.kind === "detached" ? `detached ${head.oid.slice(0, 7)}` : (head?.name ?? "main"));
   const index = levels.findIndex((l) => l.id === level.id);
   const next = levels[index + 1] ?? null;
 
   // Esc skips the rest of a scene.
-  const skipRef = useRef(g.skip);
-  useEffect(() => {
-    skipRef.current = g.skip;
-  });
+  const skip = useEffectEvent(() => g.skip());
   useEffect(() => {
     if (!inScene || open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
-        skipRef.current();
+        skip();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -85,20 +84,20 @@ export function LevelGame({ level }: { level: Level }) {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="flex min-h-dvh flex-col bg-[#EAE1D0] font-sans text-[#26283B] lg:h-dvh">
+      <div className="flex min-h-dvh flex-col bg-desk font-sans text-ink lg:h-dvh">
         {/* top bar */}
         <header className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pt-3.5 pb-3 md:px-6">
           <Link
             href="/"
-            className="group flex items-center gap-2 rounded-full pr-2 font-extrabold tracking-tight focus-visible:ring-4 focus-visible:ring-[#2563C9]/30 focus-visible:outline-none"
+            className="group flex items-center gap-2 rounded-full pr-2 font-extrabold tracking-tight focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none"
             aria-label="Merge Crew, all levels"
           >
             <Logo />
             <span className="hidden sm:inline">Merge Crew</span>
           </Link>
-          <span className="h-5 w-px bg-[#CFC3AE]" aria-hidden />
+          <span className="h-5 w-px bg-divider" aria-hidden />
           <div className="flex min-w-0 items-baseline gap-2.5">
-            <span className="shrink-0 rounded-full bg-[#26283B] px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-[#F7F1E5]">
+            <span className="shrink-0 rounded-full bg-ink px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-paper">
               {levelLabel(level)}
             </span>
             <h1 className="truncate text-[17px] font-bold tracking-tight">{level.title}</h1>
@@ -112,7 +111,7 @@ export function LevelGame({ level }: { level: Level }) {
                 setOpen(null);
                 g.restart();
               }}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#B9AD97] px-3.5 py-1.5 text-sm font-semibold text-[#5D5649] transition-colors hover:bg-[#F3ECDF] hover:text-[#26283B] focus-visible:ring-4 focus-visible:ring-[#2563C9]/30 focus-visible:outline-none"
+              className="inline-flex items-center gap-1.5 rounded-full border border-line-button px-3.5 py-1.5 text-sm font-semibold text-soft transition-colors hover:bg-sunk hover:text-ink focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none"
             >
               <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden>
                 <path d="M3 8a5 5 0 1 0 1.6-3.7M3 2.5v3h3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -126,7 +125,7 @@ export function LevelGame({ level }: { level: Level }) {
           {/* map */}
           <section
             aria-label="History map"
-            className="relative h-[46dvh] min-h-[320px] overflow-hidden rounded-3xl border border-[#D8CCB5] shadow-[0_1px_0_#fff_inset,0_10px_30px_-12px_rgba(74,58,32,0.35)] md:col-span-2 lg:col-span-1 lg:h-auto"
+            className="relative h-[46dvh] min-h-[320px] overflow-hidden rounded-3xl border border-line shadow-[0_1px_0_white_inset,0_10px_30px_-12px_rgba(74,58,32,0.35)] md:col-span-2 lg:col-span-1 lg:h-auto"
           >
             <HistoryMap
               key={g.run}
@@ -144,10 +143,10 @@ export function LevelGame({ level }: { level: Level }) {
                   initial={{ opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
-                  className="absolute top-3 right-3 inline-flex items-center gap-2 rounded-full bg-[#26283B]/90 px-3.5 py-1.5 text-[13px] font-semibold text-[#F7F1E5] shadow-md backdrop-blur-sm transition-colors hover:bg-[#26283B] focus-visible:ring-4 focus-visible:ring-[#2563C9]/40 focus-visible:outline-none"
+                  className="absolute top-3 right-3 inline-flex items-center gap-2 rounded-full bg-ink/90 px-3.5 py-1.5 text-[13px] font-semibold text-paper shadow-md backdrop-blur-sm transition-colors hover:bg-ink focus-visible:ring-4 focus-visible:ring-focus/40 focus-visible:outline-none"
                 >
                   Skip scene
-                  <kbd className="rounded border border-[#5E6178] px-1 font-sans text-[10px] text-[#C9CBDA]">Esc</kbd>
+                  <kbd className="rounded border border-term-edge-soft px-1 font-sans text-[10px] text-term-key">Esc</kbd>
                 </motion.button>
               )}
             </AnimatePresence>
@@ -166,6 +165,7 @@ export function LevelGame({ level }: { level: Level }) {
               log={game.log}
               active={playing && !open}
               where={where}
+              path={player?.path ?? "/repo"}
               suggestions={level.suggestions}
               onRun={g.command}
               scene={
@@ -203,6 +203,11 @@ export function LevelGame({ level }: { level: Level }) {
             <FileViewer key="file" path={open.path} area={open.area} content={openContent} onClose={closeFile} />
           )}
         </AnimatePresence>
+
+        {/* The scene's current line, announced once. The dialogue box itself is a plain "next" button. */}
+        <p className="sr-only" aria-live="polite">
+          {inScene && game.bubble ? `${actorColor(game.bubble.actor).name}: ${game.bubble.text}` : ""}
+        </p>
       </div>
     </MotionConfig>
   );
@@ -212,10 +217,10 @@ function PhaseChip({ phase }: { phase: string }) {
   const text = phase === "play" ? "Your turn" : phase === "intro" || phase === "outro" ? "Scene" : phase === "won" ? "Solved" : "Ready";
   const tone =
     phase === "play"
-      ? "bg-[#DDF1E9] text-[#0B6B58]"
+      ? "bg-success-wash text-success-deep"
       : phase === "won"
-        ? "bg-[#11876F] text-white"
-        : "bg-[#F3ECDF] text-[#5D5649]";
+        ? "bg-success-strong text-white"
+        : "bg-sunk text-soft";
   return (
     <span aria-live="polite" className={`hidden items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-bold sm:inline-flex ${tone}`}>
       {phase === "play" && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current motion-reduce:animate-none" aria-hidden />}
@@ -228,12 +233,12 @@ function Legend({ actors }: { actors: readonly string[] }) {
   return (
     <ul
       aria-label="Crew colours"
-      className="pointer-events-none absolute top-3 left-3 flex flex-wrap gap-1.5 rounded-full bg-[#FFFDF8]/85 px-2 py-1 backdrop-blur-sm"
+      className="pointer-events-none absolute top-3 left-3 flex flex-wrap gap-1.5 rounded-full bg-card/85 px-2 py-1 backdrop-blur-sm"
     >
       {actors.map((a) => {
         const c = actorColor(a);
         return (
-          <li key={a} className="flex items-center gap-1.5 px-1 text-[11px] font-semibold text-[#26283B]">
+          <li key={a} className="flex items-center gap-1.5 px-1 text-[11px] font-semibold text-ink">
             <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: c.line }} aria-hidden />
             {c.name}
           </li>

@@ -16,7 +16,7 @@ export function MuteButton({ className = "" }: { className?: string }) {
         const nowMuted = toggleMuted();
         if (!nowMuted) play("click");
       }}
-      className={`inline-flex items-center gap-1.5 rounded-full border border-[#B9AD97] px-3 py-1.5 text-sm font-semibold text-[#5D5649] transition-colors hover:bg-[#F3ECDF] hover:text-[#26283B] focus-visible:ring-4 focus-visible:ring-[#2563C9]/30 focus-visible:outline-none ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border border-line-button px-3 py-1.5 text-sm font-semibold text-soft transition-colors hover:bg-sunk hover:text-ink focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none ${className}`}
     >
       <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden>
         <path d="M2.5 6h2.2L8 3.2v9.6L4.7 10H2.5z" fill="currentColor" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />

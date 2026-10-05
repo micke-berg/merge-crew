@@ -8,7 +8,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-# Merge Crew — agent instructions
+# Merge Crew — instructions for AI coding agents and contributors
 
 A free browser game that teaches git. The player leads a crew of robot coding agents who break things in a shared repository, and fixes them with real git commands.
 
@@ -31,7 +31,7 @@ This repository is public. Everything in it, including commit messages, PR text,
 - Project content only. No personal notes, private names, local machine paths, or references to tools or notes outside this repo.
 - No secrets. Use environment variables, and keep `.env*` files out of git.
 - Art and other assets go in only when their licence allows public redistribution. Record each asset and its licence in `ASSETS.md`.
-- The pre-commit, commit-msg and pre-push checks must pass. Never bypass them with `--no-verify`.
+- CI must pass: lint, typecheck, tests, build, a secret scan and the maintainer's private-word check. The maintainer also runs that check as local git hooks; never bypass hooks with `--no-verify`.
 
 ## Code
 
@@ -41,13 +41,13 @@ This repository is public. Everything in it, including commit messages, PR text,
 
 ## Parallel work
 
-Each parallel agent owns specific folders, named in its task. Do not edit files outside your folders. Shared types live in `src/engine/types.ts`, and only the lead changes them.
+When several agents work at once, each owns specific folders, named in its task. Do not edit files outside your folders. Shared types live in `src/engine/types.ts`; changing them is a contract change that the maintainer makes.
 
 ## Processes
 
 - Scratch files go in a folder you create with a unique name, and you delete exactly that path. Never delete with wildcards in shared places such as the system temp folder.
-- Stop only processes you started, by their process id (`kill <pid>`) or with the tool that started them. Never use `pkill -f`, `killall` or any name or pattern match. A pattern like "cat" also matches "Application", which closed most of the owner's apps on 2026-10-05.
+- Stop only processes you started, by their process id (`kill <pid>`) or with the tool that started them. Never use `pkill -f`, `killall` or any name or pattern match. A name pattern matches far more than intended: "cat" also matches "Application".
 
 ## Workflow notes
 
-When you notice something about the way of working that helped or hurt (a handoff that failed, an instruction that was misread, a check that caught a mistake), add a dated line to `docs/workflow-notes.md`.
+When you notice something about the way of working that helped or hurt (a handoff that failed, an instruction that was misread, a check that caught a mistake), add a dated line to `docs/workflow-notes.md`. Write it as an engineering lesson for strangers: no people, no machines.

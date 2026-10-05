@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { motion } from "motion/react";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useEffectEvent, useRef, type ReactNode } from "react";
 import type { Level } from "@/engine/types";
-import { actorColor } from "@/components/map/palette";
+import { actorColor } from "@/lib/palette";
 import { RobotPortrait } from "./RobotPortrait";
 
 export const ACT_NAMES: Record<number, string> = { 1: "Learn", 2: "Fix", 3: "Lead" };
@@ -30,7 +30,8 @@ export function Modal({
   /** Replaces the card's width and padding classes, for bigger panels such as the conflict editor. */
   className?: string;
 }) {
-  const closeRef = useRef(onClose);
+  const close = useEffectEvent(() => onClose?.());
+  const hasClose = useEffectEvent(() => onClose !== undefined);
   const cardRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     // autoFocus does not reach links, so focus the marked control (or the first one) by hand.
@@ -39,13 +40,10 @@ export function Modal({
     target?.focus({ preventScroll: true });
   }, []);
   useEffect(() => {
-    closeRef.current = onClose;
-  });
-  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && closeRef.current) {
+      if (e.key === "Escape" && hasClose()) {
         e.preventDefault();
-        closeRef.current();
+        close();
       } else if (e.key === "Tab") {
         // Keep focus inside the dialog.
         const card = cardRef.current;
@@ -70,7 +68,7 @@ export function Modal({
 
   return (
     <motion.div
-      className="fixed inset-0 z-40 grid place-items-center overflow-y-auto bg-[#2A2116]/35 p-4 backdrop-blur-[3px]"
+      className="fixed inset-0 z-40 grid place-items-center overflow-y-auto bg-overlay/35 p-4 backdrop-blur-[3px]"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -88,7 +86,7 @@ export function Modal({
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 8, scale: 0.98 }}
         transition={{ type: "spring", stiffness: 340, damping: 30 }}
-        className={`relative w-full ${className ?? `${wide ? "max-w-xl" : "max-w-lg"} p-6 md:p-8`} rounded-[28px] border border-[#D8CCB5] bg-[#FFFDF8] text-[#26283B] shadow-[0_30px_80px_-20px_rgba(60,44,20,0.55)]`}
+        className={`relative w-full ${className ?? `${wide ? "max-w-xl" : "max-w-lg"} p-6 md:p-8`} rounded-[28px] border border-line bg-card text-ink shadow-[0_30px_80px_-20px_rgba(60,44,20,0.55)]`}
       >
         {children}
       </motion.div>
@@ -97,22 +95,22 @@ export function Modal({
 }
 
 export const primary =
-  "inline-flex items-center justify-center gap-2 rounded-full bg-[#26283B] px-6 py-3 text-[15px] font-bold text-[#F7F1E5] shadow-[0_3px_0_#11121c] transition-transform hover:-translate-y-px active:translate-y-px focus-visible:ring-4 focus-visible:ring-[#2563C9]/40 focus-visible:outline-none";
+  "inline-flex items-center justify-center gap-2 rounded-full bg-ink px-6 py-3 text-[15px] font-bold text-paper shadow-[0_3px_0_var(--color-ink-shadow)] transition-transform hover:-translate-y-px active:translate-y-px focus-visible:ring-4 focus-visible:ring-focus/40 focus-visible:outline-none";
 export const secondary =
-  "inline-flex items-center justify-center rounded-full border border-[#C9BCA4] px-4 py-2.5 text-sm font-semibold text-[#5D5649] transition-colors hover:bg-[#F3ECDF] hover:text-[#26283B] focus-visible:ring-4 focus-visible:ring-[#2563C9]/30 focus-visible:outline-none";
+  "inline-flex items-center justify-center rounded-full border border-line-strong px-4 py-2.5 text-sm font-semibold text-soft transition-colors hover:bg-sunk hover:text-ink focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none";
 
 export function BriefCard({ level, onStart }: { level: Level; onStart: () => void }) {
   return (
     <Modal label={`${level.title}: level brief`} wide>
-      <p className="text-[12px] font-bold tracking-[0.12em] text-[#7A7264] uppercase">
+      <p className="text-[12px] font-bold tracking-[0.12em] text-muted uppercase">
         {levelLabel(level)} · {ACT_NAMES[level.act]}
       </p>
       <h1 className="mt-1.5 text-3xl leading-tight font-extrabold tracking-tight md:text-[34px]">{level.title}</h1>
-      <p className="mt-3 text-[16px] leading-relaxed text-[#4A4436]">{level.brief}</p>
+      <p className="mt-3 text-[16px] leading-relaxed text-body">{level.brief}</p>
 
       <div className="mt-5 flex flex-wrap gap-3">
         {(["player", ...level.crew] as const).map((a) => (
-          <div key={a} className="flex items-center gap-2 rounded-full bg-[#F3ECDF] py-1 pr-3.5 pl-1">
+          <div key={a} className="flex items-center gap-2 rounded-full bg-sunk py-1 pr-3.5 pl-1">
             <RobotPortrait actor={a} size={34} still />
             <span className="text-[13px] font-semibold" style={{ color: actorColor(a).deep }}>
               {actorColor(a).name}
@@ -121,11 +119,11 @@ export function BriefCard({ level, onStart }: { level: Level; onStart: () => voi
         ))}
       </div>
 
-      <h2 className="mt-6 text-[12px] font-bold tracking-[0.12em] text-[#7A7264] uppercase">To win</h2>
+      <h2 className="mt-6 text-[12px] font-bold tracking-[0.12em] text-muted uppercase">To win</h2>
       <ul className="mt-2 flex flex-col gap-1.5">
         {level.goals.map((g) => (
           <li key={g.id} className="flex gap-2.5 text-[14.5px] leading-snug">
-            <span className="mt-[3px] h-3.5 w-3.5 shrink-0 rounded-full border-2 border-[#C9BCA4]" aria-hidden />
+            <span className="mt-[3px] h-3.5 w-3.5 shrink-0 rounded-full border-2 border-line-strong" aria-hidden />
             {g.description}
           </li>
         ))}
@@ -137,8 +135,8 @@ export function BriefCard({ level, onStart }: { level: Level; onStart: () => voi
           <svg width="12" height="12" viewBox="0 0 10 10" aria-hidden><path d="M1.5 0.8 L9 5 L1.5 9.2 Z" fill="currentColor" /></svg>
         </button>
         <Link href="/" className={secondary}>All levels</Link>
-        <span className="ml-auto hidden text-[12px] text-[#7A7264] sm:block">
-          <kbd className="rounded-md border border-[#D8CCB5] bg-white px-1.5 py-px text-[11px]">Enter</kbd> to start
+        <span className="ml-auto hidden text-[12px] text-muted sm:block">
+          <kbd className="rounded-md border border-line bg-white px-1.5 py-px text-[11px]">Enter</kbd> to start
         </span>
       </div>
     </Modal>
@@ -170,9 +168,9 @@ export function WinCard({
           </motion.span>
         ))}
       </div>
-      <p className="mt-5 text-center text-[12px] font-bold tracking-[0.12em] text-[#11876F] uppercase">Level complete</p>
+      <p className="mt-5 text-center text-[12px] font-bold tracking-[0.12em] text-success-strong uppercase">Level complete</p>
       <h1 className="mt-1 text-center text-3xl font-extrabold tracking-tight">{level.title}</h1>
-      <p className="mt-2 text-center text-[15px] text-[#5D5649]">
+      <p className="mt-2 text-center text-[15px] text-soft">
         Done in {commands} {commands === 1 ? "command" : "commands"}.
       </p>
       <div className="mt-7 flex flex-col items-center gap-3">
@@ -212,22 +210,22 @@ export function FileViewer({
     <Modal label={`${path}, read-only`} onClose={onClose}>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-[11px] font-bold tracking-[0.12em] text-[#7A7264] uppercase">
+          <p className="text-[11px] font-bold tracking-[0.12em] text-muted uppercase">
             {area === "staged" ? "Staged version" : "Working file"} · read-only
           </p>
           <h2 className="mt-1 truncate font-mono text-lg font-bold">{path}</h2>
         </div>
         <button type="button" data-autofocus onClick={onClose} className={secondary} aria-label="Close file">
-          Close <kbd className="ml-2 rounded border border-[#D8CCB5] px-1 text-[10px]">Esc</kbd>
+          Close <kbd className="ml-2 rounded border border-line px-1 text-[10px]">Esc</kbd>
         </button>
       </div>
-      <pre className="mt-4 max-h-[50dvh] overflow-auto rounded-2xl bg-[#26283B] py-3 font-mono text-[13px] leading-relaxed text-[#F7F1E5]">
+      <pre className="mt-4 max-h-[50dvh] overflow-auto rounded-2xl bg-ink py-3 font-mono text-[13px] leading-relaxed text-paper">
         {lines.length === 1 && lines[0] === "" ? (
-          <span className="px-4 text-[#8D90A8]">(empty file)</span>
+          <span className="px-4 text-term-muted">(empty file)</span>
         ) : (
           lines.map((l, i) => (
-            <div key={i} className={`flex px-4 ${marker.test(l) ? "bg-[#C2410C]/30 text-[#FFC9B8]" : ""}`}>
-              <span className="mr-4 w-6 shrink-0 text-right text-[#5E6178] select-none">{i + 1}</span>
+            <div key={i} className={`flex px-4 ${marker.test(l) ? "bg-warn/30 text-warn-glow" : ""}`}>
+              <span className="mr-4 w-6 shrink-0 text-right text-term-muted select-none">{i + 1}</span>
               <span className="whitespace-pre-wrap">{l || " "}</span>
             </div>
           ))

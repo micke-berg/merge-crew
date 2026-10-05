@@ -1,7 +1,31 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from "vitest";
 import { engine } from "@/engine";
-import { levels, solutions } from "@/levels";
-import { advance, advanceUntilClick, begin, editPlayerFile, runPlayerCommand, skipScript, startLevel, type GameState } from "./game";
+import type { Level } from "@/engine/types";
+import { levels } from "@/levels";
+import { git, say, write } from "@/levels/script";
+import { solutions } from "@/levels/solutions";
+import {
+  advance,
+  advanceUntilClick,
+  begin,
+  checkGoals,
+  editPlayerFile,
+  runPlayerCommand,
+  skipScript,
+  startLevel,
+  type GameState,
+} from "./game";
+
+// checkGoals logs a goal that throws instead of crashing the game. In tests that log is a failure.
+let consoleError: MockInstance<typeof console.error>;
+beforeEach(() => {
+  consoleError = vi.spyOn(console, "error");
+});
+afterEach(() => {
+  const calls = consoleError.mock.calls;
+  consoleError.mockRestore();
+  expect(calls, "console.error was called").toEqual([]);
+});
 
 /** Play a scene to its end the way an impatient player clicks through it. */
 function clickThrough(s: GameState): GameState {
@@ -91,5 +115,83 @@ describe("player commands", () => {
     const s = advanceUntilClick(begin(startLevel(level)));
     expect(s.phase).toBe("intro");
     expect(s.bubble?.actor).toBe("blaze");
+  });
+});
+
+/** A small level built for these tests: one file, one commit, a goal the test controls. */
+function testLevel(check: Level["goals"][number]["check"]): Level {
+  return {
+    id: "test-01",
+    act: 1,
+    order: 1,
+    title: "Test level",
+    brief: "A level for tests.",
+    crew: ["tidy"],
+    setup: [write("player", "a.txt", "one\n"), git("player", "add", "a.txt"), git("player", "commit", "-m", "First")],
+    intro: [say("tidy", "Go on.")],
+    goals: [{ id: "flag", description: "The test says so", check }],
+    hintContext: "Test only.",
+    suggestions: ["git status"],
+    outro: [say("tidy", "Done.")],
+  };
+}
+
+describe("goal checks", () => {
+  it("re-checks goals after an accepted command that leaves the repository as it was", () => {
+    let met = false;
+    const s = skipScript(begin(startLevel(testLevel(() => met))));
+    expect(s.phase).toBe("play");
+    expect(s.goals).toEqual([false]);
+    met = true;
+    const out = runPlayerCommand(s, "git status");
+    expect(out.changed).toBe(false);
+    expect(out.state.goals).toEqual([true]);
+    expect(out.won).toBe(true);
+    expect(out.state.phase).toBe("outro");
+  });
+
+  it("keeps the goals as they were after a refused command", () => {
+    let met = false;
+    const s = skipScript(begin(startLevel(testLevel(() => met))));
+    met = true;
+    const out = runPlayerCommand(s, "git frobnicate");
+    expect(out.ok).toBe(false);
+    expect(out.state.goals).toEqual([false]);
+    expect(out.won).toBe(false);
+  });
+
+  it("re-checks goals after the player saves a file, even with the same content", () => {
+    let met = false;
+    const s = skipScript(begin(startLevel(testLevel(() => met))));
+    met = true;
+    const out = editPlayerFile(s, "a.txt", "one\n");
+    expect(out.ok).toBe(true);
+    expect(out.state.goals).toEqual([true]);
+    expect(out.won).toBe(true);
+  });
+
+  it("treats a goal that throws as not met and logs it", () => {
+    consoleError.mockImplementation(() => {});
+    const level = testLevel(() => {
+      throw new Error("broken goal");
+    });
+    expect(checkGoals(level, startLevel(level).repo)).toEqual([false]);
+    expect(consoleError).toHaveBeenCalledTimes(1);
+    expect(String(consoleError.mock.calls[0][0])).toContain('Goal "flag" of level test-01');
+    consoleError.mockClear();
+  });
+});
+
+describe("command line errors", () => {
+  it("refuses a command with an unclosed quote without running it", () => {
+    const level = levels[0];
+    let s = skipScript(begin(startLevel(level)));
+    const before = s.repo;
+    const out = runPlayerCommand(s, 'git commit -m "half a message');
+    s = out.state;
+    expect(out.ok).toBe(false);
+    expect(s.repo).toBe(before);
+    expect(s.log.at(-1)?.kind).toBe("error");
+    expect(s.log.at(-1)?.text).toMatch(/unclosed double quote/);
   });
 });

@@ -1,6 +1,6 @@
 // The working state of one command: a private copy of the repository, the output and the events.
 
-import { get, shortOid, subject, treeOf } from "./objects";
+import { get, own, setOwn, shortOid, subject, treeOf } from "./objects";
 import { headOid } from "./revisions";
 import type {
   ActorId,
@@ -48,7 +48,7 @@ export class Ctx {
   ) {}
 
   get wt(): Worktree {
-    const wt = this.state.worktrees[this.actor];
+    const wt = own(this.state.worktrees, this.actor);
     if (!wt) fail(`fatal: '${this.actor}' has no worktree. Create one with git worktree add`);
     return wt;
   }
@@ -82,7 +82,7 @@ export class Ctx {
   }
 
   oneline(oid: Oid): string {
-    return `${shortOid(oid)} ${subject(this.state.commits[oid]?.message ?? "")}`;
+    return `${shortOid(oid)} ${subject(own(this.state.commits, oid)?.message ?? "")}`;
   }
 
   logHead(wt: Worktree, previous: Oid | null, oid: Oid, message: string): void {
@@ -103,15 +103,16 @@ export class Ctx {
    * but still logs HEAD.
    */
   updateBranch(name: string, to: Oid, reason: RefChangeReason, message: string): void {
-    const from = this.state.branches[name] ?? null;
+    const from = own(this.state.branches, name) ?? null;
     if (from !== to) {
-      this.state.branches[name] = to;
-      const log = this.state.branchReflogs[name] ?? (this.state.branchReflogs[name] = []);
+      setOwn(this.state.branches, name, to);
+      const log = own(this.state.branchReflogs, name) ?? [];
+      setOwn(this.state.branchReflogs, name, log);
       log.push({ oid: to, previous: from, message, time: this.time });
       if (from === null) this.emit({ type: "branch-created", actor: this.actor, name, oid: to });
       else this.emit({ type: "branch-moved", actor: this.actor, name, from, to, reason });
     }
-    const wt = this.state.worktrees[this.actor];
+    const wt = own(this.state.worktrees, this.actor);
     if (wt && wt.head.kind === "branch" && wt.head.name === name) this.logHead(wt, from, to, message);
   }
 
@@ -180,8 +181,8 @@ export function twoWayCheckout(
       delete nextIndex[path];
       delete nextWorking[path];
     } else {
-      nextIndex[path] = n;
-      nextWorking[path] = n;
+      setOwn(nextIndex, path, n);
+      setOwn(nextWorking, path, n);
     }
   }
   if (local.length) {

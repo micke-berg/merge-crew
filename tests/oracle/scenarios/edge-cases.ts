@@ -1,4 +1,4 @@
-// Edge cases found while building the first engine wave: previous-branch shortcuts, path forms of
+// Edge cases in the core commands: previous-branch shortcuts, path forms of
 // checkout, reset and rm, merge corner cases, push refspec forms and bad revisions.
 
 import { commitFile, del, fails, git, stops, write, type Scenario } from "../scenario";

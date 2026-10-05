@@ -8,10 +8,10 @@ type Props = { goals: Goal[]; done: boolean[] };
 export function GoalsPanel({ goals, done }: Props) {
   const count = done.filter(Boolean).length;
   return (
-    <section aria-labelledby="goals-title" className="rounded-3xl border border-[#D8CCB5] bg-[#FBF8F1] p-4">
+    <section aria-labelledby="goals-title" className="rounded-3xl border border-line bg-panel p-4">
       <div className="flex items-center justify-between">
         <h2 id="goals-title" className="text-sm font-bold">Goals</h2>
-        <span className="rounded-full bg-[#EDE5D6] px-2 py-0.5 font-mono text-[11px] font-semibold text-[#5D5649]">
+        <span className="rounded-full bg-chip px-2 py-0.5 font-mono text-[11px] font-semibold text-soft">
           {count}/{goals.length}
         </span>
       </div>
@@ -22,14 +22,14 @@ export function GoalsPanel({ goals, done }: Props) {
             <li key={g.id} className="flex items-start gap-2.5 text-[13.5px] leading-snug">
               <span
                 className={`mt-px grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 transition-colors duration-300 ${
-                  ok ? "border-[#11876F] bg-[#11876F]" : "border-[#C9BCA4] bg-white"
+                  ok ? "border-success bg-success" : "border-line-strong bg-white"
                 }`}
               >
                 <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden>
                   <motion.path
                     d="M2 6.4 L4.8 9 L10 3"
                     fill="none"
-                    stroke="#fff"
+                    stroke="white"
                     strokeWidth={2.2}
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -39,7 +39,7 @@ export function GoalsPanel({ goals, done }: Props) {
                   />
                 </svg>
               </span>
-              <span className={ok ? "text-[#5D5649]" : "text-[#26283B]"}>
+              <span className={ok ? "text-soft" : "text-ink"}>
                 {g.description}
                 <span className="sr-only">{ok ? " (done)" : " (not done yet)"}</span>
               </span>

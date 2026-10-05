@@ -1,6 +1,6 @@
 // Read-only questions about a repository state.
 
-import { get, has, treeOf } from "./objects";
+import { get, has, own, treeOf } from "./objects";
 import { headOid, isAncestor, resolveRev, walk } from "./revisions";
 import type { ActorId, Oid, Path, Queries, RepoState } from "./types";
 
@@ -16,12 +16,12 @@ function reachable(state: RepoState): Set<Oid> {
     if (oid) starts.push(oid);
   }
   const seen = new Set<Oid>();
-  const stack = starts.filter((o) => state.commits[o]);
+  const stack = starts.filter((o) => has(state.commits, o));
   while (stack.length) {
     const oid = stack.pop() as Oid;
     if (seen.has(oid)) continue;
     seen.add(oid);
-    for (const p of state.commits[oid]?.parents ?? []) if (!seen.has(p)) stack.push(p);
+    for (const p of own(state.commits, oid)?.parents ?? []) if (!seen.has(p)) stack.push(p);
   }
   return seen;
 }
@@ -35,14 +35,14 @@ function lost(state: RepoState): Oid[] {
 }
 
 function currentBranch(state: RepoState, actor: ActorId): string | null {
-  const wt = state.worktrees[actor];
+  const wt = own(state.worktrees, actor);
   if (!wt || wt.head.kind !== "branch") return null;
-  return state.branches[wt.head.name] ? wt.head.name : null;
+  return has(state.branches, wt.head.name) ? wt.head.name : null;
 }
 
 function status(state: RepoState, actor: ActorId): ReturnType<Queries["status"]> {
   const result: ReturnType<Queries["status"]> = { staged: [], unstaged: [], untracked: [], conflicted: [] };
-  const wt = state.worktrees[actor];
+  const wt = own(state.worktrees, actor);
   if (!wt) return result;
   const head = treeOf(state, headOid(state, wt));
   const conflicted = new Set(Object.keys(wt.conflicts));
@@ -71,7 +71,7 @@ export const queries: Queries = {
   isAncestor,
   reachable,
   lost,
-  history: (state, from) => (state.commits[from] ? walk(state, [from]) : []),
+  history: (state, from) => (has(state.commits, from) ? walk(state, [from]) : []),
   currentBranch,
   status,
 };
