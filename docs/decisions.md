@@ -2,6 +2,11 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-10-05 — Spec approved, art route changed
+
+- **Spec approved by the owner as written.**
+- **Not the Rive robot.** It did not appeal. Art comes from an external AI art tool working from `docs/art-brief.md`, which fixes the game's technical needs and leaves the style open. Free toy-like characters with many poses (Kenney) are the reference for charm. Game code uses placeholder shapes until the art is chosen.
+
 ## 2026-10-05 — Project start
 
 - **Standalone game, public from the first commit, MIT licence for code.** Art has its own licences, listed in `ASSETS.md`.
