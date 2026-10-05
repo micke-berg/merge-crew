@@ -60,14 +60,22 @@ export function statusSummary(game: GameState): string {
   return clip(parts.join(" "), LIMITS.statusSummary);
 }
 
-export function buildHintRequest(game: GameState, hintNumber: number): HintRequest {
+export function buildHintRequest(game: GameState, hintNumber: number, runId?: string): HintRequest {
   return {
     levelId: game.level.id,
     hintNumber,
     recentCommands: recentCommands(game),
     goals: [...game.goals],
     statusSummary: statusSummary(game),
+    ...(runId ? { runId } : {}),
   };
+}
+
+/** A fresh random id for one play of a level. */
+export function newRunId(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 /** What Tidy says when the hint service cannot answer. The hint is given back in these cases. */

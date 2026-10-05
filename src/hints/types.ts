@@ -17,6 +17,7 @@ export const LIMITS = {
   output: 400,
   statusSummary: 400,
   goals: 12,
+  runId: 64,
 } as const;
 
 /** One command the player ran: the line, the first lines of what came back, and whether git accepted it. */
@@ -32,6 +33,11 @@ export type HintRequest = {
   goals: boolean[];
   /** A short `git status`-like summary of the player's checkout. */
   statusSummary: string;
+  /**
+   * A random id for this play of the level, made in the browser. Tracing groups the hints of one
+   * run into one session with it. Carries nothing about the player.
+   */
+  runId?: string;
 };
 
 /** Why a scripted hint was used instead of the model's. */

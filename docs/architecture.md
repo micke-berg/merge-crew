@@ -95,7 +95,13 @@ The player can ask Tidy for a hint with the "Ask Tidy" button next to the job ba
 
 **Limits and cost.** The client allows 5 hints per level per run. The route keeps a per-IP limit (20 per 10 minutes) and a per-instance limit (120 per minute) in memory. That is best effort only: serverless instances do not share memory, and a new instance starts with empty counters. The hard cap on spending is the AI Gateway budget the maintainer sets on the Vercel project; when it is used up, Gateway calls fail and players get the scripted hints.
 
-**Tracing.** `src/instrumentation.ts` registers the Langfuse span processor only when `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are set (`LANGFUSE_BASE_URL` is optional). Then each hint request is a `merge-crew-hint` span with the request, the outcome and metadata `levelId`, `hintNumber`, `source` and `reason`; the AI SDK telemetry for the model call (function id `merge-crew-hint`, runtime context `levelId` and `hintNumber`) becomes a nested generation with the model, prompt, output and token usage (`telemetry.ts`). The AI SDK's own OpenTelemetry integration is a separate package, so `telemetry.ts` is a small integration on top of `@langfuse/tracing`. Spans are sent immediately and flushed after the response. Without the keys nothing is registered and nothing is sent.
+**Tracing.** Follows Langfuse's setup for AI SDK 7 and its trace best practices. `src/instrumentation.ts` registers the Langfuse span processor and Langfuse's AI SDK integration (`@langfuse/vercel-ai-sdk`) only when `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are set; without them nothing is registered or sent. One hint is one trace:
+
+- `ask-tidy-hint` (root span): input is the goal the player is on, their recent commands and a status line; output is the hint they saw. Metadata holds the full request, `source`, the fallback `reason`, the model and, when the answer was rejected, the rejected text.
+  - `generate-hint` (the AI SDK call) → `run-model-step` → `call-model` (a generation with model, prompt, output, token usage and cost).
+  - `check-hint-safety` (a guardrail): the model's answer and whether the code check passed it.
+- Trace attributes: the `hints` tag, `levelId` and `hintNumber` metadata, the browser's random `runId` as the session (the hints of one play of a level), and the environment (`development`, `preview` or `production`, from `VERCEL_ENV`, overridable with `LANGFUSE_TRACING_ENVIRONMENT`). No user id: players have no accounts, and IP addresses are never recorded.
+- The AI SDK names its spans after the model; `StableSpanNames` in `src/hints/telemetry.ts` renames them so dashboards and evaluators keep working when the model changes. The processor's default filter exports only Langfuse and AI spans, so Next.js's own request spans are left out, and each hint starts from a clean root. Spans are sent immediately and flushed after the response.
 
 **Evals (`evals/hints`).** `cases.ts` has 2 or 3 stuck moments per level: the player typed nothing useful, tried the wrong thing, or is one step from done. `materialise.ts` plays each case through the real game, so the request is exactly what the game would send.
 
@@ -103,7 +109,7 @@ The player can ask Tidy for a hint with the "Ask Tidy" button next to the job ba
 - `npm run eval:hints` (`hints.eval.ts`, its own vitest config) asks the real hint model for hints 1 and 3 of every case, runs the deterministic checks on the raw answers, and grades each with a rubric-based model grader (`grader.ts`, `anthropic/claude-sonnet-5`): points toward the right next idea, does not give the answer, at most two sentences, Tidy's voice. Results go to `evals/hints/results/` (ignored by git). Without credentials it skips and sends nothing.
 - The grader is not calibrated. `labels.example.json` is the format for hints a person marks good or bad; with a `labels.json` in that format, the eval also grades each labelled hint and reports how often the grader agrees.
 
-**Configuration.** Names only, in `.env.example`: `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` (locally; on Vercel the project's OIDC token is used), `HINTS_AI` (`off` switches the model off), `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL`.
+**Configuration.** Names only, in `.env.example`: `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` (locally; on Vercel the project's OIDC token is used), `HINTS_AI` (`off` switches the model off), `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL`, `LANGFUSE_TRACING_ENVIRONMENT` (optional).
 
 ## Quality gates
 

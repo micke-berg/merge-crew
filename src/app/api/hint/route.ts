@@ -1,11 +1,12 @@
 // POST /api/hint: one hint from Tidy. See "AI hints" in docs/architecture.md.
 
 import { after } from "next/server";
-import { startActiveObservation } from "@langfuse/tracing";
-import { hintLevel } from "@/hints/data";
+import { context, trace } from "@opentelemetry/api";
+import { propagateAttributes, startActiveObservation } from "@langfuse/tracing";
+import { hintLevel, type HintLevel } from "@/hints/data";
 import { RateLimiter, clientKey } from "@/hints/rateLimit";
 import { getHint, type HintOutcome } from "@/hints/server";
-import { flushTraces, langfuseGenerations, tracingEnabled } from "@/hints/telemetry";
+import { TRACE_NAMES, flushTraces, tracingEnabled } from "@/hints/telemetry";
 import { LIMITS, type HintRequest, type HintResponse } from "@/hints/types";
 import { parseHintRequest } from "@/hints/validate";
 
@@ -91,32 +92,61 @@ export async function POST(request: Request) {
   const data = hintLevel(parsed.request.levelId)!;
   const requestHasOidc = request.headers.has("x-vercel-oidc-token");
   const outcome = tracingEnabled()
-    ? await traced(parsed.request, (telemetry) => getHint(parsed.request, data, { requestHasOidc, telemetry }))
+    ? await traced(parsed.request, data, (telemetry) => getHint(parsed.request, data, { requestHasOidc, telemetry }))
     : await getHint(parsed.request, data, { requestHasOidc });
 
   const response: HintResponse = { text: outcome.text, source: outcome.source, ...(outcome.reason ? { reason: outcome.reason } : {}) };
   return json(response);
 }
 
-/** Run one hint inside a Langfuse span that records the outcome, and flush after responding. */
+/**
+ * Run one hint as one Langfuse trace, and flush after responding. The root span shows what a reviewer
+ * needs at a glance: the goal the player is on and what they tried (input), and the hint they got
+ * (output). Request details and the fallback reason go to metadata; the model call is recorded by
+ * Langfuse's AI SDK integration as a generation under this span.
+ */
 async function traced(
   request: HintRequest,
+  data: HintLevel,
   run: (telemetry: NonNullable<Parameters<typeof getHint>[2]>["telemetry"]) => Promise<HintOutcome>,
 ): Promise<HintOutcome> {
   after(flushTraces);
-  const meta = { levelId: request.levelId, hintNumber: request.hintNumber };
-  return startActiveObservation("merge-crew-hint", async (span) => {
-    span.update({ input: request, metadata: meta });
-    const outcome = await run({
-      functionId: "merge-crew-hint",
-      integrations: [langfuseGenerations(meta)],
-      includeRuntimeContext: { levelId: true, hintNumber: true },
-    });
-    span.update({
-      output: { text: outcome.text, source: outcome.source, raw: outcome.raw },
-      metadata: { ...meta, source: outcome.source, reason: outcome.reason ?? null, model: outcome.model ?? null },
-      level: outcome.reason && outcome.reason !== "disabled" && outcome.reason !== "no-credentials" ? "WARNING" : "DEFAULT",
-    });
-    return outcome;
-  });
+  const currentGoal = data.level.goals.find((_, i) => !request.goals[i])?.description ?? "All goals met";
+  // Start from a clean root: Next.js's own request span is not exported, so a hint trace should not
+  // point at it as a parent.
+  return context.with(trace.deleteSpan(context.active()), () => propagateAttributes(
+    {
+      traceName: TRACE_NAMES.trace,
+      ...(request.runId ? { sessionId: request.runId } : {}),
+      tags: ["hints"],
+      metadata: { levelId: request.levelId, hintNumber: String(request.hintNumber) },
+    },
+    () =>
+      startActiveObservation(TRACE_NAMES.trace, async (span) => {
+        span.update({
+          input: {
+            goal: currentGoal,
+            recentCommands: request.recentCommands.map((c) => `${c.ok ? "" : "(refused) "}${c.command}`),
+            status: request.statusSummary,
+          },
+          metadata: { levelId: request.levelId, hintNumber: request.hintNumber, goalsMet: request.goals, request },
+        });
+        const outcome = await run({
+          functionId: TRACE_NAMES.generation,
+          includeRuntimeContext: { levelId: true, hintNumber: true },
+        });
+        span.update({
+          output: outcome.text,
+          metadata: {
+            source: outcome.source,
+            reason: outcome.reason ?? null,
+            model: outcome.model ?? null,
+            ...(outcome.source === "scripted" && outcome.raw ? { rejectedModelAnswer: outcome.raw } : {}),
+          },
+          level: outcome.reason && outcome.reason !== "disabled" && outcome.reason !== "no-credentials" ? "WARNING" : "DEFAULT",
+          ...(outcome.reason ? { statusMessage: `Scripted hint used: ${outcome.reason}` } : {}),
+        });
+        return outcome;
+      }),
+  ));
 }

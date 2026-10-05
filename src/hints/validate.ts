@@ -7,6 +7,9 @@ export type ParseResult = { ok: true; request: HintRequest } | { ok: false; erro
 /** Control characters other than newline and tab are dropped, so nothing odd reaches the prompt. */
 const CONTROL = /[\u0000-\u0008\u000B-\u001F\u007F]/g;
 
+/** A run id is a random token from the browser: letters, digits and hyphens only. */
+const RUN_ID = new RegExp(`^[A-Za-z0-9-]{8,${LIMITS.runId}}$`);
+
 function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
@@ -27,7 +30,7 @@ function text(v: unknown, max: number): string | null {
  */
 export function parseHintRequest(body: unknown, goalCountFor: (levelId: string) => number | undefined): ParseResult {
   if (!isPlainObject(body)) return { ok: false, error: "body must be an object" };
-  if (!onlyKeys(body, ["levelId", "hintNumber", "recentCommands", "goals", "statusSummary"])) {
+  if (!onlyKeys(body, ["levelId", "hintNumber", "recentCommands", "goals", "statusSummary", "runId"])) {
     return { ok: false, error: "unknown field" };
   }
   const levelId = text(body.levelId, LIMITS.levelId);
@@ -65,5 +68,14 @@ export function parseHintRequest(body: unknown, goalCountFor: (levelId: string) 
   const statusSummary = text(body.statusSummary, LIMITS.statusSummary);
   if (statusSummary === null) return { ok: false, error: "statusSummary" };
 
-  return { ok: true, request: { levelId, hintNumber, recentCommands, goals: goals as boolean[], statusSummary } };
+  let runId: string | undefined;
+  if (body.runId !== undefined) {
+    if (typeof body.runId !== "string" || !RUN_ID.test(body.runId)) return { ok: false, error: "runId" };
+    runId = body.runId;
+  }
+
+  return {
+    ok: true,
+    request: { levelId, hintNumber, recentCommands, goals: goals as boolean[], statusSummary, ...(runId ? { runId } : {}) },
+  };
 }

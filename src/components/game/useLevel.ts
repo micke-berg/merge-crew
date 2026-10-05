@@ -18,7 +18,7 @@ import {
   type PointStep,
   type Wait,
 } from "./game";
-import { buildHintRequest, fetchHint } from "./hintRequest";
+import { buildHintRequest, fetchHint, newRunId } from "./hintRequest";
 import { markLevelComplete } from "./progress";
 
 /** How long to hold after a scripted git step so its animation can play. */
@@ -56,6 +56,7 @@ export function useLevel(level: Level) {
 
   // The latest model, for the hint request (built from the state at the moment the player asks).
   const latest = useRef(model);
+  const runIdFor = useRef<{ run: number; id: string }>({ run: -1, id: "" });
   useEffect(() => {
     latest.current = model;
   }, [model]);
@@ -63,7 +64,9 @@ export function useLevel(level: Level) {
     const m = latest.current;
     if (!canAskHint(m)) return;
     const key = nextHintKey(m);
-    const request = buildHintRequest(m.game, m.hintsUsed + 1);
+    // One random id per play of the level; a restart starts a new one.
+    if (runIdFor.current.run !== m.run) runIdFor.current = { run: m.run, id: newRunId() };
+    const request = buildHintRequest(m.game, m.hintsUsed + 1, runIdFor.current.id);
     dispatch({ type: "hint-ask" });
     void fetchHint(request).then(({ text, refund }) => dispatch({ type: "hint-answer", key, text, refund }));
   };

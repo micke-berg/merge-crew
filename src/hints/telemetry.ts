@@ -1,18 +1,37 @@
-// Tracing for hint calls. Off unless Langfuse keys are set; then src/instrumentation.ts registers the
-// Langfuse span processor, and this file turns AI SDK telemetry events into Langfuse observations.
+// Tracing for hint calls, sent to Langfuse. Off unless both Langfuse keys are set; then
+// src/instrumentation.ts registers the Langfuse span processor and Langfuse's AI SDK 7 integration,
+// which records every model call as a generation with model, tokens and cost.
 //
-// The AI SDK (v7) emits telemetry through integrations. Its ready-made OpenTelemetry integration
-// lives in a separate package this project does not install, so this is a small one of our own on
-// top of @langfuse/tracing: one "generation" per model call, nested under the route's hint span.
+// One hint is one trace named "ask-tidy-hint": the root span holds what the player saw (input: the
+// current goal and the player's recent commands; output: the hint shown). Under it sit the model
+// call ("generate-hint") and the code check of the model's answer ("check-hint-safety", a guardrail).
+// The hints of one play of a level share a session id, so a run reads as one session.
 
 import "server-only";
-import type { Telemetry } from "ai";
-import { startObservation, type LangfuseGeneration } from "@langfuse/tracing";
+import { startObservation } from "@langfuse/tracing";
+import type { HintVerdict } from "./leak";
+
+type Env = Record<string, string | undefined>;
 
 /** Tracing is on only when both Langfuse keys are present. Without them nothing is sent anywhere. */
-export function tracingEnabled(env: Record<string, string | undefined> = process.env): boolean {
+export function tracingEnabled(env: Env = process.env): boolean {
   return Boolean(env.LANGFUSE_PUBLIC_KEY && env.LANGFUSE_SECRET_KEY);
 }
+
+/**
+ * Which Langfuse environment traces belong to, so local and preview runs never mix with real players:
+ * an explicit LANGFUSE_TRACING_ENVIRONMENT, else Vercel's own environment name, else "development".
+ */
+export function tracingEnvironment(env: Env = process.env): string {
+  return env.LANGFUSE_TRACING_ENVIRONMENT || env.VERCEL_ENV || "development";
+}
+
+/** Stable observation names. Dashboards and evaluators match on these, so treat them like an API. */
+export const TRACE_NAMES = {
+  trace: "ask-tidy-hint",
+  generation: "generate-hint",
+  guardrail: "check-hint-safety",
+} as const;
 
 /** The span processor instrumentation.ts registered, kept on globalThis so route bundles can flush it. */
 type Flushable = { forceFlush(): Promise<void> };
@@ -28,51 +47,46 @@ export async function flushTraces(): Promise<void> {
   await p?.forceFlush().catch(() => undefined);
 }
 
-/** AI SDK telemetry integration: each language model call becomes a Langfuse generation. */
-export function langfuseGenerations(metadata: Record<string, unknown>): Telemetry {
-  const open = new Map<string, LangfuseGeneration>();
-  return {
-    onLanguageModelCallStart(event) {
-      open.set(
-        event.callId,
-        startObservation(
-          "hint-model-call",
-          {
-            model: event.modelId,
-            input: { instructions: event.instructions, messages: event.messages },
-            modelParameters: {
-              ...(event.maxOutputTokens !== undefined ? { maxOutputTokens: event.maxOutputTokens } : {}),
-              ...(event.temperature !== undefined ? { temperature: event.temperature } : {}),
-            },
-            metadata: { ...metadata, provider: event.provider },
-          },
-          { asType: "generation" },
-        ),
-      );
+/**
+ * Record the code check of a model answer as a guardrail observation under the active trace. Without
+ * a registered processor this creates a no-op span, so it is safe to call in tests and evals.
+ */
+export function recordSafetyCheck(raw: string, verdict: HintVerdict): void {
+  startObservation(
+    TRACE_NAMES.guardrail,
+    {
+      input: { hint: raw },
+      output: verdict.ok ? { passed: true } : { passed: false, reason: verdict.reason },
+      ...(verdict.ok ? {} : { level: "WARNING" as const, statusMessage: `Rejected: ${verdict.reason}` }),
     },
-    onLanguageModelCallEnd(event) {
-      const gen = open.get(event.callId);
-      if (!gen) return;
-      open.delete(event.callId);
-      const text = event.content.flatMap((p) => (p.type === "text" ? [p.text] : [])).join("");
-      gen
-        .update({
-          model: event.modelId,
-          output: text,
-          usageDetails: {
-            input: event.usage.inputTokens ?? 0,
-            output: event.usage.outputTokens ?? 0,
-            total: (event.usage.inputTokens ?? 0) + (event.usage.outputTokens ?? 0),
-          },
-          metadata: { finishReason: event.finishReason },
-        })
-        .end();
-    },
-    onError(error) {
-      for (const gen of open.values()) {
-        gen.update({ level: "ERROR", statusMessage: error instanceof Error ? error.message : String(error) }).end();
-      }
-      open.clear();
-    },
-  };
+    { asType: "guardrail" },
+  ).end();
+}
+
+/**
+ * The AI SDK names its spans after the model ("invoke_agent anthropic/claude-haiku-4.5",
+ * "chat anthropic/claude-haiku-4.5"). Langfuse's guidance is stable, verb-first names that never
+ * contain the model: swapping models would otherwise break every filter and evaluator matching on
+ * them. The model stays available as an attribute. Register this before the Langfuse span processor.
+ */
+type NamedSpan = { name: string; attributes: Record<string, unknown>; updateName(name: string): unknown };
+
+export function stableSpanName(name: string, attributes: Record<string, unknown>): string | null {
+  if (name.startsWith("invoke_agent ")) {
+    const functionId = attributes["gen_ai.agent.name"];
+    return typeof functionId === "string" && functionId ? functionId : "run-ai-call";
+  }
+  if (name.startsWith("chat ")) return "call-model";
+  if (/^step \d+$/.test(name)) return "run-model-step";
+  return null;
+}
+
+export class StableSpanNames {
+  onStart(span: NamedSpan): void {
+    const renamed = stableSpanName(span.name, span.attributes);
+    if (renamed) span.updateName(renamed);
+  }
+  onEnd(): void {}
+  async forceFlush(): Promise<void> {}
+  async shutdown(): Promise<void> {}
 }

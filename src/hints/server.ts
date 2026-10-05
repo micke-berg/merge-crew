@@ -5,6 +5,7 @@ import "server-only";
 import { generateText, type LanguageModel, type TelemetryOptions } from "ai";
 import type { HintLevel } from "./data";
 import { vetHint } from "./leak";
+import { recordSafetyCheck } from "./telemetry";
 import { buildHintPrompt } from "./prompt";
 import type { FallbackReason, HintRequest, HintResponse } from "./types";
 
@@ -102,6 +103,7 @@ export async function getHint(request: HintRequest, data: HintLevel, deps: HintD
   }
 
   const verdict = vetHint(raw, data.solution, data.level.suggestions);
+  recordSafetyCheck(raw, verdict);
   if (!verdict.ok) return { ...scripted(data, request.hintNumber, verdict.reason), raw, model };
   return { text: verdict.text, source: "ai", raw, model };
 }

@@ -5,7 +5,7 @@ import { MAX_HINT_CHARS, MAX_HINT_SENTENCES, checkLeak, cleanHint, countSentence
 import { buildHintPrompt } from "./prompt";
 import { RateLimiter, clientKey } from "./rateLimit";
 import { aiAvailability, getHint, scriptedHint } from "./server";
-import { langfuseGenerations, tracingEnabled } from "./telemetry";
+import { recordSafetyCheck, stableSpanName, tracingEnabled, tracingEnvironment } from "./telemetry";
 import { failingModel, hangingModel, replyModel } from "./test-helpers";
 import { LIMITS, MAX_HINTS_PER_RUN, type HintRequest } from "./types";
 import { parseHintRequest } from "./validate";
@@ -105,6 +105,14 @@ describe("vetting a model hint", () => {
 describe("request validation", () => {
   it("accepts a well-formed request", () => {
     expect(parseHintRequest(request(), goalCount)).toEqual({ ok: true, request: request() });
+  });
+
+  it("accepts a random run id for grouping a run's hints, and refuses anything else there", () => {
+    const runId = "3f2c9a1e-7b4d-4c1a-9e2f-0a1b2c3d4e5f";
+    expect(parseHintRequest({ ...request(), runId }, goalCount)).toEqual({ ok: true, request: { ...request(), runId } });
+    for (const bad of ["short", "has spaces in it", "x".repeat(65), 42, "<script>"]) {
+      expect(parseHintRequest({ ...request(), runId: bad }, goalCount).ok).toBe(false);
+    }
   });
 
   it.each([
@@ -219,15 +227,30 @@ describe("getHint", () => {
     expect(aiAvailability({ AI_GATEWAY_API_KEY: "k", HINTS_AI: "OFF" }, true)).toEqual({ ok: false, reason: "disabled" });
   });
 
-  it("runs with the tracing integration attached (nothing is exported without a registered processor)", async () => {
+  it("runs with telemetry on (nothing is exported without a registered processor)", async () => {
     const out = await getHint(request(), blaze, {
       model: replyModel("Have a look at where main has been."),
       env: {},
-      telemetry: { functionId: "merge-crew-hint", integrations: [langfuseGenerations({ levelId: "act2-01", hintNumber: 1 })] },
+      telemetry: { functionId: "generate-hint", includeRuntimeContext: { levelId: true, hintNumber: true } },
     });
     expect(out.source).toBe("ai");
     expect(tracingEnabled({})).toBe(false);
     expect(tracingEnabled({ LANGFUSE_PUBLIC_KEY: "pk", LANGFUSE_SECRET_KEY: "sk" })).toBe(true);
+    expect(() => recordSafetyCheck("raw", { ok: false, reason: "leak-force" })).not.toThrow();
+  });
+
+  it("gives AI SDK spans stable names without the model in them", () => {
+    expect(stableSpanName("invoke_agent anthropic/claude-haiku-4.5", { "gen_ai.agent.name": "generate-hint" })).toBe("generate-hint");
+    expect(stableSpanName("invoke_agent google/gemini-2.5-flash-lite", {})).toBe("run-ai-call");
+    expect(stableSpanName("chat anthropic/claude-haiku-4.5", {})).toBe("call-model");
+    expect(stableSpanName("step 1", {})).toBe("run-model-step");
+    expect(stableSpanName("ask-tidy-hint", {})).toBeNull();
+  });
+
+  it("keeps local and preview traces apart from production", () => {
+    expect(tracingEnvironment({})).toBe("development");
+    expect(tracingEnvironment({ VERCEL_ENV: "preview" })).toBe("preview");
+    expect(tracingEnvironment({ VERCEL_ENV: "production", LANGFUSE_TRACING_ENVIRONMENT: "staging" })).toBe("staging");
   });
 
   it("walks the scripted hints gentle to specific, then stays on the last", () => {
