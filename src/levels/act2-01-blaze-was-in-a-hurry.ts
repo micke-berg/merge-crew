@@ -80,9 +80,12 @@ export const level: Level = {
     say("blaze", "Done! Sign is louder. Shipping it.", "happy"),
     say("tidy", "Lovely. Pull first, please. I pushed the price list this morning.", "talking"),
     say("blaze", "Pull? Main is SO messy. Mine is cleaner. I'll just push mine.", "talking"),
+    // The overconfident wheelie (Blaze's signature), right before the force-push.
+    mood("blaze", "celebrate"),
+    pause(900),
     git("blaze", "push", "--force", "origin", "blaze:main"),
     pause(600),
-    say("blaze", "Boom. And I synced everyone's checkout to the new main. You're welcome!", "celebrate"),
+    say("blaze", "Boom. And I synced everyone's checkout to the new main. You're welcome!", "happy"),
     git("player", "fetch"),
     git("player", "reset", "--hard", "origin/main"),
     git("tidy", "reset", "--hard", "origin/main"),

@@ -2,20 +2,24 @@
 
 import Link from "next/link";
 import { motion, MotionConfig } from "motion/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { levels } from "@/levels";
 import { actorColor } from "@/components/map/palette";
 import { Logo } from "./Logo";
 import { ACT_NAMES } from "./Overlays";
 import { useProgress } from "./progress";
 import { RobotPortrait } from "./RobotPortrait";
+import { preloadSheets } from "@/components/robots/Sprite";
+import type { SpriteRobot } from "@/components/robots/sheets.generated";
 
-const CREW = [
+const ASSETS_URL = "https://github.com/micke-berg/merge-crew/blob/main/ASSETS.md";
+
+const CREW: readonly { id: SpriteRobot; line: string }[] = [
   { id: "tidy", line: "Calm, helpful. Knows git." },
   { id: "blaze", line: "Fast. Very fast. Too fast." },
   { id: "drift", line: "Never pulls. Drifts away." },
   { id: "hoarder", line: "Never commits. Keeps it all." },
-] as const;
+];
 
 const ACT_BLURBS: Record<number, string> = {
   1: "Tidy teaches you the basics. You type every command.",
@@ -30,6 +34,7 @@ export function StartScreen() {
   const firstOpen = levels.find((l) => !done.includes(l.id)) ?? levels[0];
   const started = done.length > 0;
   const acts = [1, 2, 3] as const;
+  preloadSheets(CREW.flatMap((r) => (["idle", "signature"] as const).map((state) => ({ size: "portrait" as const, robot: r.id, state }))));
 
   return (
     <MotionConfig reducedMotion="user">
@@ -76,24 +81,9 @@ export function StartScreen() {
 
           {/* crew */}
           <ul className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="The crew">
-            {CREW.map((r, i) => {
-              const c = actorColor(r.id);
-              return (
-                <motion.li
-                  key={r.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.08 * i, type: "spring", stiffness: 260, damping: 24 }}
-                  className="flex items-center gap-3 rounded-2xl border border-[#E2D8C6] bg-[#FFFDF8]/90 p-3 shadow-[0_6px_18px_-12px_rgba(74,58,32,0.4)]"
-                >
-                  <RobotPortrait actor={r.id} mood={r.id === "blaze" ? "happy" : r.id === "hoarder" ? "scared" : "idle"} size={52} />
-                  <div className="min-w-0">
-                    <p className="font-bold" style={{ color: c.deep }}>{c.name}</p>
-                    <p className="text-[13px] leading-snug text-[#5D5649]">{r.line}</p>
-                  </div>
-                </motion.li>
-              );
-            })}
+            {CREW.map((r, i) => (
+              <CrewCard key={r.id} id={r.id} line={r.line} index={i} />
+            ))}
           </ul>
 
           {/* acts and levels */}
@@ -155,11 +145,45 @@ export function StartScreen() {
             })}
           </section>
 
-          <p className="mt-10 text-center text-[13px] text-[#7A7264]">
-            Free, in the browser, no account. Progress stays on this device.
-          </p>
+          <footer className="mt-10 flex flex-col items-center gap-1.5 text-center text-[13px] text-[#7A7264]">
+            <p>Free, in the browser, no account. Progress stays on this device.</p>
+            <p>
+              <a
+                href={ASSETS_URL}
+                className="underline decoration-[#C9BCA4] underline-offset-2 hover:text-[#26283B] focus-visible:rounded focus-visible:ring-4 focus-visible:ring-[#2563C9]/30 focus-visible:outline-none"
+              >
+                Art: Pocket Machines (CC0)
+              </a>
+            </p>
+          </footer>
         </div>
       </div>
     </MotionConfig>
+  );
+}
+
+/** A crew card. Each robot shows its signature move once as the cards arrive, and again on hover. */
+function CrewCard({ id, line, index }: { id: SpriteRobot; line: string; index: number }) {
+  const c = actorColor(id);
+  const [show, setShow] = useState(0);
+  const play = () => setShow((n) => n + 1);
+  useEffect(() => {
+    const t = window.setTimeout(() => setShow((n) => n || 1), 700 + index * 450);
+    return () => window.clearTimeout(t);
+  }, [index]);
+  return (
+    <motion.li
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.08 * index, type: "spring", stiffness: 260, damping: 24 }}
+      onPointerEnter={play}
+      className="flex items-center gap-3 rounded-2xl border border-[#E2D8C6] bg-[#FFFDF8]/90 p-3 pt-4 shadow-[0_6px_18px_-12px_rgba(74,58,32,0.4)]"
+    >
+      <RobotPortrait actor={id} animation={show ? "signature" : "idle"} playKey={show} size={64} />
+      <div className="min-w-0">
+        <p className="font-bold" style={{ color: c.deep }}>{c.name}</p>
+        <p className="text-[13px] leading-snug text-[#5D5649]">{line}</p>
+      </div>
+    </motion.li>
   );
 }

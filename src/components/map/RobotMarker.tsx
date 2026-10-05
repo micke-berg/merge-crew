@@ -1,134 +1,83 @@
 "use client";
 
-// Placeholder robot marker. Deliberately simple geometric shapes until the real character art
-// lands; anything that renders an <g> with the same props can replace it.
-// Origin is the point between the feet, facing right. Height is about 42 units.
+// A crew member on the history map. Robots are Pocket Machines sprites; the player is a pawn.
+// Origin is the ground anchor (between the feet), facing right. Renders an SVG <g>.
 
-import { motion } from "motion/react";
+import { useEffect, useState } from "react";
 import type { ActorId, Mood } from "@/engine/types";
-import { INK, actorColor } from "./palette";
+import { moodState, isSpriteRobot } from "@/components/robots/moods";
+import { PlayerMarker } from "@/components/robots/PlayerMarker";
+import { SvgSprite, type Facing } from "@/components/robots/Sprite";
+import type { SpriteRobot } from "@/components/robots/sheets.generated";
 
-export type Facing = "left" | "right";
+export type { Facing };
+
+/** A one-off movement to play: hop onto a new commit, or roll/walk along the line. */
+export type MapAction = { kind: "hop" | "move"; key: string; delayMs: number; durationMs: number };
 
 export type RobotMarkerProps = {
   actor: ActorId;
   mood: Mood;
   facing: Facing;
-  /** Turn off idle motion such as blinking (reduced motion). */
+  /** Show a single frame (reduced motion). */
   still?: boolean;
+  action?: MapAction | null;
 };
 
-export const ROBOT_HEIGHT = 42;
+/** Height of a robot's resting artwork in map units. */
+export const ROBOT_HEIGHT = 64;
+/** The player's pawn is shorter than the robots. */
+export const PLAYER_HEIGHT = 40;
 
-type Shape = { bodyW: number; bodyH: number; radius: number };
+/**
+ * Roughly how wide each marker is on the map, used to space markers that share a stop.
+ * From the idle artwork at ROBOT_HEIGHT.
+ */
+export const MARKER_WIDTH: Record<string, number> = { player: 28, tidy: 46, blaze: 54, drift: 48, hoarder: 62 };
+export const markerWidth = (actor: ActorId) => MARKER_WIDTH[actor] ?? MARKER_WIDTH.player;
 
-const SHAPES: Record<string, Shape> = {
-  player: { bodyW: 28, bodyH: 26, radius: 13 },
-  tidy: { bodyW: 28, bodyH: 26, radius: 8 },
-  blaze: { bodyW: 28, bodyH: 25, radius: 6 },
-  drift: { bodyW: 30, bodyH: 28, radius: 15 },
-  hoarder: { bodyW: 34, bodyH: 25, radius: 6 },
-};
-
-function Eyes({ mood, cx, cy, still }: { mood: Mood; cx: number; cy: number; still: boolean }) {
-  const l = cx - 5;
-  const r = cx + 5;
-  switch (mood) {
-    case "happy":
-    case "celebrate":
-      return (
-        <g stroke={INK} strokeWidth={2.2} strokeLinecap="round" fill="none">
-          <path d={`M${l - 2.5} ${cy + 1} Q${l} ${cy - 3} ${l + 2.5} ${cy + 1}`} />
-          <path d={`M${r - 2.5} ${cy + 1} Q${r} ${cy - 3} ${r + 2.5} ${cy + 1}`} />
-        </g>
-      );
-    case "scared":
-      return (
-        <g>
-          <circle cx={l} cy={cy} r={3.6} fill="#fff" stroke={INK} strokeWidth={1.2} />
-          <circle cx={r} cy={cy} r={3.6} fill="#fff" stroke={INK} strokeWidth={1.2} />
-          <circle cx={l} cy={cy} r={1.2} fill={INK} />
-          <circle cx={r} cy={cy} r={1.2} fill={INK} />
-        </g>
-      );
-    case "guilty":
-      return (
-        <g fill={INK}>
-          <rect x={l - 2} y={cy + 0.5} width={3.4} height={3.2} rx={1.6} />
-          <rect x={r - 2} y={cy + 0.5} width={3.4} height={3.2} rx={1.6} />
-          <path d={`M${l - 3} ${cy - 3} L${l + 2} ${cy - 1.5}`} stroke={INK} strokeWidth={1.4} strokeLinecap="round" />
-          <path d={`M${r + 3} ${cy - 3} L${r - 2} ${cy - 1.5}`} stroke={INK} strokeWidth={1.4} strokeLinecap="round" />
-        </g>
-      );
-    case "thinking":
-      return (
-        <g fill={INK}>
-          <rect x={l - 1.7} y={cy - 4} width={3.4} height={5} rx={1.7} />
-          <path d={`M${r - 2.5} ${cy} L${r + 2.5} ${cy}`} stroke={INK} strokeWidth={2} strokeLinecap="round" />
-        </g>
-      );
-    default:
-      return (
-        <motion.g
-          fill={INK}
-          style={{ transformOrigin: "50% 50%", transformBox: "fill-box" }}
-          animate={still ? undefined : { scaleY: [1, 1, 0.1, 1] }}
-          transition={still ? undefined : { duration: 4.2, times: [0, 0.94, 0.97, 1], repeat: Infinity }}
-        >
-          <rect x={l - 1.7} y={cy - 3} width={3.4} height={6} rx={1.7} />
-          <rect x={r - 1.7} y={cy - 3} width={3.4} height={6} rx={1.7} />
-          {mood === "talking" && <ellipse cx={cx} cy={cy + 5.5} rx={2.2} ry={1.4} />}
-        </motion.g>
-      );
+export function RobotMarker({ actor, mood, facing, still = false, action = null }: RobotMarkerProps) {
+  if (!isSpriteRobot(actor)) {
+    return (
+      <g transform={facing === "left" ? "scale(-1 1)" : undefined}>
+        <PlayerMarker actor={actor} height={PLAYER_HEIGHT} />
+      </g>
+    );
   }
+  return <MapRobot robot={actor} mood={mood} facing={facing} still={still} action={action} />;
 }
 
-export function RobotMarker({ actor, mood, facing, still = false }: RobotMarkerProps) {
-  const c = actorColor(actor);
-  const s = SHAPES[actor] ?? SHAPES.tidy;
-  const top = -4 - s.bodyH;
-  const left = -s.bodyW / 2;
-  const screenX = left + 4;
-  const screenW = s.bodyW - 8;
-  const screenY = top + 4;
-  const screenH = 14;
-  const eyeCx = screenX + screenW / 2 + 1.5;
-  const eyeCy = screenY + screenH / 2;
+function MapRobot({ robot, mood, facing, still, action }: { robot: SpriteRobot; mood: Mood; facing: Facing; still: boolean; action: MapAction | null }) {
+  const [active, setActive] = useState<{ kind: MapAction["kind"]; key: string } | null>(null);
+  const key = action?.key;
+  const kind = action?.kind;
+  const delayMs = action?.delayMs ?? 0;
+  const durationMs = action?.durationMs ?? 0;
 
+  useEffect(() => {
+    if (!key || !kind || still) return;
+    const start = window.setTimeout(() => setActive({ kind, key }), delayMs);
+    // A hop ends with its own animation; a move ends when the glide along the line does.
+    const stop = kind === "move" ? window.setTimeout(() => setActive((a) => (a?.key === key ? null : a)), delayMs + durationMs) : 0;
+    return () => {
+      window.clearTimeout(start);
+      window.clearTimeout(stop);
+    };
+  }, [key, kind, delayMs, durationMs, still]);
+
+  const rest = moodState(robot, mood);
+  const state = active ? active.kind : rest;
   return (
-    <g transform={facing === "left" ? "scale(-1 1)" : undefined}>
-      <ellipse cx={0} cy={0.5} rx={s.bodyW / 2 - 1} ry={2.6} fill="#3B2F1E" opacity={0.16} />
-      {/* legs */}
-      <rect x={-8} y={-6} width={5} height={6} rx={2} fill={c.deep} />
-      <rect x={3} y={-6} width={5} height={6} rx={2} fill={c.deep} />
-
-      {/* per-robot silhouette details, behind the body */}
-      {actor === "hoarder" && <rect x={left - 7} y={top + 3} width={10} height={s.bodyH - 6} rx={3} fill={c.deep} />}
-      {actor === "blaze" && (
-        <path d={`M${left + 6} ${top + 2} L${left + 10} ${top - 9} L${left + 15} ${top - 1} L${left + 20} ${top - 7} L${left + 22} ${top + 2} Z`} fill={c.deep} />
-      )}
-      {(actor === "tidy" || actor === "player" || !SHAPES[actor]) && (
-        <g>
-          <line x1={0} y1={top} x2={0} y2={top - 7} stroke={c.deep} strokeWidth={2} strokeLinecap="round" />
-          <circle cx={0} cy={top - 8.5} r={2.8} fill={actor === "player" ? "#fff" : c.line} stroke={c.deep} strokeWidth={1.4} />
-        </g>
-      )}
-      {actor === "drift" && (
-        <g>
-          <path d={`M-2 ${top + 1} C-2 ${top - 6} 6 ${top - 6} 6 ${top - 12}`} stroke={c.deep} strokeWidth={2} fill="none" strokeLinecap="round" />
-          <circle cx={6} cy={top - 13} r={2.6} fill="#fff" stroke={c.deep} strokeWidth={1.4} />
-        </g>
-      )}
-
-      {/* body */}
-      <rect x={left} y={top} width={s.bodyW} height={s.bodyH} rx={s.radius} fill={c.line} />
-      <rect x={left} y={top + s.bodyH - 6} width={s.bodyW} height={6} rx={3} fill={c.deep} opacity={0.35} />
-      {actor === "player" && <rect x={left - 2} y={top + 9} width={4} height={8} rx={2} fill={c.deep} />}
-      <rect x={screenX} y={screenY} width={screenW} height={screenH} rx={actor === "drift" ? 7 : 4.5} fill={c.tint} />
-      <Eyes mood={mood} cx={eyeCx} cy={eyeCy} still={still} />
-      {(mood === "scared") && (
-        <path d={`M${left + s.bodyW + 3} ${top + 2} q2 4 0 6 q-2 -2 0 -6 z`} fill="#7CC4F0" />
-      )}
-    </g>
+    <SvgSprite
+      robot={robot}
+      state={state}
+      facing={facing}
+      size="map"
+      artHeight={ROBOT_HEIGHT}
+      still={still}
+      playKey={active?.key ?? "mood"}
+      rest={active?.kind === "hop" ? rest : undefined}
+      onEnd={active?.kind === "hop" ? () => setActive(null) : undefined}
+    />
   );
 }

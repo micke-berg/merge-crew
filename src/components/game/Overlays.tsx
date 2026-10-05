@@ -145,7 +145,7 @@ export function WinCard({
             animate={{ y: [0, -14, 0] }}
             transition={{ delay: 0.25 + i * 0.12, duration: 0.6, repeat: 2, repeatDelay: 0.9, ease: "easeOut" }}
           >
-            <RobotPortrait actor={a} mood="celebrate" size={64} />
+            <RobotPortrait actor={a} mood="celebrate" rest="happy" size={72} />
           </motion.span>
         ))}
       </div>

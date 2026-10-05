@@ -8,6 +8,8 @@ import type { Level } from "@/engine/types";
 import { HistoryMap } from "@/components/map/HistoryMap";
 import { actorColor } from "@/components/map/palette";
 import { getLevel, levels } from "@/levels";
+import { levelSheets } from "@/components/robots/preload";
+import { preloadSheets } from "@/components/robots/Sprite";
 import { DialogueBox } from "./DialogueBox";
 import { FilesPanel, type OpenFile } from "./FilesPanel";
 import { GoalsPanel } from "./GoalsPanel";
@@ -26,6 +28,8 @@ export function LevelScreen({ levelId }: { levelId: string }) {
 function Game({ level }: { level: Level }) {
   const g = useLevel(level);
   const { game } = g;
+  // Fetch the robot sheets this level plays, so no state change waits on the network.
+  preloadSheets(levelSheets(level));
   const reduce = useReducedMotion() ?? false;
   const terminal = useRef<TerminalHandle>(null);
   const [open, setOpen] = useState<OpenFile | null>(null);
