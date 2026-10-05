@@ -1,6 +1,6 @@
 import type { Level } from "@/engine/types";
 import { anyOf, someBranchTipHasFiles, stashHasEntry, workingTreeClean } from "./goals";
-import { git, mood, pause, say, write, type Solution } from "./script";
+import { git, mood, pause, say, write } from "./script";
 
 const MENU = "Write the menu";
 const HOURS = "Add opening hours";
@@ -127,12 +127,3 @@ export const level: Level = {
     say("tidy", "One step at a time, Hoarder.", "talking"),
   ],
 };
-
-/** Verified against real git 2.46. See the comment at the top of this file. */
-export const solution: Solution = [
-  git("player", "stash", "list"),
-  git("player", "stash", "show", "-p", "stash@{1}"),
-  git("player", "stash", "branch", "fizz", "stash@{1}"),
-  git("player", "add", "menu.txt"),
-  git("player", "commit", "-m", "Save the fizz recipe"),
-];

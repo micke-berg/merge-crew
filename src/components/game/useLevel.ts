@@ -1,71 +1,13 @@
 "use client";
 
-// React driver for game.ts: owns the timers that play scenes step by step.
+// React driver for game.ts: runs its level reducer and owns the timers that play scenes step by step.
 
 import { useEffect, useReducer } from "react";
 import { useReducedMotion } from "motion/react";
 import type { Level } from "@/engine/types";
 import { buildSchedule } from "@/components/map/timeline";
-import { advance, begin, editPlayerFile, runPlayerCommand, skipScript, startLevel, type GameState, type Wait } from "./game";
+import { initLevelModel, levelReducer, type GameState, type Wait } from "./game";
 import { markLevelComplete } from "./progress";
-
-type Model = {
-  game: GameState;
-  wait: Wait;
-  /** Bumped on restart so the map remounts instead of animating back. */
-  run: number;
-};
-
-type Action =
-  | { type: "begin" }
-  | { type: "step" }
-  | { type: "continue" }
-  | { type: "skip" }
-  | { type: "command"; line: string }
-  | { type: "edit"; path: string; content: string }
-  | { type: "restart"; level: Level };
-
-const NONE: Wait = { kind: "none" };
-
-function init(level: Level): Model {
-  return { game: startLevel(level), wait: NONE, run: 0 };
-}
-
-function reducer(m: Model, a: Action): Model {
-  switch (a.type) {
-    case "begin":
-      return m.game.phase === "brief" ? { ...m, game: begin(m.game), wait: NONE } : m;
-    case "step": {
-      if (m.wait.kind === "click") return m;
-      const { state, wait } = advance(m.game);
-      return { ...m, game: state, wait };
-    }
-    case "continue": {
-      if (m.wait.kind !== "click") return m;
-      const { state, wait } = advance(m.game);
-      return { ...m, game: state, wait };
-    }
-    case "skip": {
-      const game = skipScript(m.game);
-      return game === m.game ? m : { ...m, game, wait: NONE };
-    }
-    case "command": {
-      const out = runPlayerCommand(m.game, a.line);
-      if (out.state === m.game) return m;
-      // A winning command plays out on the map before the closing scene starts.
-      const wait: Wait = out.won && out.changed ? { kind: "animate", events: out.state.events } : NONE;
-      return { ...m, game: out.state, wait };
-    }
-    case "edit": {
-      const out = editPlayerFile(m.game, a.path, a.content);
-      if (out.state === m.game) return m;
-      const wait: Wait = out.won && out.changed ? { kind: "animate", events: out.state.events } : NONE;
-      return { ...m, game: out.state, wait };
-    }
-    case "restart":
-      return { ...init(a.level), run: m.run + 1 };
-  }
-}
 
 /** How long to hold after a scripted git step so its animation can play. */
 function waitMs(wait: Wait, game: GameState, reduce: boolean): number | null {
@@ -82,7 +24,7 @@ function waitMs(wait: Wait, game: GameState, reduce: boolean): number | null {
 }
 
 export function useLevel(level: Level) {
-  const [model, dispatch] = useReducer(reducer, level, init);
+  const [model, dispatch] = useReducer(levelReducer, level, initLevelModel);
   const reduce = useReducedMotion() ?? false;
   const { game, wait } = model;
   const inScene = game.phase === "intro" || game.phase === "outro";

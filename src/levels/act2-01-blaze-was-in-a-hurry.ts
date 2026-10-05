@@ -6,7 +6,7 @@ import {
   remoteBranchContains,
   allOf,
 } from "./goals";
-import { git, mood, pause, say, write, type Solution } from "./script";
+import { git, mood, pause, say, write } from "./script";
 
 const TIDY_1 = "Add the price list";
 const TIDY_2 = "Add iced tea to the prices";
@@ -137,11 +137,3 @@ export const level: Level = {
     say("tidy", "No.", "talking"),
   ],
 };
-
-/** Verified against real git 2.46. See the comment at the top of this file. */
-export const solution: Solution = [
-  git("player", "reflog"),
-  git("player", "branch", "tidy-rescue", "main@{1}"),
-  git("player", "merge", "tidy-rescue"),
-  git("player", "push"),
-];

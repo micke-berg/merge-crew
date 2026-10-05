@@ -6,7 +6,7 @@ import {
   historyAtLeast,
   workingTreeClean,
 } from "./goals";
-import { git, say, write, type Solution } from "./script";
+import { git, say, write } from "./script";
 
 const LIST_BEFORE = "milk\n";
 const LIST_AFTER = "milk\nbatteries for Tidy\n";
@@ -60,10 +60,3 @@ export const level: Level = {
     say("tidy", "And the batteries are now on the record. Historic.", "happy"),
   ],
 };
-
-/** Verified against real git 2.46. */
-export const solution: Solution = [
-  git("player", "status"),
-  git("player", "add", "list.txt"),
-  git("player", "commit", "-m", "Add batteries to the list"),
-];

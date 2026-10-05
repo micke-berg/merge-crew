@@ -1,40 +1,13 @@
 import { describe, expect, it } from "vitest";
-import type { Engine, Queries, RepoState, ScriptStep } from "@/engine/types";
-import { getLevel, levels, solutions } from "./index";
+import { engine, queries } from "@/engine";
+import type { OutputLine, RepoState, ScriptStep } from "@/engine/types";
+import { getLevel, levels } from "./index";
 import { git, write } from "./script";
+import { solutions } from "./solutions";
 
-// ---------------------------------------------------------------------------
-// Engine probe. The engine lands in parallel with these levels, so it is loaded dynamically:
-// while "@/engine" does not exist yet, the engine tests are skipped instead of failing the suite.
-// Once the engine has landed, this can become a plain `import { engine, queries } from "@/engine"`.
-// ---------------------------------------------------------------------------
-
-type EngineModule = { engine: Engine; queries: Queries };
-
-async function loadEngine(): Promise<{ mod: EngineModule | null; reason: string }> {
-  const specifier = "@/engine";
-  try {
-    const mod = (await import(/* @vite-ignore */ specifier)) as Partial<EngineModule>;
-    if (!mod.engine || !mod.queries) {
-      return { mod: null, reason: "@/engine does not export { engine, queries } yet" };
-    }
-    return { mod: mod as EngineModule, reason: "" };
-  } catch (error) {
-    return { mod: null, reason: `@/engine could not be loaded yet (${(error as Error).message.split("\n")[0]})` };
-  }
-}
-
-const probe = await loadEngine();
-
+/** Output that must never appear while a level runs: a crash inside the engine, or a missing feature. */
 const UNSUPPORTED = /not (yet )?(supported|implemented)/i;
-
-type RunResult = {
-  state: RepoState;
-  /** Steps that failed for a reason other than a missing engine feature. */
-  failures: string[];
-  /** Set when the engine reported a command or option as not supported. */
-  unsupported: string | null;
-};
+const INTERNAL_ERROR = /internal engine error/i;
 
 function describeStep(step: ScriptStep): string {
   if (step.kind === "git") return `${step.actor}$ ${step.argv.join(" ")}`;
@@ -42,38 +15,35 @@ function describeStep(step: ScriptStep): string {
   return step.kind;
 }
 
-function runSteps(mod: EngineModule, start: RepoState, steps: ScriptStep[]): RunResult {
+function badLines(output: OutputLine[]): string[] {
+  return output.map((l) => l.text).filter((t) => INTERNAL_ERROR.test(t) || UNSUPPORTED.test(t));
+}
+
+/**
+ * Run the git and edit steps in order (say, mood and pause are presentation only) and return the
+ * final state. Fails the test on the first refused step, on a throw, and on any output line that
+ * reports an internal engine error or a missing feature, even from an accepted step.
+ */
+function runSteps(start: RepoState, steps: ScriptStep[]): RepoState {
   let state = start;
-  const failures: string[] = [];
   for (const step of steps) {
-    if (step.kind !== "git" && step.kind !== "edit") continue; // say, mood, pause: presentation only
-    let result;
-    try {
-      result =
-        step.kind === "git"
-          ? mod.engine.run(state, { actor: step.actor, argv: step.argv })
-          : mod.engine.edit(state, step.edit);
-    } catch (error) {
-      const message = (error as Error).message;
-      if (UNSUPPORTED.test(message)) return { state, failures, unsupported: `${describeStep(step)}: ${message}` };
-      failures.push(`${describeStep(step)} threw: ${message}`);
-      return { state, failures, unsupported: null };
-    }
+    if (step.kind !== "git" && step.kind !== "edit") continue;
+    const result =
+      step.kind === "git" ? engine.run(state, { actor: step.actor, argv: step.argv }) : engine.edit(state, step.edit);
     const text = result.output.map((l) => l.text).join("\n");
-    if (!result.ok && UNSUPPORTED.test(text)) {
-      return { state, failures, unsupported: `${describeStep(step)}: ${text}` };
-    }
-    if (!result.ok) {
-      failures.push(`${describeStep(step)} failed: ${text}`);
-      return { state, failures, unsupported: null };
-    }
+    expect(badLines(result.output), describeStep(step)).toEqual([]);
+    expect(result.ok, `${describeStep(step)} failed: ${text}`).toBe(true);
     state = result.state;
   }
-  return { state, failures, unsupported: null };
+  return state;
+}
+
+function goalsFailing(id: string, state: RepoState): string[] {
+  return getLevel(id)!.goals.filter((g) => !g.check(state, queries)).map((g) => g.id);
 }
 
 // ---------------------------------------------------------------------------
-// Level data: runs without the engine.
+// Level data.
 // ---------------------------------------------------------------------------
 
 describe("level data", () => {
@@ -97,6 +67,9 @@ describe("level data", () => {
     expect(level.intro.length).toBeGreaterThan(0);
     expect(level.outro.length).toBeGreaterThan(0);
     expect(solutions[id]?.length).toBeGreaterThan(0);
+    for (const step of solutions[id]) {
+      if (step.kind === "git") expect(step.actor).toBe("player");
+    }
     // Every robot that speaks is listed in the crew.
     for (const step of [...level.intro, ...level.outro]) {
       if (step.kind === "say" || step.kind === "mood") expect(level.crew).toContain(step.actor);
@@ -104,54 +77,54 @@ describe("level data", () => {
     // Suggestion buttons show the exact command, so each one is a git command.
     for (const s of level.suggestions) expect(s.startsWith("git ")).toBe(true);
   });
+
+  it("has exactly one documented solution per level", () => {
+    expect(Object.keys(solutions).sort()).toEqual(levels.map((l) => l.id).sort());
+  });
 });
 
 // ---------------------------------------------------------------------------
 // Levels through the engine.
 // ---------------------------------------------------------------------------
 
-describe.skipIf(!probe.mod)(`levels through the engine${probe.mod ? "" : ` (skipped: ${probe.reason})`}`, () => {
-  const mod = probe.mod as EngineModule;
-
+describe("levels through the engine", () => {
   for (const level of levels) {
     describe(level.id, () => {
-      it("setup runs without errors", (ctx) => {
-        const r = runSteps(mod, mod.engine.createRepo(), level.setup);
-        if (r.unsupported) ctx.skip(`engine gap: ${r.unsupported}`);
-        expect(r.failures).toEqual([]);
+      it("setup runs without errors", () => {
+        runSteps(engine.createRepo(), level.setup);
       });
 
-      it("goals are not met after setup and intro", (ctx) => {
-        const r = runSteps(mod, mod.engine.createRepo(), [...level.setup, ...level.intro]);
-        if (r.unsupported) ctx.skip(`engine gap: ${r.unsupported}`);
-        expect(r.failures).toEqual([]);
-        const passed = level.goals.map((g) => g.check(r.state, mod.queries));
-        expect(passed.every(Boolean)).toBe(false);
+      it("goals are not met after setup and intro", () => {
+        const state = runSteps(engine.createRepo(), [...level.setup, ...level.intro]);
+        expect(level.goals.map((g) => g.check(state, queries)).every(Boolean)).toBe(false);
       });
 
-      it("the documented solution meets every goal", (ctx) => {
-        const r = runSteps(mod, mod.engine.createRepo(), [...level.setup, ...level.intro, ...solutions[level.id]]);
-        if (r.unsupported) ctx.skip(`engine gap: ${r.unsupported}`);
-        expect(r.failures).toEqual([]);
-        const failed = level.goals.filter((g) => !g.check(r.state, mod.queries)).map((g) => g.id);
-        expect(failed).toEqual([]);
+      it("the documented solution meets every goal", () => {
+        const state = runSteps(engine.createRepo(), [...level.setup, ...level.intro, ...solutions[level.id]]);
+        expect(goalsFailing(level.id, state)).toEqual([]);
+      });
+
+      it("every suggestion is a command the engine knows", () => {
+        const state = runSteps(engine.createRepo(), [...level.setup, ...level.intro]);
+        for (const line of level.suggestions) {
+          const result = engine.run(state, { actor: "player", argv: engine.parseCommandLine(line) });
+          expect(badLines(result.output), line).toEqual([]);
+        }
       });
     });
   }
 
-  it("act2-01: Tidy's commits are lost after the intro and found again after the fix", (ctx) => {
+  it("act2-01: Tidy's commits are lost after the intro and found again after the fix", () => {
     const level = getLevel("act2-01")!;
-    const afterIntro = runSteps(mod, mod.engine.createRepo(), [...level.setup, ...level.intro]);
-    if (afterIntro.unsupported) ctx.skip(`engine gap: ${afterIntro.unsupported}`);
-    expect(afterIntro.failures).toEqual([]);
-    const lostMessages = mod.queries
-      .lost(afterIntro.state)
-      .map((oid) => afterIntro.state.commits[oid].message)
+    const state = runSteps(engine.createRepo(), [...level.setup, ...level.intro]);
+    const lostMessages = queries
+      .lost(state)
+      .map((oid) => state.commits[oid].message)
       .sort();
     expect(lostMessages).toEqual(["Add iced tea to the prices", "Add the price list"]);
     // The player's reflog still knows where main was.
-    const previous = mod.queries.resolve(afterIntro.state, "player", "main@{1}");
-    expect(previous && afterIntro.state.commits[previous].message).toBe("Add iced tea to the prices");
+    const previous = queries.resolve(state, "player", "main@{1}");
+    expect(previous && state.commits[previous].message).toBe("Add iced tea to the prices");
   });
 
   // -------------------------------------------------------------------------
@@ -159,37 +132,20 @@ describe.skipIf(!probe.mod)(`levels through the engine${probe.mod ? "" : ` (skip
   // -------------------------------------------------------------------------
 
   /** Run setup, intro and the given steps; every step must succeed. Returns the ids of goals that fail. */
-  function failedGoals(ctx: { skip: (note?: string) => never }, id: string, steps: ScriptStep[]): string[] {
+  function failedGoals(id: string, steps: ScriptStep[]): string[] {
     const level = getLevel(id)!;
-    const r = runSteps(mod, mod.engine.createRepo(), [...level.setup, ...level.intro, ...steps]);
-    if (r.unsupported) ctx.skip(`engine gap: ${r.unsupported}`);
-    expect(r.failures).toEqual([]);
-    return level.goals.filter((g) => !g.check(r.state, mod.queries)).map((g) => g.id);
+    return goalsFailing(id, runSteps(engine.createRepo(), [...level.setup, ...level.intro, ...steps]));
   }
 
-  it.each(levels.map((l) => [l.id, l] as const))(
-    "%s: every suggestion is a command the engine knows",
-    (_id, level) => {
-      const r = runSteps(mod, mod.engine.createRepo(), [...level.setup, ...level.intro]);
-      expect(r.failures).toEqual([]);
-      for (const line of level.suggestions) {
-        const result = mod.engine.run(r.state, { actor: "player", argv: mod.engine.parseCommandLine(line) });
-        expect(result.output.map((l) => l.text).join("\n"), line).not.toMatch(UNSUPPORTED);
-      }
-    },
-  );
-
-  it("act2-02: the merge stops on a conflict in sign.txt only", (ctx) => {
+  it("act2-02: the merge stops on a conflict in sign.txt only", () => {
     const level = getLevel("act2-02")!;
-    const r = runSteps(mod, mod.engine.createRepo(), [...level.setup, ...level.intro, git("player", "merge", "drift")]);
-    if (r.unsupported) ctx.skip(`engine gap: ${r.unsupported}`);
-    expect(r.failures).toEqual([]);
-    expect(Object.keys(r.state.worktrees.player.conflicts)).toEqual(["sign.txt"]);
-    expect(r.state.worktrees.player.workingTree["sign.txt"]).toContain("<<<<<<< HEAD");
+    const state = runSteps(engine.createRepo(), [...level.setup, ...level.intro, git("player", "merge", "drift")]);
+    expect(Object.keys(state.worktrees.player.conflicts)).toEqual(["sign.txt"]);
+    expect(state.worktrees.player.workingTree["sign.txt"]).toContain("<<<<<<< HEAD");
   });
 
-  it("act2-02: rebasing a copy of Drift's branch also wins, with the lines in either order", (ctx) => {
-    const failed = failedGoals(ctx, "act2-02", [
+  it("act2-02: rebasing a copy of Drift's branch also wins, with the lines in either order", () => {
+    const failed = failedGoals("act2-02", [
       git("player", "switch", "-c", "drift-fresh", "drift"),
       git("player", "rebase", "main"),
       write("player", "sign.txt", "LEMONADE\nOpen 9 to 5\nEvery cup comes with a cloud\nNow with iced tea\n"),
@@ -202,8 +158,8 @@ describe.skipIf(!probe.mod)(`levels through the engine${probe.mod ? "" : ` (skip
     expect(failed).toEqual([]);
   });
 
-  it("act2-02: keeping only main's side of the conflict does not win", (ctx) => {
-    const failed = failedGoals(ctx, "act2-02", [
+  it("act2-02: keeping only main's side of the conflict does not win", () => {
+    const failed = failedGoals("act2-02", [
       git("player", "merge", "drift"),
       write("player", "sign.txt", "LEMONADE\nOpen 9 to 5\nNow with iced tea\n"),
       git("player", "add", "sign.txt"),
@@ -213,8 +169,8 @@ describe.skipIf(!probe.mod)(`levels through the engine${probe.mod ? "" : ` (skip
     expect(failed).toEqual(["both-lines"]);
   });
 
-  it("act2-02: committing the conflict markers does not win", (ctx) => {
-    const failed = failedGoals(ctx, "act2-02", [
+  it("act2-02: committing the conflict markers does not win", () => {
+    const failed = failedGoals("act2-02", [
       git("player", "merge", "drift"),
       git("player", "add", "sign.txt"),
       git("player", "commit"),
@@ -223,8 +179,8 @@ describe.skipIf(!probe.mod)(`levels through the engine${probe.mod ? "" : ` (skip
     expect(failed).toEqual(["both-lines"]);
   });
 
-  it("act2-03: popping the recipe onto main also wins", (ctx) => {
-    const failed = failedGoals(ctx, "act2-03", [
+  it("act2-03: popping the recipe onto main also wins", () => {
+    const failed = failedGoals("act2-03", [
       git("player", "stash", "pop", "stash@{1}"),
       git("player", "add", "menu.txt"),
       git("player", "commit", "-m", "Save the fizz recipe"),
@@ -232,25 +188,24 @@ describe.skipIf(!probe.mod)(`levels through the engine${probe.mod ? "" : ` (skip
     expect(failed).toEqual([]);
   });
 
-  it("act2-03: a plain stash pop restores the doodles, not the recipe", (ctx) => {
-    const failed = failedGoals(ctx, "act2-03", [
+  it("act2-03: a plain stash pop restores the doodles, not the recipe", () => {
+    const failed = failedGoals("act2-03", [
       git("player", "stash", "pop"),
       git("player", "commit", "-am", "Save whatever was in the stash"),
     ]);
     expect(failed).toContain("recipe-committed");
   });
 
-  it("act2-03: clearing the stash throws the work away", (ctx) => {
-    const failed = failedGoals(ctx, "act2-03", [git("player", "stash", "clear")]);
+  it("act2-03: clearing the stash throws the work away", () => {
+    const failed = failedGoals("act2-03", [git("player", "stash", "clear")]);
     expect(failed).toEqual(["recipe-committed", "doodles-safe"]);
   });
 
-  it("act2-04: reverting by commit id also wins", (ctx) => {
+  it("act2-04: reverting by commit id also wins", () => {
     const level = getLevel("act2-04")!;
-    const r = runSteps(mod, mod.engine.createRepo(), [...level.setup, ...level.intro]);
-    if (r.unsupported) ctx.skip(`engine gap: ${r.unsupported}`);
-    const blaze = Object.values(r.state.commits).find((c) => c.message === "Make everything FREE")!;
-    const failed = failedGoals(ctx, "act2-04", [
+    const state = runSteps(engine.createRepo(), [...level.setup, ...level.intro]);
+    const blaze = Object.values(state.commits).find((c) => c.message === "Make everything FREE")!;
+    const failed = failedGoals("act2-04", [
       git("player", "pull"),
       git("player", "revert", blaze.oid.slice(0, 7)),
       git("player", "push"),
@@ -258,8 +213,8 @@ describe.skipIf(!probe.mod)(`levels through the engine${probe.mod ? "" : ` (skip
     expect(failed).toEqual([]);
   });
 
-  it("act2-04: reset --hard and force-push rewrites history and does not win", (ctx) => {
-    const failed = failedGoals(ctx, "act2-04", [
+  it("act2-04: reset --hard and force-push rewrites history and does not win", () => {
+    const failed = failedGoals("act2-04", [
       git("player", "pull"),
       git("player", "reset", "--hard", "HEAD~2"),
       git("player", "push", "--force"),
@@ -267,8 +222,8 @@ describe.skipIf(!probe.mod)(`levels through the engine${probe.mod ? "" : ` (skip
     expect(failed).toEqual(["history-kept", "tip-jar-kept"]);
   });
 
-  it("act2-05: merging Drift's whole branch does not win", (ctx) => {
-    const failed = failedGoals(ctx, "act2-05", [git("player", "merge", "drift"), git("player", "push")]);
+  it("act2-05: merging Drift's whole branch does not win", () => {
+    const failed = failedGoals("act2-05", [git("player", "merge", "drift"), git("player", "push")]);
     expect(failed).toEqual(["only-the-fix"]);
   });
 });

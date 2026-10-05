@@ -1,6 +1,6 @@
 import type { Level } from "@/engine/types";
 import { allOf, currentBranchIs, someBranchAheadOf, workingTreeClean } from "./goals";
-import { git, say, write, type Solution } from "./script";
+import { git, say, write } from "./script";
 
 export const level: Level = {
   id: "act1-02",
@@ -50,11 +50,3 @@ export const level: Level = {
     say("tidy", "The bolts are safe on their branch. Safer than with Blaze around, anyway.", "happy"),
   ],
 };
-
-/** Verified against real git 2.46. */
-export const solution: Solution = [
-  git("player", "switch", "-c", "bolts"),
-  git("player", "add", "snacks.txt"),
-  git("player", "commit", "-m", "Add bolts to the snacks"),
-  git("player", "switch", "main"),
-];

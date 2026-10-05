@@ -7,7 +7,7 @@ import {
   hasMergeCommit,
   workingTreeClean,
 } from "./goals";
-import { git, say, write, type Solution } from "./script";
+import { git, say, write } from "./script";
 
 export const level: Level = {
   id: "act1-03",
@@ -71,9 +71,3 @@ export const level: Level = {
     say("tidy", "That's Act 1. You can save, branch and merge. I'm a little proud. Don't tell Blaze.", "happy"),
   ],
 };
-
-/** Verified against real git 2.46 (with GIT_MERGE_AUTOEDIT=no so the merge uses its default message). */
-export const solution: Solution = [
-  git("player", "merge", "menu"),
-  git("player", "merge", "colors"),
-];

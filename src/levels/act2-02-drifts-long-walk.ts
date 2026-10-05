@@ -6,7 +6,7 @@ import {
   remoteBranch,
   remoteBranchContains,
 } from "./goals";
-import { git, mood, pause, say, write, type Solution } from "./script";
+import { git, mood, pause, say, write } from "./script";
 
 const PAINT = "Paint the sign";
 const PRICES = "Add the price list";
@@ -15,11 +15,8 @@ const PRICE_TEA = "Price the iced tea";
 const DRIFT_CLOUD = "Draw a cloud";
 const DRIFT_SLOGAN = "Add a dreamy slogan";
 
-const MAIN_LINE = "Now with iced tea";
-const DRIFT_LINE = "Every cup comes with a cloud";
-
-/** The sign after a fair resolution: both new lines kept. Either order is accepted by the goals. */
-export const RESOLVED_SIGN = `LEMONADE\nOpen 9 to 5\n${MAIN_LINE}\n${DRIFT_LINE}\n`;
+export const MAIN_LINE = "Now with iced tea";
+export const DRIFT_LINE = "Every cup comes with a cloud";
 
 /*
  * The situation, verified step by step against real git 2.46 (bare origin, linked worktrees):
@@ -146,12 +143,3 @@ export const level: Level = {
     say("drift", "Now and then. I'll write that on a cloud.", "happy"),
   ],
 };
-
-/** Verified against real git 2.46. See the comment at the top of this file. The edit step stands in for the conflict editor. */
-export const solution: Solution = [
-  git("player", "merge", "drift"),
-  write("player", "sign.txt", RESOLVED_SIGN),
-  git("player", "add", "sign.txt"),
-  git("player", "commit"),
-  git("player", "push"),
-];

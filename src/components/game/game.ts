@@ -70,11 +70,19 @@ function applyStep(repo: RepoState, step: ScriptStep): { repo: RepoState; ok: bo
   return { repo, ok: true, output: [], events: [] };
 }
 
+/**
+ * Check every goal of the level against the repository. A goal that throws is a bug in the level:
+ * the player sees it as not met (the game keeps running), and outside production it is logged so
+ * tests and development builds notice it.
+ */
 export function checkGoals(level: Level, repo: RepoState): boolean[] {
   return level.goals.map((g) => {
     try {
       return g.check(repo, queries);
-    } catch {
+    } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        console.error(`Goal "${g.id}" of level ${level.id} threw while being checked:`, error);
+      }
       return false;
     }
   });
@@ -241,8 +249,10 @@ export function runPlayerCommand(s: GameState, line: string): CommandOutcome {
   const lines: NewLine[] = [{ kind: "command", actor: "player", path, text }];
   for (const o of r.output) lines.push({ kind: o.kind, actor: "player", text: o.text });
   const changed = r.ok && r.state !== s.repo;
-  const goals = changed ? checkGoals(s.level, r.state) : s.goals;
-  const won = goals.length > 0 && goals.every(Boolean);
+  // Re-check after every accepted command, not only when the state object changed, so a goal can
+  // never be left stale. A refused command changes nothing (see CommandResult), so it keeps the goals.
+  const goals = r.ok ? checkGoals(s.level, r.state) : s.goals;
+  const won = r.ok && goals.length > 0 && goals.every(Boolean);
   let state: GameState = {
     ...s,
     repo: r.state,
@@ -270,8 +280,8 @@ export function editPlayerFile(s: GameState, path: string, content: string): Com
   if (r.ok && s.repo.worktrees.player?.conflicts[path]) {
     lines.push({ kind: "hint", actor: "player", text: `Now stage it with git add ${path}` });
   }
-  const goals = changed ? checkGoals(s.level, r.state) : s.goals;
-  const won = changed && goals.length > 0 && goals.every(Boolean);
+  const goals = r.ok ? checkGoals(s.level, r.state) : s.goals;
+  const won = r.ok && goals.length > 0 && goals.every(Boolean);
   let state: GameState = {
     ...s,
     repo: r.state,
@@ -281,4 +291,69 @@ export function editPlayerFile(s: GameState, path: string, content: string): Com
   };
   if (won) state = enterScript({ ...state, phase: "outro", cursor: 0 });
   return { state, ok: r.ok, changed, won };
+}
+
+// ---------------------------------------------------------------------------
+// The level model: the game state plus what the driver is waiting for. useLevel runs this reducer
+// with React's useReducer and adds the timers; it lives here so it can be tested without React.
+// ---------------------------------------------------------------------------
+
+export type LevelModel = {
+  game: GameState;
+  wait: Wait;
+  /** Bumped on restart so the map remounts instead of animating back. */
+  run: number;
+};
+
+export type LevelAction =
+  | { type: "begin" }
+  /** A timer ran out: play the next scene step. Ignored while a robot line waits for a click. */
+  | { type: "step" }
+  /** The player clicked past a robot line. */
+  | { type: "continue" }
+  | { type: "skip" }
+  | { type: "command"; line: string }
+  | { type: "edit"; path: string; content: string }
+  | { type: "restart"; level: Level };
+
+const NO_WAIT: Wait = { kind: "none" };
+
+export function initLevelModel(level: Level): LevelModel {
+  return { game: startLevel(level), wait: NO_WAIT, run: 0 };
+}
+
+export function levelReducer(m: LevelModel, a: LevelAction): LevelModel {
+  switch (a.type) {
+    case "begin":
+      return m.game.phase === "brief" ? { ...m, game: begin(m.game), wait: NO_WAIT } : m;
+    case "step": {
+      if (m.wait.kind === "click") return m;
+      const { state, wait } = advance(m.game);
+      return { ...m, game: state, wait };
+    }
+    case "continue": {
+      if (m.wait.kind !== "click") return m;
+      const { state, wait } = advance(m.game);
+      return { ...m, game: state, wait };
+    }
+    case "skip": {
+      const game = skipScript(m.game);
+      return game === m.game ? m : { ...m, game, wait: NO_WAIT };
+    }
+    case "command": {
+      const out = runPlayerCommand(m.game, a.line);
+      if (out.state === m.game) return m;
+      // A winning command plays out on the map before the closing scene starts.
+      const wait: Wait = out.won && out.changed ? { kind: "animate", events: out.state.events } : NO_WAIT;
+      return { ...m, game: out.state, wait };
+    }
+    case "edit": {
+      const out = editPlayerFile(m.game, a.path, a.content);
+      if (out.state === m.game) return m;
+      const wait: Wait = out.won && out.changed ? { kind: "animate", events: out.state.events } : NO_WAIT;
+      return { ...m, game: out.state, wait };
+    }
+    case "restart":
+      return { ...initLevelModel(a.level), run: m.run + 1 };
+  }
 }
