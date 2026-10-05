@@ -17,3 +17,19 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
+
+/* Robot sprite sheets: slide a single row of frames behind a frame-sized window. See src/components/robots/Sprite.tsx. */
+@keyframes mc-sprite-loop {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+@keyframes mc-sprite-once {
+  from { transform: translateX(0); }
+  to { transform: translateX(-75%); }
+}
+.mc-sprite {
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mc-sprite { animation: none !important; }
+}

@@ -43,6 +43,10 @@ This repository is public. Everything in it, including commit messages, PR text,
 
 Each parallel agent owns specific folders, named in its task. Do not edit files outside your folders. Shared types live in `src/engine/types.ts`, and only the lead changes them.
 
+## Processes
+
+- Stop only processes you started, by their process id (`kill <pid>`) or with the tool that started them. Never use `pkill -f`, `killall` or any name or pattern match. A pattern like "cat" also matches "Application", which closed most of the owner's apps on 2026-10-05.
+
 ## Workflow notes
 
 When you notice something about the way of working that helped or hurt (a handoff that failed, an instruction that was misread, a check that caught a mistake), add a dated line to `docs/workflow-notes.md`.

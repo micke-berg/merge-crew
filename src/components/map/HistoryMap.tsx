@@ -10,7 +10,7 @@ import type { ActorId, EngineEvent, Mood, RepoState } from "@/engine/types";
 import { OID_LABEL_MIN_GAP, edgePath, geometry, monoWidth } from "./geometry";
 import { layoutRepo, type HeadMarker, type Lane, type MapLayout, type Stop } from "./layout";
 import { GHOST, INK, INK_SOFT, MAIN_COLOR, PAPER, PAPER_DOT, WARN, actorColor, actorName } from "./palette";
-import { RobotMarker, type Facing } from "./RobotMarker";
+import { RobotMarker, markerWidth, type Facing, type MapAction } from "./RobotMarker";
 import { CRACK_MS, buildSchedule, stopMoveAt } from "./timeline";
 
 export type HistoryMapProps = {
@@ -34,9 +34,39 @@ function laneColor(lane: Lane | undefined) {
   return actorColor(lane.owner);
 }
 
-/** Robots standing on one stop spread out sideways. */
-const SLOT_GAP = 30;
-const slotDx = (h: HeadMarker) => (h.slot - (h.slots - 1) / 2) * SLOT_GAP;
+/** Robots standing on one stop spread out sideways, overlapping a little like a huddle. */
+const HUDDLE = 0.88;
+
+/** Sideways offset of each marker from its stop, and how far right each group reaches. */
+function huddle(heads: HeadMarker[]) {
+  const dx = new Map<ActorId, number>();
+  const right = new Map<string, number>();
+  const left = new Map<string, number>();
+  const groups = new Map<string, HeadMarker[]>();
+  for (const h of heads) groups.set(h.oid, [...(groups.get(h.oid) ?? []), h]);
+  for (const [oid, group] of groups) {
+    const hs = [...group].sort((a, b) => a.slot - b.slot);
+    const xs: number[] = [0];
+    for (let i = 1; i < hs.length; i++) {
+      xs.push(xs[i - 1] + ((markerWidth(hs[i - 1].actor) + markerWidth(hs[i].actor)) / 2) * HUDDLE);
+    }
+    const mid = (xs[0] + xs[xs.length - 1]) / 2;
+    hs.forEach((h, i) => dx.set(h.actor, xs[i] - mid));
+    right.set(oid, Math.max(...hs.map((h, i) => xs[i] - mid + markerWidth(h.actor) / 2)));
+    left.set(oid, Math.min(...hs.map((h, i) => xs[i] - mid - markerWidth(h.actor) / 2)));
+  }
+  return {
+    dx: (h: HeadMarker) => dx.get(h.actor) ?? 0,
+    right: (oid: string) => right.get(oid) ?? 0,
+    left: (oid: string) => left.get(oid) ?? 0,
+  };
+}
+
+/** How long a robot takes to travel along the line, by distance. */
+const travelMs = (distance: number) => Math.round(Math.min(1100, Math.max(450, distance * 4.2)));
+/** A hop leaves the ground on its second frame and lands on its fourth. */
+const HOP_LIFT_MS = 160;
+const HOP_FLIGHT_MS = 480;
 
 export function HistoryMap({ state, events = NO_EVENTS, moods, className }: HistoryMapProps) {
   const reduce = useReducedMotion() ?? false;
@@ -131,6 +161,8 @@ export function HistoryMap({ state, events = NO_EVENTS, moods, className }: Hist
   }
   for (const s of layout.stashes) addTag({ key: `s:${s.ref}`, oid: s.base, text: s.ref, kind: "stash", actor: "hoarder" });
 
+  const slots = huddle(layout.heads);
+  const prevSlots = huddle(prev?.heads ?? []);
   const headsByOid = new Map<string, HeadMarker[]>();
   for (const h of layout.heads) headsByOid.set(h.oid, [...(headsByOid.get(h.oid) ?? []), h]);
 
@@ -319,7 +351,7 @@ export function HistoryMap({ state, events = NO_EVENTS, moods, className }: Hist
                 animate={{ x: g.x(b.col), y: g.y(b.row), opacity: 1 }}
                 transition={glide(delay, at?.motion === "snap" ? "snap" : "soft")}
               >
-                <g transform={`translate(${STOP_R + 10 + (headsByOid.has(b.oid) ? ((headsByOid.get(b.oid)!.length - 1) / 2) * SLOT_GAP + 12 : 0)} 0)`}>
+                <g transform={`translate(${STOP_R + 10 + (headsByOid.has(b.oid) ? slots.right(b.oid) + 4 : 0)} 0)`}>
                   <rect x={0} y={-11} width={w} height={22} rx={11} fill={c.deep} />
                   <text x={10} y={4} fontSize={12} fontWeight={700} fontFamily={MONO} fill="#fff">{b.name}</text>
                 </g>
@@ -384,30 +416,38 @@ export function HistoryMap({ state, events = NO_EVENTS, moods, className }: Hist
             const before = prevHeads.get(h.actor);
             const moved = !!before && before.oid !== h.oid;
             const appeared = !!prev && !before;
-            const x = g.x(h.col) + slotDx(h);
-            const y = g.y(h.row) - STOP_R - 2;
-            const prevX = before ? g.x(before.col) + slotDx(before) : x;
+            const x = g.x(h.col) + slots.dx(h);
+            // The ground anchor rests on top of the stop.
+            const y = g.y(h.row) - STOP_R - 1;
+            const prevX = before ? g.x(before.col) + prevSlots.dx(before) : x;
             const facing: Facing = moved && x < prevX - 1 ? "left" : "right";
             const target = stopsByOid.get(h.oid)!;
             const delay = (schedule.actorMove.get(h.actor) ?? moveAt(target)) + (isNew(h.oid) ? 180 : 0);
             const mood: Mood = moods?.[h.actor] ?? (h.conflicted ? "scared" : "idle");
             const conflictAt = schedule.conflict.get(h.actor) ?? 0;
+            // Hopping onto a commit you just made; travelling along the line for everything else
+            // (reset, checkout, pull, a branch moved under you).
+            const hop = moved && isNew(h.oid) && state.commits[h.oid]?.author === h.actor;
+            const travel = hop ? HOP_FLIGHT_MS : travelMs(Math.hypot(x - prevX, g.y(h.row) - (before ? g.y(before.row) : g.y(h.row))));
+            const leaveAt = delay + (hop ? HOP_LIFT_MS : 0);
+            const action: MapAction | null =
+              moved && !reduce ? { kind: hop ? "hop" : "move", key: `${h.oid}-${play}`, delayMs: delay, durationMs: travel } : null;
             return (
               <motion.g
                 key={`robot:${h.actor}`}
                 initial={appeared ? { x, y: y - 30, opacity: 0 } : false}
                 animate={{ x, y, opacity: 1 }}
-                transition={moved || appeared ? { ...glide(delay), type: "tween", duration: reduce ? 0 : 0.55, ease: "easeInOut" } : glide(moveAt(target))}
+                transition={moved || appeared ? { ...glide(leaveAt), type: "tween", duration: reduce ? 0 : travel / 1000, ease: "easeInOut" } : glide(moveAt(target))}
               >
                 <title>{`${actorName(h.actor)} ${h.detached ? `(detached at ${h.oid.slice(0, 7)})` : `on ${h.branch}`}${h.conflicted ? ", has a conflict" : ""}`}</title>
+                <ellipse cx={0} cy={0.5} rx={markerWidth(h.actor) * 0.36} ry={2.6} fill="#3B2F1E" opacity={0.16} />
                 <motion.g
                   key={`hop-${h.oid}-${play}`}
                   initial={{ y: 0 }}
-                  animate={moved && !reduce ? { y: [0, -26, 0, -4, 0] } : { y: 0 }}
-                  transition={moved && !reduce ? { delay: sec(delay), duration: 0.7, times: [0, 0.4, 0.75, 0.88, 1], ease: "easeOut" } : { duration: 0 }}
-                  filter={`url(#${uid}-lift)`}
+                  animate={hop && !reduce ? { y: [0, -12, 0] } : { y: 0 }}
+                  transition={hop && !reduce ? { delay: sec(leaveAt), duration: HOP_FLIGHT_MS / 1000, times: [0, 0.45, 1], ease: "easeOut" } : { duration: 0 }}
                 >
-                  <RobotMarker actor={h.actor} mood={mood} facing={facing} still={reduce} />
+                  <RobotMarker actor={h.actor} mood={mood} facing={facing} still={reduce} action={action} />
                 </motion.g>
                 <AnimatePresence>
                   {h.conflicted && (
@@ -419,7 +459,7 @@ export function HistoryMap({ state, events = NO_EVENTS, moods, className }: Hist
                       transition={{ delay: sec(conflictAt), type: "spring", stiffness: 380, damping: 12, rotate: { delay: sec(conflictAt + 200), duration: 0.6, repeat: reduce ? 0 : 2, repeatDelay: 1.4 } }}
                       style={{ originX: "50%", originY: "100%" }}
                     >
-                      <g transform="translate(-19 -60) scale(1.3)">
+                      <g transform="translate(-24 -74) scale(1.3)">
                         <path d="M0 -11 L11 8 L-11 8 Z" fill={WARN} stroke="#fff" strokeWidth={2} strokeLinejoin="round" />
                         <rect x={-1.3} y={-5} width={2.6} height={7} rx={1.3} fill="#fff" />
                         <circle cx={0} cy={4.6} r={1.5} fill="#fff" />
@@ -431,28 +471,44 @@ export function HistoryMap({ state, events = NO_EVENTS, moods, className }: Hist
             );
           })}
 
-          {/* robot names, to the right of each group of robots */}
+          {/* robot names, beside each group of robots: to the right, or to the left when the next group is too close */}
           {[...headsByOid.entries()].map(([oid, hs]) => {
             const s = stopsByOid.get(oid)!;
             const delay = Math.max(...hs.map((h) => schedule.actorMove.get(h.actor) ?? moveAt(s))) + (isNew(oid) ? 180 : 0);
-            const groupHalf = ((hs.length - 1) / 2) * SLOT_GAP + 16;
+            const labels = hs.map((h) => (h.detached ? `${actorName(h.actor)} · detached` : actorName(h.actor)));
+            const widths = labels.map((l) => l.length * 6.6 + 22);
+            const x0 = g.x(s.col);
+            const reach = Math.max(...widths) + 8;
+            const blocked = (from: number, to: number) =>
+              [...headsByOid.keys()].some((o) => {
+                if (o === oid) return false;
+                const t = stopsByOid.get(o)!;
+                if (Math.abs(g.y(t.row) - g.y(s.row)) > 40) return false;
+                const lo = g.x(t.col) + slots.left(o);
+                const hi = g.x(t.col) + slots.right(o);
+                return hi > from && lo < to;
+              });
+            const rightEdge = x0 + slots.right(oid) + 6;
+            const leftEdge = x0 + slots.left(oid) - 6;
+            const onLeft = blocked(rightEdge, rightEdge + reach) && !blocked(leftEdge - reach, leftEdge);
+            const ax = onLeft ? leftEdge : rightEdge;
             return (
               <motion.g
                 key={`names:${hs.map((h) => h.actor).join(",")}`}
-                initial={prev ? { x: g.x(s.col) + groupHalf + 4, y: g.y(s.row), opacity: 0 } : false}
-                animate={{ x: g.x(s.col) + groupHalf + 4, y: g.y(s.row), opacity: 1 }}
+                initial={prev ? { x: ax, y: g.y(s.row), opacity: 0 } : false}
+                animate={{ x: ax, y: g.y(s.row), opacity: 1 }}
                 transition={glide(delay)}
               >
                 {hs.map((h, i) => {
                   const c = actorColor(h.actor);
-                  const label = h.detached ? `${actorName(h.actor)} · detached` : actorName(h.actor);
-                  const w = label.length * 6.6 + 22;
-                  const y = -44 - (hs.length - 1 - i) * 20;
+                  const w = widths[i];
+                  // Stacked beside the robots' heads, low enough that three names stay inside the map.
+                  const y = -30 - (hs.length - 1 - i) * 20;
                   return (
-                    <g key={h.actor} transform={`translate(0 ${y})`}>
+                    <g key={h.actor} transform={`translate(${onLeft ? -w : 0} ${y})`}>
                       <rect x={0} y={-9} width={w} height={18} rx={9} fill="#FFFFFF" stroke={c.line} strokeWidth={1.4} />
                       <circle cx={9} cy={0} r={3.2} fill={c.line} />
-                      <text x={16} y={4} fontSize={11.5} fontWeight={650} fill={INK}>{label}</text>
+                      <text x={16} y={4} fontSize={11.5} fontWeight={650} fill={INK}>{labels[i]}</text>
                     </g>
                   );
                 })}

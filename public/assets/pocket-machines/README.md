@@ -83,7 +83,7 @@ Automated export checks passed for dimensions, frame counts, transparency, nonem
 
 Browser checks passed for all nine state selectors, individual-frame selection, playback, pause, mirroring, background switching, 36 image loads, and no horizontal page overflow at 1440, 390 and 320 px. The optional drawing helper's loop and one-shot frame selection and mirrored anchor behavior were also checked in the browser.
 
-Integration in the actual game is **not tested**. The game still uses its code-drawn placeholders. This package provides the assets and animation metadata for the integration step.
+The game uses web-optimised copies built by `npm run sprites` (`scripts/build-sprites.mjs`) into `web/`. The PNG sheets here stay the source of truth.
 
 ## Tool, rights and attribution
 
