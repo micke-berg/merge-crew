@@ -19,6 +19,7 @@ import { conflictSource } from "./conflicts";
 import { BriefCard, FileViewer, WinCard, levelLabel } from "./Overlays";
 import { Terminal, type TerminalHandle } from "./Terminal";
 import { useLevel } from "./useLevel";
+import { MuteButton, useGameSounds } from "@/components/sound";
 
 export function LevelScreen({ levelId }: { levelId: string }) {
   const level = getLevel(levelId);
@@ -34,6 +35,7 @@ export function LevelGame({ level }: { level: Level }) {
   // Fetch the robot sheets this level plays, so no state change waits on the network.
   preloadSheets(levelSheets(level));
   const reduce = useReducedMotion() ?? false;
+  useGameSounds({ events: game.events, repo: game.repo, goals: game.goals, phase: game.phase, log: game.log, reduce });
   const terminal = useRef<TerminalHandle>(null);
   const [open, setOpen] = useState<OpenFile | null>(null);
 
@@ -102,6 +104,7 @@ export function LevelGame({ level }: { level: Level }) {
             <h1 className="truncate text-[17px] font-bold tracking-tight">{level.title}</h1>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <MuteButton />
             <PhaseChip phase={game.phase} />
             <button
               type="button"
