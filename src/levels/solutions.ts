@@ -1,6 +1,7 @@
 // The documented, real-git-verified solution of every level, keyed by level id.
-// Test-only: imported by the level and game tests and by the oracle tests. Never import this from
-// app or component code, because it would ship every answer to the browser.
+// Imported by the level and game tests, the oracle tests, and the server-only hint data
+// (src/hints/data, for the answer-leak check). Never import this from app or component code that
+// runs in the browser, because it would ship every answer there.
 
 import { level as act1_01 } from "./act1-01-first-save";
 import { solution as act1_01_solution } from "./act1-01-first-save.solution";

@@ -62,7 +62,6 @@ describe("level data", () => {
   it.each(levels.map((l) => [l.id, l] as const))("%s is complete", (id, level) => {
     expect(level.goals.length).toBeGreaterThan(0);
     expect(new Set(level.goals.map((g) => g.id)).size).toBe(level.goals.length);
-    expect(level.hintContext.length).toBeGreaterThan(0);
     expect(level.suggestions.length).toBeGreaterThan(0);
     expect(level.intro.length).toBeGreaterThan(0);
     expect(level.outro.length).toBeGreaterThan(0);

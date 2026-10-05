@@ -2,11 +2,11 @@ import type { Level } from "@/engine/types";
 import { anyOf, someBranchTipHasFiles, stashHasEntry, workingTreeClean } from "./goals";
 import { git, mood, pause, say, write } from "./script";
 
-const MENU = "Write the menu";
-const HOURS = "Add opening hours";
+export const MENU = "Write the menu";
+export const HOURS = "Add opening hours";
 
-const RECIPE_STASH = "fizz recipe, almost ready, do not lose";
-const DOODLE_STASH = "doodles";
+export const RECIPE_STASH = "fizz recipe, almost ready, do not lose";
+export const DOODLE_STASH = "doodles";
 
 export const FIZZ = "Lemon-lavender fizz\n1 lemon\n2 sprigs of lavender\nFizzy water\nA secret pinch of sugar\n";
 export const MENU_WITH_FIZZ = "Lemonade\nIced tea\nLemon-lavender fizz (secret!)\n";
@@ -102,20 +102,6 @@ export const level: Level = {
       check: workingTreeClean("player"),
     },
   ],
-  hintContext: [
-    "Stash level. Hoarder never commits. The stash is shared by every worktree, so the player sees Hoarder's stashes.",
-    `Weeks ago, on branch 'hoarder' (at main's first commit '${MENU}'), Hoarder wrote fizz.txt (new file, staged)`,
-    `and added 'Lemon-lavender fizz (secret!)' to menu.txt (unstaged), then ran git stash push -m "${RECIPE_STASH}".`,
-    `Main has moved on since: '${HOURS}' (hours.txt). Nothing overlaps with the recipe.`,
-    `In the scene Hoarder stashed a second, unrelated change (notes.txt) as "${DOODLE_STASH}".`,
-    `So the list is stash@{0} '${DOODLE_STASH}' and stash@{1} '${RECIPE_STASH}'. A plain git stash pop restores the wrong one.`,
-    "Intended fix: git stash list, git stash show -p stash@{1} to check, then git stash branch <name> stash@{1}",
-    "(creates a branch at the stash's base, applies it and drops it), git add menu.txt, git commit -m \"...\".",
-    "Also fine: git stash pop stash@{1} (or apply) on main, then add and commit.",
-    "Goals: some branch tip has fizz.txt and the fizz menu line; the doodles stash still exists (or was committed);",
-    "the player's working tree is clean. git stash clear or drop would throw work away.",
-    "Good first nudges: the stash is a list, newest first; git stash show -p can look inside an entry before restoring it.",
-  ].join("\n"),
   suggestions: [
     "git status",
     "git stash list",

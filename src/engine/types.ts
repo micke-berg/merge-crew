@@ -281,8 +281,8 @@ export type Level = {
   /** Played as the opening scene. */
   intro: ScriptStep[];
   goals: Goal[];
-  /** What the hint helper may know: the problem and the intended fix. Never shown to the player directly. */
-  hintContext: string;
+  // What Tidy's hint helper knows about the level (the problem and the intended fix) is not part of
+  // the level: it lives in server-only modules under src/hints/data, so it never reaches the browser.
   /** Commands the suggestion buttons offer, e.g. ["git status", "git reflog"]. */
   suggestions: string[];
   /** Played when every goal passes. */

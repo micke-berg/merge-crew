@@ -12,9 +12,9 @@ import { git, pause, mood, say, write } from "./script";
 const BUILD = "Build the stand";
 const PRICES = "Add the price list";
 const HOURS = "Add opening hours";
-const CLOUDS = "Paint clouds on the cups";
-const FIX = "Fix the wobbly table";
-const POEM = "Write a poem about lemons";
+export const CLOUDS = "Paint clouds on the cups";
+export const FIX = "Fix the wobbly table";
+export const POEM = "Write a poem about lemons";
 
 const WOBBLY = "Table legs: 3 long, 1 short\n";
 const FIXED = "Table legs: 4 long\n";
@@ -111,17 +111,6 @@ export const level: Level = {
       check: branchPointsAt("drift", POEM),
     },
   ],
-  hintContext: [
-    "Cherry-pick level. main: 'Build the stand' (sign.txt, table.txt with a short leg), then 'Add the price list' and 'Add opening hours'. All pushed.",
-    `Drift's branch 'drift' started at 'Build the stand' and has three commits, oldest first: '${CLOUDS}' (cups.txt),`,
-    `'${FIX}' (table.txt: 4 long legs) and '${POEM}' (poem.txt). It was never merged or pushed.`,
-    "The branch is checked out in Drift's worktree. The fix is drift~1, the middle commit.",
-    "Intended fix: git log --oneline drift to find the fix, git cherry-pick drift~1 (or its id), then git push. No conflicts.",
-    "Goals: origin's main has the fix and the fixed table.txt; neither the clouds commit nor the poem commit is on origin's main;",
-    "branch drift still points at the poem commit.",
-    "Steer away from git merge drift: it brings the unfinished cups and the poem along.",
-    "Good first nudges: git log on another branch lists its commits; git show <commit> shows what one commit changed.",
-  ].join("\n"),
   suggestions: ["git status", "git log --oneline --all", "git log --oneline drift", "git show drift~1", "git push"],
   outro: [
     say("tidy", "Four legs, no wobble. And no poem on main.", "celebrate"),

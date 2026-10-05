@@ -13,6 +13,7 @@ import { preloadSheets } from "@/components/robots/Sprite";
 import { DialogueBox } from "./DialogueBox";
 import { FilesPanel, type OpenFile } from "./FilesPanel";
 import { GoalsPanel } from "./GoalsPanel";
+import { AskTidyButton } from "./AskTidyButton";
 import { JobBar } from "./JobBar";
 import { PremiseCard } from "./Premise";
 import { markPremiseSeen, usePremiseSeen } from "./premiseStorage";
@@ -58,6 +59,8 @@ export function LevelGame({ level }: { level: Level }) {
   // A line that talks over the screen: a scene, or the "?" tour during the player turn.
   const talking = inScene || touring;
   const bubble = talking ? g.bubble : null;
+  // Tidy's hint shows during the player turn next to the command box, and never stops typing.
+  const hint = !talking && playing ? g.hint : null;
   const pointer = bubble?.point ?? null;
   const pointColor = bubble ? actorColor(bubble.actor).line : undefined;
   const branch = queries.currentBranch(game.repo, "player");
@@ -67,10 +70,11 @@ export function LevelGame({ level }: { level: Level }) {
   const index = levels.findIndex((l) => l.id === level.id);
   const next = levels[index + 1] ?? null;
 
-  // Esc skips the rest of a scene, or ends the tour.
-  const skip = useEffectEvent(() => g.skip());
+  // Esc skips the rest of a scene, ends the tour, or puts Tidy's hint away.
+  const skip = useEffectEvent(() => (talking ? g.skip() : g.dismissHint()));
+  const escapable = talking || hint !== null;
   useEffect(() => {
-    if (!talking || open) return;
+    if (!escapable || open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -79,7 +83,13 @@ export function LevelGame({ level }: { level: Level }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [talking, open]);
+  }, [escapable, open]);
+
+  // Asking keeps the player at the command line: focus goes back to the input at once.
+  const askHint = () => {
+    g.askHint();
+    requestAnimationFrame(() => terminal.current?.focus());
+  };
 
   // Back to the command line when the tour ends.
   const wasTouring = useRef(false);
@@ -194,7 +204,12 @@ export function LevelGame({ level }: { level: Level }) {
 
           {/* command box */}
           <div className="flex h-[372px] flex-col gap-2 md:col-span-2 lg:col-span-1 lg:h-auto lg:min-h-0">
-            <JobBar goals={level.goals} done={game.goals} won={game.phase === "outro" || game.phase === "won"} />
+            <div className="flex items-stretch gap-2">
+              <div className="min-w-0 flex-1">
+                <JobBar goals={level.goals} done={game.goals} won={game.phase === "outro" || game.phase === "won"} />
+              </div>
+              <AskTidyButton left={g.hintsLeft} playing={playing && !touring} thinking={g.hintStatus === "thinking"} onAsk={askHint} />
+            </div>
             <Terminal
               ref={terminal}
               log={game.log}
@@ -203,9 +218,17 @@ export function LevelGame({ level }: { level: Level }) {
               path={player?.path ?? "/repo"}
               suggestions={level.suggestions}
               onRun={g.command}
-              showControls={pointer?.target === "terminal" || pointer?.target === "suggestions"}
+              showControls={pointer?.target === "terminal" || pointer?.target === "suggestions" || hint !== null}
               scene={
-                talking ? (
+                hint ? (
+                  <DialogueBox
+                    bubble={hint}
+                    lineKey={g.hintKey}
+                    awaitingClick={g.hintStatus === "shown"}
+                    onNext={g.dismissHint}
+                    reduce={reduce}
+                  />
+                ) : talking ? (
                 // Above the tour's dim, so the robot's line stays bright whatever it points at.
                 <div className="relative z-[41]">
                 <DialogueBox
@@ -253,7 +276,9 @@ export function LevelGame({ level }: { level: Level }) {
         <p className="sr-only" aria-live="polite">
           {bubble
             ? `${actorColor(bubble.actor).name}${pointer ? `, pointing at ${TARGET_NAMES[pointer.target]}` : ""}: ${bubble.text}`
-            : ""}
+            : hint
+              ? `Tidy's hint: ${hint.text}`
+              : ""}
         </p>
       </div>
     </MotionConfig>

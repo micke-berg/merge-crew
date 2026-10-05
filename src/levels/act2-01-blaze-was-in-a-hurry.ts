@@ -8,9 +8,9 @@ import {
 } from "./goals";
 import { git, mood, pause, point, say, write } from "./script";
 
-const TIDY_1 = "Add the price list";
-const TIDY_2 = "Add iced tea to the prices";
-const BLAZE = "Make the sign LOUDER";
+export const TIDY_1 = "Add the price list";
+export const TIDY_2 = "Add iced tea to the prices";
+export const BLAZE = "Make the sign LOUDER";
 
 /*
  * The situation, verified step by step against real git 2.46 (bare origin, linked worktrees):
@@ -120,22 +120,6 @@ export const level: Level = {
       check: noLostCommits(),
     },
   ],
-  hintContext: [
-    "Recovery level: a force-push removed commits from origin, and the local checkouts were reset to match.",
-    `Before the scene: origin/main had 'Paint the sign', 'Add opening hours', then Tidy's '${TIDY_1}' and '${TIDY_2}' (prices.txt).`,
-    "The player had pulled, so local main was at Tidy's second commit.",
-    `Blaze's branch 'blaze' started before Tidy's work and has one commit, '${BLAZE}' (sign.txt only, no overlap with prices.txt).`,
-    "In the scene Blaze ran git push --force origin blaze:main, then reset the player's main and Tidy's branch to origin/main.",
-    "Now no branch, remote branch or worktree reaches Tidy's two commits. They exist only in the reflog.",
-    "The player's reflog: HEAD@{0} 'reset: moving to origin/main' (Blaze's commit), HEAD@{1} 'pull: Fast-forward' (Tidy's second commit).",
-    "main@{1} and HEAD@{1} both point at Tidy's second commit, whose parent is Tidy's first.",
-    "Intended fix: look at git reflog, name the lost commit with a branch (git branch <name> main@{1}),",
-    "merge that branch into main (a real merge, no conflicts), then git push, which fast-forwards origin without --force.",
-    "Goals: both Tidy commits reachable from origin's main, Blaze's original commit still on origin's main (not rebased or copied),",
-    "and no lost commits at the end (so cherry-picks alone leave the originals lost unless a branch keeps them).",
-    "Steer away from force-pushing: that is the mistake this level is about, and it would push Blaze's work off origin.",
-    "Good first nudges: git reflog shows where main has been; git log on a reflog entry shows what was there.",
-  ].join("\n"),
   suggestions: ["git status", "git log --oneline", "git reflog", "git log --oneline main@{1}", "git branch", "git push"],
   outro: [
     say("tidy", "My price list! Both commits, right where they belong.", "celebrate"),

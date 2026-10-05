@@ -3,6 +3,7 @@
 // The React hook (useLevel.ts) owns the timing; these functions only decide what happens next.
 
 import { engine, queries, validateCommandLine } from "@/engine";
+import { MAX_HINTS_PER_RUN } from "@/hints/types";
 import type {
   ActorId,
   EngineEvent,
@@ -346,7 +347,20 @@ export type LevelModel = {
    * no tour is showing. It never touches the game state, so the level carries on where it was.
    */
   tour: { steps: PointStep[]; at: number } | null;
+  /**
+   * Tidy's hint during the player turn: "thinking" while the request runs, then the hint itself.
+   * Shown next to the command box; it never stops the player typing. null when no hint shows.
+   */
+  hint: HintView | null;
+  /** Hints asked for in this run (restart starts a new run). At most MAX_HINTS_PER_RUN. */
+  hintsUsed: number;
 };
+
+/** `key` ties an answer to the request that asked for it, so a late answer after a restart is dropped. */
+export type HintView = { key: string; status: "thinking" } | { key: string; status: "shown"; text: string };
+
+/** What Tidy says while a hint request runs. */
+export const HINT_THINKING_TEXT = "Hmm, let me think…";
 
 export type LevelAction =
   | { type: "begin" }
@@ -359,12 +373,41 @@ export type LevelAction =
   | { type: "edit"; path: string; content: string }
   | { type: "restart"; level: Level }
   /** Show the screen tour (the "?" button). Only during the player turn. */
-  | { type: "tour"; steps: PointStep[] };
+  | { type: "tour"; steps: PointStep[] }
+  /** The player asked Tidy for a hint ("Ask Tidy"). Only during the player turn, with hints left. */
+  | { type: "hint-ask" }
+  /** The hint for request `key` arrived. `refund` gives the hint back (the request never reached the model). */
+  | { type: "hint-answer"; key: string; text: string; refund?: boolean }
+  /** The player put the hint away. */
+  | { type: "hint-dismiss" };
 
 const NO_WAIT: Wait = { kind: "none" };
 
 export function initLevelModel(level: Level): LevelModel {
-  return { game: startLevel(level), wait: NO_WAIT, run: 0, tour: null };
+  return { game: startLevel(level), wait: NO_WAIT, run: 0, tour: null, hint: null, hintsUsed: 0 };
+}
+
+/** Hints left in this run. */
+export function hintsLeft(m: LevelModel): number {
+  return Math.max(0, MAX_HINTS_PER_RUN - m.hintsUsed);
+}
+
+/** The key the next hint request will get: unique per run and per hint. */
+export function nextHintKey(m: LevelModel): string {
+  return `${m.run}:${m.hintsUsed + 1}`;
+}
+
+/** Can the player ask for a hint right now? */
+export function canAskHint(m: LevelModel): boolean {
+  return m.game.phase === "play" && !m.tour && m.hint?.status !== "thinking" && hintsLeft(m) > 0;
+}
+
+/** Tidy's hint line, while one shows. */
+export function hintBubble(m: LevelModel): Bubble | null {
+  if (!m.hint || m.tour || m.game.phase !== "play") return null;
+  return m.hint.status === "thinking"
+    ? { actor: "tidy", text: HINT_THINKING_TEXT, mood: "thinking", files: [] }
+    : { actor: "tidy", text: m.hint.text, mood: "talking", files: [] };
 }
 
 /** The line on screen: the tour's current step while a tour shows, otherwise the scene's. */
@@ -377,7 +420,18 @@ export function levelReducer(m: LevelModel, a: LevelAction): LevelModel {
   if (m.tour) return tourReducer(m, m.tour, a);
   switch (a.type) {
     case "tour":
-      return m.game.phase === "play" && a.steps.length > 0 ? { ...m, tour: { steps: a.steps, at: 0 } } : m;
+      return m.game.phase === "play" && a.steps.length > 0 ? { ...m, tour: { steps: a.steps, at: 0 }, hint: null } : m;
+    case "hint-ask":
+      return canAskHint(m) ? { ...m, hint: { key: nextHintKey(m), status: "thinking" }, hintsUsed: m.hintsUsed + 1 } : m;
+    case "hint-answer":
+      if (m.hint?.key !== a.key || m.hint.status !== "thinking") return m;
+      return {
+        ...m,
+        hint: m.game.phase === "play" ? { key: a.key, status: "shown", text: a.text } : null,
+        hintsUsed: a.refund ? Math.max(0, m.hintsUsed - 1) : m.hintsUsed,
+      };
+    case "hint-dismiss":
+      return m.hint ? { ...m, hint: null } : m;
     case "begin":
       return m.game.phase === "brief" ? { ...m, game: begin(m.game), wait: NO_WAIT } : m;
     case "step": {
@@ -399,13 +453,13 @@ export function levelReducer(m: LevelModel, a: LevelAction): LevelModel {
       if (out.state === m.game) return m;
       // A winning command plays out on the map before the closing scene starts.
       const wait: Wait = out.won && out.changed ? { kind: "animate", events: out.state.events } : NO_WAIT;
-      return { ...m, game: out.state, wait };
+      return { ...m, game: out.state, wait, hint: out.won ? null : m.hint };
     }
     case "edit": {
       const out = editPlayerFile(m.game, a.path, a.content);
       if (out.state === m.game) return m;
       const wait: Wait = out.won && out.changed ? { kind: "animate", events: out.state.events } : NO_WAIT;
-      return { ...m, game: out.state, wait };
+      return { ...m, game: out.state, wait, hint: out.won ? null : m.hint };
     }
     case "restart":
       return { ...initLevelModel(a.level), run: m.run + 1 };

@@ -161,7 +161,6 @@ const sandbox: Level = {
       },
     },
   ],
-  hintContext: "",
   suggestions: [],
   outro: [],
 };

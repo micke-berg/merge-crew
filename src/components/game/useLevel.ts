@@ -2,11 +2,23 @@
 
 // React driver for game.ts: runs its level reducer and owns the timers that play scenes step by step.
 
-import { useEffect, useReducer } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import { useReducedMotion } from "motion/react";
 import type { Level } from "@/engine/types";
 import { buildSchedule } from "@/components/map/timeline";
-import { initLevelModel, levelReducer, shownBubble, type GameState, type PointStep, type Wait } from "./game";
+import {
+  canAskHint,
+  hintBubble,
+  hintsLeft,
+  initLevelModel,
+  levelReducer,
+  nextHintKey,
+  shownBubble,
+  type GameState,
+  type PointStep,
+  type Wait,
+} from "./game";
+import { buildHintRequest, fetchHint } from "./hintRequest";
 import { markLevelComplete } from "./progress";
 
 /** How long to hold after a scripted git step so its animation can play. */
@@ -42,6 +54,20 @@ export function useLevel(level: Level) {
     if (game.phase === "won") markLevelComplete(game.level.id);
   }, [game.phase, game.level.id]);
 
+  // The latest model, for the hint request (built from the state at the moment the player asks).
+  const latest = useRef(model);
+  useEffect(() => {
+    latest.current = model;
+  }, [model]);
+  const askHint = () => {
+    const m = latest.current;
+    if (!canAskHint(m)) return;
+    const key = nextHintKey(m);
+    const request = buildHintRequest(m.game, m.hintsUsed + 1);
+    dispatch({ type: "hint-ask" });
+    void fetchHint(request).then(({ text, refund }) => dispatch({ type: "hint-answer", key, text, refund }));
+  };
+
   return {
     game,
     run: model.run,
@@ -62,5 +88,14 @@ export function useLevel(level: Level) {
     /** Save a working file from the conflict editor. */
     edit: (path: string, content: string) => dispatch({ type: "edit", path, content }),
     restart: () => dispatch({ type: "restart", level }),
+    /** Tidy's hint line during the player turn ("thinking", then the hint), or null. */
+    hint: hintBubble(model),
+    hintStatus: model.hint?.status ?? null,
+    /** Changes with every hint state, so the dialogue's typewriter restarts. */
+    hintKey: 30_000 + model.run * 100 + model.hintsUsed * 2 + (model.hint?.status === "shown" ? 1 : 0),
+    hintsLeft: hintsLeft(model),
+    canAskHint: canAskHint(model),
+    askHint,
+    dismissHint: () => dispatch({ type: "hint-dismiss" }),
   };
 }

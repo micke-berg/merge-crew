@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
+    "eval:hints": "vitest run --config vitest.evals.config.ts",
     "sprites": "node scripts/build-sprites.mjs"
   },
   "dependencies": {

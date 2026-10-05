@@ -1,6 +1,6 @@
 # Architecture
 
-Merge Crew is a static Next.js app. Everything runs in the browser: there is no server code, database or account system. The game is built from five parts that depend on each other in one direction only.
+Merge Crew is a static Next.js app. The game runs in the browser: there is no database or account system, and the only server code is one route that asks a model for Tidy's hints (see "AI hints" below). The game is built from five parts that depend on each other in one direction only.
 
 ```mermaid
 flowchart LR
@@ -42,7 +42,7 @@ A level is data, not code paths in the UI:
 - `setup`: git commands and file edits that build the starting repository from empty, instantly.
 - `intro` and `outro`: scripted scenes. Robots run git commands, speak and change mood.
 - `goals`: checks on the resulting state, written with the helpers in `goals.ts`. Goals accept any fair solution and reject shortcuts that lose work or rewrite shared history.
-- `hintContext` and `suggestions`: support for the player.
+- `suggestions`: the commands the suggestion buttons fill in. What Tidy's hint helper knows about a level is not in the level file: it lives server-side in `src/hints/data` (see "AI hints").
 - `brief` and `mission`: the level list's one-liner, and the brief card's plain-words mission (what's going on, your job, what you'll practise).
 
 A `say` step may name the working files it talks about (`files`). The files panel highlights them while the line shows, and the line offers them as chips that open the file. The player's current task is always shown in the "Your job" bar above the terminal: the first goal not yet met.
@@ -75,6 +75,35 @@ Steps 1 to 3 are pure and unit tested, as are the helpers for tags (`tags.ts`), 
 
 - **Robot sprites (`src/components/robots`):** the art lives in `public/assets/pocket-machines` (CC0, see `ASSETS.md`). `scripts/build-sprites.mjs` turns the source PNG sheets into small WebP sheets and a typed manifest. `Sprite.tsx` plays a sheet with CSS steps, so no JavaScript runs per frame.
 - **Sound (`src/components/sound`):** synthesized in the browser with the Web Audio API, with no audio files. Robots speak in short, deterministic gibberish blips, a different voice per robot and mood. Event sounds follow the same schedule the map animates. Nothing plays before the first interaction, and mute is remembered.
+
+## AI hints (`src/hints`, `src/app/api/hint`)
+
+The player can ask Tidy for a hint with the "Ask Tidy" button next to the job bar. A hint is one or two short sentences in Tidy's voice that point toward the next idea and never contain the answer.
+
+**Flow.**
+
+1. The button (`AskTidyButton.tsx`) dispatches `hint-ask` in the level reducer: Tidy shows "thinking" in the dialogue strip below the command box, and the run's hint counter goes up (5 per run; restart starts a new run).
+2. `hintRequest.ts` builds the request from what the player can already see: the level id, the hint number, the last 8 player commands with the first lines of their output and whether git accepted them, which goals are met, and a short status summary. It POSTs it to `/api/hint`.
+3. The route (`src/app/api/hint/route.ts`) rejects cross-site requests, non-JSON, bodies over 8 KB and anything that does not match the request shape exactly (`validate.ts`), then applies the rate limits.
+4. `server.ts` decides whether the model may be asked (`HINTS_AI=off` and missing credentials both say no), builds the prompt (`prompt.ts`) from the level's server-side context, the goals with the current one marked, and what the player tried, and calls `anthropic/claude-haiku-4.5` through the Vercel AI Gateway with a plain model string. The Gateway falls back to `google/gemini-2.5-flash-lite` if that fails. At most 120 output tokens, temperature 0.2, no SDK retries, 6 second timeout.
+5. The answer is vetted (`leak.ts`). If anything is off, the response is the level's next scripted hint instead. The response says which: `{ text, source: "ai" | "scripted", reason? }`.
+6. The hint appears in the dialogue strip as Tidy speaking, with Tidy's voice. The command box stays active the whole time: the player keeps typing, and Esc or a click puts the hint away. A failed or rate-limited request shows a gentle offline line and gives the hint back.
+
+**Server-only data.** Each level's hint context (the situation and the intended fix) and its three scripted hints, gentle to specific, live in `src/hints/data/<level>.ts`. Every module there starts with `import "server-only"`, so a client import fails the build. The answer-leak check also needs the documented solutions (`src/levels/solutions.ts`); only server modules and tests import them. After `npm run build`, none of the context or solution text is in `.next/static`.
+
+**Safety in code, not in the prompt.** The prompt asks the model not to give the answer away; `vetHint` makes sure. A model hint is replaced by a scripted one when it is empty, longer than 260 characters or two sentences, contains `--force` or `git push ... -f`, contains a solution command line (quotes and whitespace normalised) that the level's suggestion buttons do not already show, or has a `git <subcommand>` phrase that matches a solution step and names one of its arguments (`git branch x main@{1}`, `git revert HEAD~1`). The fallback reasons are `disabled`, `no-credentials`, `model-error`, `timeout`, `empty`, `too-long`, `leak-solution` and `leak-force`. Player text in the prompt is marked as data, and cannot open or close a prompt section.
+
+**Limits and cost.** The client allows 5 hints per level per run. The route keeps a per-IP limit (20 per 10 minutes) and a per-instance limit (120 per minute) in memory. That is best effort only: serverless instances do not share memory, and a new instance starts with empty counters. The hard cap on spending is the AI Gateway budget the maintainer sets on the Vercel project; when it is used up, Gateway calls fail and players get the scripted hints.
+
+**Tracing.** `src/instrumentation.ts` registers the Langfuse span processor only when `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` are set (`LANGFUSE_BASE_URL` is optional). Then each hint request is a `merge-crew-hint` span with the request, the outcome and metadata `levelId`, `hintNumber`, `source` and `reason`; the AI SDK telemetry for the model call (function id `merge-crew-hint`, runtime context `levelId` and `hintNumber`) becomes a nested generation with the model, prompt, output and token usage (`telemetry.ts`). The AI SDK's own OpenTelemetry integration is a separate package, so `telemetry.ts` is a small integration on top of `@langfuse/tracing`. Spans are sent immediately and flushed after the response. Without the keys nothing is registered and nothing is sent.
+
+**Evals (`evals/hints`).** `cases.ts` has 2 or 3 stuck moments per level: the player typed nothing useful, tried the wrong thing, or is one step from done. `materialise.ts` plays each case through the real game, so the request is exactly what the game would send.
+
+- `cases.test.ts` runs with `npm test`, with no network: every case reaches a stuck player turn, builds a request the route accepts and a prompt with the right current goal, falls back to the scripted hint when a (mock) model leaks the answer, and returns the scripted hint without credentials. The leak check, length limits, fallback paths, rate limiter, request validation and prompt are unit tested in `src/hints/hints.test.ts`, and the route in `route.test.ts`.
+- `npm run eval:hints` (`hints.eval.ts`, its own vitest config) asks the real hint model for hints 1 and 3 of every case, runs the deterministic checks on the raw answers, and grades each with a rubric-based model grader (`grader.ts`, `anthropic/claude-sonnet-5`): points toward the right next idea, does not give the answer, at most two sentences, Tidy's voice. Results go to `evals/hints/results/` (ignored by git). Without credentials it skips and sends nothing.
+- The grader is not calibrated. `labels.example.json` is the format for hints a person marks good or bad; with a `labels.json` in that format, the eval also grades each labelled hint and reports how often the grader agrees.
+
+**Configuration.** Names only, in `.env.example`: `AI_GATEWAY_API_KEY` or `VERCEL_OIDC_TOKEN` (locally; on Vercel the project's OIDC token is used), `HINTS_AI` (`off` switches the model off), `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL`.
 
 ## Quality gates
 
