@@ -51,6 +51,12 @@ export const level: Level = {
   title: "Hoarder's secret pile",
   brief:
     "Hoarder never commits. Weeks ago it tucked a secret recipe into the stash and forgot which pile it was in. Find it and save it properly in a commit.",
+  mission: {
+    situation:
+      "Hoarder never commits. Weeks ago it hid a new drink recipe for the café in the stash, git's drawer for unsaved work, and it just put more on top.",
+    job: "Find the fizz recipe in the stash and save it in a commit on a branch, without throwing away Hoarder's other stash.",
+    practise: ["git stash list", "git stash show -p", "git stash branch", "git commit"],
+  },
   crew: ["hoarder", "tidy"],
   setup: [
     write("player", "menu.txt", "Lemonade\nIced tea\n"),
@@ -69,32 +75,30 @@ export const level: Level = {
     git("player", "push"),
   ],
   intro: [
-    say("tidy", "Hoarder, the fizz recipe. You said it was nearly done. Weeks ago.", "talking"),
-    say("hoarder", "It is! It's safe. Very safe. I put it away so nothing could happen to it.", "scared"),
-    say("tidy", "Away where? There's no commit.", "thinking"),
-    say("hoarder", "Commits are so... permanent. What if it's wrong? I stashed it. Like a squirrel.", "guilty"),
-    say("hoarder", "Oh! I have a new idea too. Let me put that somewhere safe as well.", "surprised"),
+    say("tidy", "Hoarder, the fizz drink for the café menu, menu.txt. You said the recipe was nearly done. Weeks ago.", "talking", ["menu.txt"]),
+    say("hoarder", "It is! I put it in the stash, git's drawer for unsaved work. Commits are so... permanent.", "guilty"),
+    say("hoarder", "Oh! A new idea. Let me put that in the drawer too. On top. For safety.", "surprised"),
     // Hoarder's signature shuffle while it tucks one more thing on top of the pile.
     mood("hoarder", "thinking"),
     write("hoarder", "notes.txt", DOODLE_NOTES),
     git("hoarder", "stash", "push", "-m", DOODLE_STASH),
     pause(600),
-    say("hoarder", "There. Now everything's on the pile. Somewhere. Lead, could you dig out the recipe?", "scared"),
+    say("hoarder", "There. Now it's all in the pile. Somewhere. Lead, could you dig out the recipe and save it properly?", "scared"),
   ],
   goals: [
     {
       id: "recipe-committed",
-      description: "Hoarder's fizz recipe is saved in a commit on a branch (fizz.txt and the menu line)",
+      description: "Save Hoarder's fizz recipe (fizz.txt and its menu line) in a commit on a branch",
       check: someBranchTipHasFiles({ "fizz.txt": FIZZ, "menu.txt": MENU_WITH_FIZZ }),
     },
     {
       id: "doodles-safe",
-      description: "Hoarder's doodles are not thrown away",
+      description: "Hoarder's other stash, the doodles, is not thrown away",
       check: anyOf(stashHasEntry(DOODLE_STASH), someBranchTipHasFiles({ "notes.txt": DOODLE_NOTES })),
     },
     {
       id: "clean",
-      description: "Your working tree is clean",
+      description: "Leave nothing unsaved in your files",
       check: workingTreeClean("player"),
     },
   ],

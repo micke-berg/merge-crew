@@ -47,7 +47,13 @@ export const level: Level = {
   order: 5,
   title: "Just that one fix",
   brief:
-    "The stand's table wobbles. Drift fixed it ages ago, on a branch full of other half-finished dreams. Bring over the fix, and only the fix.",
+    "The café's table wobbles. Drift fixed it ages ago, on a branch full of other half-finished dreams. Bring over the fix, and only the fix.",
+  mission: {
+    situation:
+      "A café table wobbles. Drift fixed it ages ago, but on a branch that also holds unfinished cloud cups and a poem.",
+    job: "Copy just Drift's table fix onto main and push it. Leave the rest of Drift's branch alone.",
+    practise: ["git log --oneline drift", "git show", "git cherry-pick", "git push"],
+  },
   crew: ["drift", "tidy"],
   setup: [
     write("player", "sign.txt", "LEMONADE\n"),
@@ -75,18 +81,17 @@ export const level: Level = {
   ],
   intro: [
     mood("tidy", "surprised"),
-    say("tidy", "A customer's lemonade just slid off the table. Again. One leg is short.", "surprised"),
+    say("tidy", "A customer's lemonade just slid off the table. Again. Look at table.txt: one leg is short.", "surprised", ["table.txt"]),
     say("drift", "Oh, the table. I fixed that. A long time ago. I think it was a Tuesday.", "happy"),
     say("tidy", "Fixed it where? Main still wobbles.", "thinking"),
     say("drift", "On my branch. Between the clouds on the cups and my poem about lemons.", "happy"),
     pause(400),
-    say("tidy", "The cups aren't finished, and the poem is... a poem. We only want the fix.", "talking"),
-    say("drift", "You can take one stop from my line without the others? Git is so generous.", "surprised"),
+    say("tidy", "The cups aren't finished, and the poem is... a poem. Lead, copy just the fix onto main.", "talking", ["table.txt"]),
   ],
   goals: [
     {
       id: "fix-on-origin",
-      description: "Drift's table fix is on main on origin",
+      description: "Copy Drift's table fix onto main and push it to origin",
       check: allOf(
         remoteBranchContains("origin", "main", FIX),
         fileInTipEquals(remoteBranch("origin", "main"), "table.txt", FIXED),

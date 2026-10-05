@@ -39,6 +39,12 @@ export const level: Level = {
   title: "Undo, politely",
   brief:
     "Blaze shipped a change to main that makes everything free, and Tidy has already built on top of it. Undo Blaze's change without rewriting the history everyone shares.",
+  mission: {
+    situation:
+      "Blaze changed the café's price list to make everything free and pushed it to origin. Tidy has already added a tip jar on top.",
+    job: "Undo Blaze's price change with a new commit, keep Tidy's tip jar, and push the fix to origin.",
+    practise: ["git pull", "git log --oneline", "git revert", "git push"],
+  },
   crew: ["blaze", "tidy"],
   setup: [
     write("player", "sign.txt", "LEMONADE\n"),
@@ -52,7 +58,7 @@ export const level: Level = {
     git("player", "worktree", "add", "/crew/tidy", "-b", "tidy"),
   ],
   intro: [
-    say("blaze", "Big idea. Huge. Customers love free things. So: everything is free.", "happy"),
+    say("blaze", "Big idea. Huge. Customers love free things. So the price list, prices.txt, now says FREE.", "happy", ["prices.txt"]),
     write("blaze", "prices.txt", "Lemonade: FREE\nIced tea: FREE\n"),
     git("blaze", "add", "prices.txt"),
     git("blaze", "commit", "-m", BLAZE),
@@ -60,8 +66,7 @@ export const level: Level = {
     mood("blaze", "celebrate"),
     pause(700),
     git("blaze", "push", "origin", "blaze:main"),
-    say("blaze", "Shipped! No force-push this time. I'm learning.", "happy"),
-    say("tidy", "I'll add the tip jar on top of the new main.", "talking"),
+    say("tidy", "Blaze pushed without force this time. Good. I'll add our tip jar on top.", "talking"),
     git("tidy", "pull", "origin", "main"),
     write("tidy", "tipjar.txt", "Tips welcome\n"),
     git("tidy", "add", "tipjar.txt"),
@@ -69,19 +74,19 @@ export const level: Level = {
     git("tidy", "push", "origin", "tidy:main"),
     pause(400),
     say("tidy", "Wait. The prices say FREE. Blaze, we sell lemonade. For coins.", "surprised"),
-    say("blaze", "Oh. Easy fix, I'll just reset main back and force-push...", "talking"),
+    say("blaze", "Oh. Easy fix. I'll just reset main back and force-push...", "talking"),
     mood("tidy", "scared"),
-    say("tidy", "No! My tip jar is on top of it. Lead, undo Blaze's change, but leave the history alone.", "scared"),
+    say("tidy", "No! My tip jar is on top of it. Lead, undo Blaze's change with a new commit. Leave the history alone.", "scared"),
   ],
   goals: [
     {
       id: "prices-back",
-      description: "The prices on origin's main are back to coins",
+      description: "Undo Blaze's change: the prices on origin's main are back to coins",
       check: fileInTipEquals(remoteBranch("origin", "main"), "prices.txt", GOOD_PRICES),
     },
     {
       id: "history-kept",
-      description: "History is not rewritten: Blaze's commit stays on origin's main",
+      description: "Blaze's commit stays in the history (undo it, don't delete it)",
       check: originalCommitReachableFrom(remoteBranch("origin", "main"), BLAZE),
     },
     {

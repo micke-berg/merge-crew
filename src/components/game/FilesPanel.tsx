@@ -2,7 +2,8 @@
 
 import { motion } from "motion/react";
 import { queries } from "@/engine";
-import type { RepoState, Worktree } from "@/engine/types";
+import type { ActorId, RepoState, Worktree } from "@/engine/types";
+import { actorColor } from "@/lib/palette";
 import {
   abortCommand,
   conflictHeadline,
@@ -18,6 +19,8 @@ type Props = {
   repo: RepoState;
   where: string;
   onOpen: (file: OpenFile) => void;
+  /** Files a robot's current line talks about, and who is speaking. */
+  highlight?: { actor: ActorId; files: readonly string[] } | null;
 };
 
 type Badge = { letter: string; label: string; className: string };
@@ -32,7 +35,9 @@ const BADGES: Record<string, Badge> = {
   clean: { letter: "·", label: "unchanged", className: "text-ghost" },
 };
 
-export function FilesPanel({ repo, where, onOpen }: Props) {
+export function FilesPanel({ repo, where, onOpen, highlight }: Props) {
+  const spoken = new Set(highlight?.files ?? []);
+  const speaker = highlight ? actorColor(highlight.actor) : null;
   const wt = repo.worktrees.player;
   if (!wt) return null;
   const st = queries.status(repo, "player");
@@ -66,13 +71,25 @@ export function FilesPanel({ repo, where, onOpen }: Props) {
         <h3 className="text-[11px] font-bold tracking-wide text-muted uppercase">Working files</h3>
         <ul className="mt-1.5 flex flex-col gap-0.5">
           {working.length === 0 && <li className="px-2 py-1 text-[13px] text-muted">No files yet.</li>}
-          {working.map((f) => (
-            <li key={f.path}>
+          {working.map((f) => {
+            const lit = speaker !== null && spoken.has(f.path);
+            return (
+            <li key={f.path} className="relative">
+              {lit && (
+                <motion.span
+                  aria-hidden
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0.55, 1, 0.55] }}
+                  transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+                  className="pointer-events-none absolute inset-0 rounded-lg"
+                  style={{ boxShadow: `0 0 0 2.5px ${speaker.line}`, background: speaker.tint }}
+                />
+              )}
               <button
                 type="button"
                 disabled={!f.exists && !conflicted.has(f.path)}
                 onClick={() => onOpen({ path: f.path, area: "working" })}
-                className={`group flex w-full items-center gap-2 rounded-lg px-2 py-1 text-left font-mono text-[12.5px] transition-colors hover:bg-wash focus-visible:bg-wash focus-visible:ring-2 focus-visible:ring-focus/40 focus-visible:outline-none disabled:cursor-default disabled:hover:bg-transparent ${
+                className={`group relative flex w-full items-center gap-2 rounded-lg px-2 py-1 text-left font-mono text-[12.5px] transition-colors hover:bg-wash focus-visible:bg-wash focus-visible:ring-2 focus-visible:ring-focus/40 focus-visible:outline-none disabled:cursor-default disabled:hover:bg-transparent ${
                   f.kind === "conflict" ? "bg-warn-soft ring-1 ring-warn/40" : f.kind === "fixed" ? "bg-success-soft ring-1 ring-success/35" : ""
                 }`}
                 title={
@@ -85,10 +102,17 @@ export function FilesPanel({ repo, where, onOpen }: Props) {
               >
                 <StatusBadge badge={f.badge} />
                 <span className={`truncate ${f.exists || conflicted.has(f.path) ? "" : "text-muted line-through"}`}>{f.path}</span>
-                {f.kind !== "clean" && <span className="ml-auto shrink-0 font-sans text-[10.5px] text-muted">{f.badge.label}</span>}
+                {lit ? (
+                  <span className="ml-auto shrink-0 font-sans text-[10.5px] font-bold" style={{ color: speaker.deep }}>
+                    {speaker.name} means this
+                  </span>
+                ) : (
+                  f.kind !== "clean" && <span className="ml-auto shrink-0 font-sans text-[10.5px] text-muted">{f.badge.label}</span>
+                )}
               </button>
             </li>
-          ))}
+            );
+          })}
         </ul>
 
         <h3 className="mt-4 text-[11px] font-bold tracking-wide text-muted uppercase">Staged for the next commit</h3>
