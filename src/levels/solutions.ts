@@ -8,6 +8,8 @@ import { level as act1_02 } from "./act1-02-your-own-line";
 import { solution as act1_02_solution } from "./act1-02-your-own-line.solution";
 import { level as act1_03 } from "./act1-03-bringing-it-home";
 import { solution as act1_03_solution } from "./act1-03-bringing-it-home.solution";
+import { level as act1_04 } from "./act1-04-the-shared-copy";
+import { solution as act1_04_solution } from "./act1-04-the-shared-copy.solution";
 import { level as act2_01 } from "./act2-01-blaze-was-in-a-hurry";
 import { solution as act2_01_solution } from "./act2-01-blaze-was-in-a-hurry.solution";
 import { level as act2_02 } from "./act2-02-drifts-long-walk";
@@ -24,6 +26,7 @@ export const solutions: Readonly<Record<string, Solution>> = Object.fromEntries(
   [act1_01.id, act1_01_solution],
   [act1_02.id, act1_02_solution],
   [act1_03.id, act1_03_solution],
+  [act1_04.id, act1_04_solution],
   [act2_01.id, act2_01_solution],
   [act2_02.id, act2_02_solution],
   [act2_03.id, act2_03_solution],

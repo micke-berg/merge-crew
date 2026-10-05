@@ -189,6 +189,14 @@ export const stashHasEntry =
   (state) =>
     state.stash.some((entry) => entry.message.includes(text));
 
+/** Both targets exist and point at the same commit, e.g. local main is in step with origin's main. */
+export const sameTip =
+  (a: RefTarget, b: RefTarget): Check =>
+  (state, queries) => {
+    const tipA = tipOf(state, queries, a);
+    return tipA !== null && tipA === tipOf(state, queries, b);
+  };
+
 export const anyOf =
   (...checks: Check[]): Check =>
   (state, queries) =>

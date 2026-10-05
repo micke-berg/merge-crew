@@ -158,6 +158,45 @@ describe("levels through the engine", () => {
     return goalsFailing(id, runSteps(engine.createRepo(), [...level.setup, ...level.intro, ...steps]));
   }
 
+  it("act1-04: after Tidy's push the player is behind origin/main by one commit", () => {
+    const level = getLevel("act1-04")!;
+    const state = runSteps(engine.createRepo(), [...level.setup, ...level.intro]);
+    const status = engine.run(state, { actor: "player", argv: ["git", "status"] }).output.map((l) => l.text);
+    expect(status).toContain("Your branch is behind 'origin/main' by 1 commit, and can be fast-forwarded.");
+  });
+
+  it("act1-04: a push before pulling is rejected, and pull then push wins", () => {
+    const level = getLevel("act1-04")!;
+    let state = runSteps(engine.createRepo(), [
+      ...level.setup,
+      ...level.intro,
+      git("player", "add", "sign.txt"),
+      git("player", "commit", "-m", "Announce Saturdays on the sign"),
+    ]);
+    const push = engine.run(state, { actor: "player", argv: ["git", "push"] });
+    expect(push.ok).toBe(false);
+    expect(push.output.map((l) => l.text).join("\n")).toContain("(non-fast-forward)");
+    state = runSteps(state, [git("player", "pull"), git("player", "push")]);
+    expect(goalsFailing("act1-04", state)).toEqual([]);
+  });
+
+  it("act1-04: pull --rebase after committing also wins", () => {
+    const failed = failedGoals("act1-04", [
+      git("player", "commit", "-am", "Announce Saturdays on the sign"),
+      git("player", "pull", "--rebase"),
+      git("player", "push"),
+    ]);
+    expect(failed).toEqual([]);
+  });
+
+  it("act1-04: force-pushing over Tidy's commit does not win", () => {
+    const failed = failedGoals("act1-04", [
+      git("player", "commit", "-am", "Announce Saturdays on the sign"),
+      git("player", "push", "--force"),
+    ]);
+    expect(failed).toEqual(["pulled", "pushed"]);
+  });
+
   it("act2-02: the merge stops on a conflict in sign.txt only", () => {
     const level = getLevel("act2-02")!;
     const state = runSteps(engine.createRepo(), [...level.setup, ...level.intro, git("player", "merge", "drift")]);
