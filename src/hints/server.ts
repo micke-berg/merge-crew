@@ -10,12 +10,17 @@ import { buildHintPrompt } from "./prompt";
 import type { FallbackReason, HintRequest, HintResponse } from "./types";
 
 /**
- * The hint model, as a plain AI Gateway model string. Gemini 2.5 Flash-Lite is available on the
- * Gateway's free credits; Claude Haiku 4.5 needs paid credits. Measure a change with `npm run eval:hints`.
+ * The hint model, as a plain AI Gateway model string. Chosen by `npm run eval:hints` on 2026-10-05:
+ * against Claude Haiku 4.5 on the same 27 cases, Gemini 2.5 Flash-Lite gave away the answer less often
+ * (0 of 53 graded answers vs 5 of 54), was rejected as too long less often (4 vs 9), was faster and
+ * costs about a tenth. Measure any change the same way.
  */
 export const HINT_MODEL = "google/gemini-2.5-flash-lite";
-/** Models the Gateway may try if the hint model fails. Each must be available on the account's plan. */
-export const FALLBACK_MODELS: readonly string[] = [];
+/**
+ * Models the Gateway tries if the hint model fails. Claude Haiku 4.5 names commands more readily, so
+ * it is only a backup; the code check still applies to its answers. Each needs paid Gateway credits.
+ */
+export const FALLBACK_MODELS: readonly string[] = ["anthropic/claude-haiku-4.5"];
 export const MAX_OUTPUT_TOKENS = 120;
 export const TEMPERATURE = 0.2;
 /** The player is waiting with Tidy "thinking": past this, the scripted hint is better than waiting. */
