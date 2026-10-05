@@ -67,7 +67,7 @@ export const level: Level = {
   ].join("\n"),
   suggestions: ["git status", "git branch", "git log --oneline --graph --all", "git merge menu", "git merge colors"],
   outro: [
-    say("tidy", "Both lines came home. The diamond on the map is your merge commit.", "celebrate"),
+    say("tidy", "Both lines came home. The stop with two lines going into it is your merge commit.", "celebrate"),
     say("tidy", "That's Act 1. You can save, branch and merge. I'm a little proud. Don't tell Blaze.", "happy"),
   ],
 };
