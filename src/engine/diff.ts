@@ -1,7 +1,17 @@
-// Line diff ported from git's xdiff (xdiffi.c, xprepare.c): the same preparation, the same Myers
-// middle-snake search and the same "change compaction" that slides each changed block down and
-// lines it up with changes in the other file. Matching xdiff's choices matters because a merge's
-// result depends on which of several equally short diffs is picked.
+// Line diff ported from git's xdiff, the diff library inside git.
+//
+// Sources, in git's tree:
+//   xdiff/xprepare.c  xdl_prepare_env, xdl_cleanup_records, xdl_clean_mmatch, xdl_trim_ends
+//   xdiff/xdiffi.c    xdl_split (Myers' middle snake), xdl_recs_cmp, xdl_change_compact
+// The same preparation, the same divide-and-conquer Myers search and the same "change compaction"
+// that slides each changed block down and lines it up with changes in the other file. Matching
+// xdiff's choices matters because a merge's result depends on which of several equally short diffs
+// is picked.
+//
+// Left out: the indent heuristic in xdl_change_compact (merges do not use it), and xdl_split's
+// cost limit for very large inputs (it only applies past 256 edit steps).
+// Checked against git 2.46.0 through the oracle suite (tests/oracle) and the expected outputs of
+// `git merge-file` in merge3.test.ts.
 
 /** Split into lines that keep their "\n". A last line without a newline is kept as is. */
 export function splitLines(text: string): string[] {

@@ -37,23 +37,41 @@ export function cleanupMessage(message: string): string {
 
 export function sortedTree(tree: Record<Path, string>): FileTree {
   const out: Record<Path, string> = {};
-  for (const key of Object.keys(tree).sort()) out[key] = tree[key];
+  for (const key of Object.keys(tree).sort()) setOwn(out, key, tree[key]);
   return out;
 }
 
 export function treesEqual(a: FileTree, b: FileTree): boolean {
   const ka = Object.keys(a);
   if (ka.length !== Object.keys(b).length) return false;
-  for (const k of ka) if (!Object.prototype.hasOwnProperty.call(b, k) || a[k] !== b[k]) return false;
+  for (const k of ka) if (!has(b, k) || a[k] !== b[k]) return false;
   return true;
 }
 
-export function has(tree: FileTree, path: Path): boolean {
-  return Object.prototype.hasOwnProperty.call(tree, path);
+// Every record in RepoState is keyed by names that come from players and level authors: branch
+// names, file paths, actors, remotes. Plain `record[key]` would find inherited members such as
+// "constructor" or "toString", and `record[key] = value` with the key "__proto__" would replace the
+// object's prototype instead of adding an entry. These helpers only ever see own properties, so any
+// valid git name works as a key. RepoState stays plain, JSON-serialisable data.
+
+/** Whether the record has its own entry for `key`. */
+export function has(record: object, key: string): boolean {
+  return Object.hasOwn(record, key);
 }
 
+/** The record's own entry for `key`, or undefined. Never an inherited member. */
+export function own<T>(record: Readonly<Record<string, T>>, key: string): T | undefined {
+  return Object.hasOwn(record, key) ? record[key] : undefined;
+}
+
+/** A file's content in a tree, or undefined when the tree has no such path. */
 export function get(tree: FileTree, path: Path): string | undefined {
-  return has(tree, path) ? tree[path] : undefined;
+  return own(tree, path);
+}
+
+/** Add or replace an own entry, including for the key "__proto__". */
+export function setOwn<T>(record: Record<string, T>, key: string, value: T): void {
+  Object.defineProperty(record, key, { value, writable: true, enumerable: true, configurable: true });
 }
 
 /** Paths whose content differs between two trees, sorted. */
@@ -78,7 +96,7 @@ export function createCommit(
   parts: { parents: Oid[]; message: string; tree: FileTree; author: ActorId; time: number },
 ): Commit {
   const oid = sha1(serialize(parts));
-  const existing = state.commits[oid];
+  const existing = own(state.commits, oid);
   if (existing) return existing;
   const commit: Commit = {
     oid,
@@ -88,20 +106,20 @@ export function createCommit(
     author: parts.author,
     time: parts.time,
   };
-  state.commits[oid] = commit;
+  setOwn(state.commits, oid, commit);
   return commit;
 }
 
 export function treeOf(state: RepoState, oid: Oid | null): FileTree {
   if (!oid) return EMPTY_TREE;
-  return state.commits[oid]?.tree ?? EMPTY_TREE;
+  return own(state.commits, oid)?.tree ?? EMPTY_TREE;
 }
 
 /** Deep copy of every mutable container. Commits are immutable and shared. */
 export function cloneState(s: RepoState): RepoState {
   const worktrees: RepoState["worktrees"] = {};
   for (const [actor, wt] of Object.entries(s.worktrees)) {
-    worktrees[actor] = {
+    setOwn(worktrees, actor, {
       ...wt,
       head: { ...wt.head },
       index: { ...wt.index },
@@ -109,14 +127,14 @@ export function cloneState(s: RepoState): RepoState {
       workingTree: { ...wt.workingTree },
       headReflog: [...wt.headReflog],
       inProgress: wt.inProgress ? structuredCopy(wt.inProgress) : null,
-    };
+    });
   }
   const branchReflogs: RepoState["branchReflogs"] = {};
-  for (const [k, v] of Object.entries(s.branchReflogs)) branchReflogs[k] = [...v];
+  for (const [k, v] of Object.entries(s.branchReflogs)) setOwn(branchReflogs, k, [...v]);
   const remotes: RepoState["remotes"] = {};
-  for (const [k, v] of Object.entries(s.remotes)) remotes[k] = { name: v.name, branches: { ...v.branches } };
+  for (const [k, v] of Object.entries(s.remotes)) setOwn(remotes, k, { name: v.name, branches: { ...v.branches } });
   const upstreams: RepoState["upstreams"] = {};
-  for (const [k, v] of Object.entries(s.upstreams)) upstreams[k] = { ...v };
+  for (const [k, v] of Object.entries(s.upstreams)) setOwn(upstreams, k, { ...v });
   return {
     commits: { ...s.commits },
     branches: { ...s.branches },
@@ -149,7 +167,7 @@ export function deepEqual(a: unknown, b: unknown): boolean {
   const ka = Object.keys(ra);
   if (ka.length !== Object.keys(rb).length) return false;
   for (const k of ka) {
-    if (!Object.prototype.hasOwnProperty.call(rb, k)) return false;
+    if (!has(rb, k)) return false;
     if (!deepEqual(ra[k], rb[k])) return false;
   }
   return true;

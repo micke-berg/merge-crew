@@ -1,6 +1,7 @@
 // A small option parser shared by the commands. Handles "-am msg", "--opt=value" and "--".
 
 import { notSupported } from "./context";
+import { has, own, setOwn } from "./objects";
 
 /** `value`: takes an argument. `optional`: may take one, but only as "--opt=value". */
 export type OptionSpec = Record<string, { value?: boolean; optional?: boolean; alias?: string }>;
@@ -16,10 +17,12 @@ export function parseArgs(command: string, args: string[], spec: OptionSpec): Pa
   const flags: Record<string, string[]> = {};
   const positional: string[] = [];
   let afterDashes: string[] | null = null;
-  const canonical = (name: string) => spec[name]?.alias ?? name;
+  const canonical = (name: string) => own(spec, name)?.alias ?? name;
   const record = (name: string, value: string) => {
     const key = canonical(name);
-    (flags[key] ??= []).push(value);
+    const list = own(flags, key) ?? [];
+    setOwn(flags, key, list);
+    list.push(value);
   };
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -34,7 +37,7 @@ export function parseArgs(command: string, args: string[], spec: OptionSpec): Pa
     if (arg.startsWith("--")) {
       const eq = arg.indexOf("=");
       const name = eq === -1 ? arg : arg.slice(0, eq);
-      const def = spec[name];
+      const def = own(spec, name);
       if (!def) notSupported(`git ${command} ${name}`);
       if (def.value) {
         if (eq !== -1) record(name, arg.slice(eq + 1));
@@ -49,7 +52,7 @@ export function parseArgs(command: string, args: string[], spec: OptionSpec): Pa
     if (arg.startsWith("-") && arg.length > 1 && arg !== "-") {
       for (let j = 1; j < arg.length; j++) {
         const name = `-${arg[j]}`;
-        const def = spec[name];
+        const def = own(spec, name);
         if (!def) notSupported(`git ${command} ${name}`);
         if (def.value) {
           const rest = arg.slice(j + 1);
@@ -68,10 +71,10 @@ export function parseArgs(command: string, args: string[], spec: OptionSpec): Pa
 }
 
 export function flag(p: Parsed, name: string): boolean {
-  return Object.prototype.hasOwnProperty.call(p.flags, name);
+  return has(p.flags, name);
 }
 
 export function value(p: Parsed, name: string): string | undefined {
-  const v = p.flags[name];
+  const v = own(p.flags, name);
   return v ? v[v.length - 1] : undefined;
 }

@@ -9,6 +9,7 @@ export type EngineRun =
   | { kind: "unsupported"; reason: string };
 
 const UNSUPPORTED = /not (yet )?(supported|implemented)/i;
+const INTERNAL_ERROR = /internal engine error/i;
 
 /** The Engine from "@/engine", or a reason why it is not available yet. */
 export async function loadEngine(): Promise<Engine | string> {
@@ -57,6 +58,8 @@ export function runEngine(engine: Engine, scenario: Scenario): EngineRun {
       throw new Error(`engine threw on step ${i} (${step.actor}: ${label}): ${String(e)}`, { cause: e });
     }
     const output = result.output.map((l) => `${l.kind}: ${l.text}`).join("\n");
+    // A crash is never a valid answer, even where real git also fails.
+    if (INTERNAL_ERROR.test(output)) throw new Error(`engine crashed on step ${i} (${step.actor}: ${label}):\n${output}`);
     if (!result.ok && result.output.some((l) => UNSUPPORTED.test(l.text))) {
       return { kind: "unsupported", reason: `step ${i} (${label}): ${output}` };
     }

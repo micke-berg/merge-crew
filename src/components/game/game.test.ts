@@ -181,3 +181,17 @@ describe("goal checks", () => {
     consoleError.mockClear();
   });
 });
+
+describe("command line errors", () => {
+  it("refuses a command with an unclosed quote without running it", () => {
+    const level = levels[0];
+    let s = skipScript(begin(startLevel(level)));
+    const before = s.repo;
+    const out = runPlayerCommand(s, 'git commit -m "half a message');
+    s = out.state;
+    expect(out.ok).toBe(false);
+    expect(s.repo).toBe(before);
+    expect(s.log.at(-1)?.kind).toBe("error");
+    expect(s.log.at(-1)?.text).toMatch(/unclosed double quote/);
+  });
+});

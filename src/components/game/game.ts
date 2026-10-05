@@ -2,7 +2,7 @@
 // brief -> intro (scripted scene) -> play (player turn) -> outro (scripted scene) -> won.
 // The React hook (useLevel.ts) owns the timing; these functions only decide what happens next.
 
-import { engine, queries } from "@/engine";
+import { engine, queries, validateCommandLine } from "@/engine";
 import type {
   ActorId,
   EngineEvent,
@@ -244,6 +244,14 @@ export function runPlayerCommand(s: GameState, line: string): CommandOutcome {
   if (text === "clear") return { state: { ...s, log: [] }, ok: true, changed: false, won: false };
 
   const path = s.repo.worktrees.player?.path ?? "/repo";
+  const problem = validateCommandLine(text);
+  if (problem) {
+    const lines: NewLine[] = [
+      { kind: "command", actor: "player", path, text },
+      { kind: "error", actor: "player", text: problem },
+    ];
+    return { state: { ...s, commands: s.commands + 1, ...addLines(s, lines) }, ok: false, changed: false, won: false };
+  }
   const argv = engine.parseCommandLine(text);
   const r = engine.run(s.repo, { actor: "player", argv });
   const lines: NewLine[] = [{ kind: "command", actor: "player", path, text }];
@@ -277,7 +285,8 @@ export function editPlayerFile(s: GameState, path: string, content: string): Com
   const lines: NewLine[] = r.ok
     ? [{ kind: "note", text: `You saved ${path}.` }]
     : r.output.map((o) => ({ kind: o.kind, actor: "player", text: o.text }));
-  if (r.ok && s.repo.worktrees.player?.conflicts[path]) {
+  const conflicts = s.repo.worktrees.player?.conflicts;
+  if (r.ok && conflicts && Object.hasOwn(conflicts, path)) {
     lines.push({ kind: "hint", actor: "player", text: `Now stage it with git add ${path}` });
   }
   const goals = r.ok ? checkGoals(s.level, r.state) : s.goals;

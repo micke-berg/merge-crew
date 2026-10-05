@@ -1,11 +1,14 @@
-// Engine tests for the second wave of commands: rebase, cherry-pick, revert, stash, diff, show and
-// the cat/ls shell commands. Whole-scenario behaviour is compared with real git in tests/oracle;
+// Engine tests for the commands that replay or inspect history: rebase, cherry-pick, revert, stash,
+// diff, show and the cat/ls shell commands. Whole-scenario behaviour is compared with real git in tests/oracle;
 // these pin down output text, reflog wording and events.
 
 import { describe, expect, it } from "vitest";
 import { engine, queries } from "./index";
-import { Repo } from "./test-helpers";
+import { Repo, failOnEngineErrors } from "./test-helpers";
+
 import type { EngineEvent } from "./types";
+
+failOnEngineErrors();
 
 const CODE_BEFORE = "function one() {\n  a\n  b\n  c\n  d\n  e\n  f\n  g\n  h\n  i\n  j\n}\nfunction two() {\n  k\n}\n";
 const CODE_AFTER = "function one() {\n  a\n  B\n  c\n  d\n  e\n  f\n  g\n  h\n  i\n  j\n}\nfunction two() {\n  k\n  K2\n}\n";
@@ -200,7 +203,43 @@ describe("cat and ls", () => {
   });
 });
 
+function deepFreeze<T>(value: T): T {
+  if (value && typeof value === "object" && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const v of Object.values(value)) deepFreeze(v);
+  }
+  return value;
+}
+
 describe("git rebase", () => {
+  it("moves through the todo list without changing the stored in-progress record", () => {
+    const r = new Repo();
+    r.commitFile("a.txt", "base\n", "Base A");
+    r.commitFile("b.txt", "base\n", "Base B");
+    r.git("switch -c topic");
+    const c1 = r.commitFile("a.txt", "topic\n", "Topic A");
+    const c2 = r.commitFile("b.txt", "topic\n", "Topic B");
+    r.git("switch main");
+    r.commitFile("a.txt", "main\n", "Main A");
+    r.commitFile("b.txt", "main\n", "Main B");
+    r.git("switch topic");
+    r.git("rebase main");
+    const first = deepFreeze(r.state);
+    expect(first.worktrees.player.inProgress).toMatchObject({ kind: "rebase", todo: [c2], done: [c1] });
+
+    r.write("a.txt", "resolved\n");
+    r.git("add a.txt");
+    r.git("rebase --continue");
+    const second = r.wt().inProgress;
+    expect(second).toMatchObject({ kind: "rebase", todo: [], done: [c1, c2] });
+    expect(first.worktrees.player.inProgress).toMatchObject({ todo: [c2], done: [c1] });
+
+    const stopped = deepFreeze(r.state);
+    r.git("rebase --skip");
+    expect(r.wt().inProgress).toBeNull();
+    expect(stopped.worktrees.player.inProgress).toMatchObject({ todo: [], done: [c1, c2] });
+  });
+
   it("writes git's reflog lines and moves the branch with reason rebase", () => {
     const r = new Repo();
     r.commitFile("a.txt", "1\n", "Base");

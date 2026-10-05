@@ -4,7 +4,7 @@
 
 import { fail, type Ctx } from "./context";
 import { mergeTrees } from "./merge3";
-import { changedPaths, createCommit, get, shortOid, sortedTree, subject, treesEqual } from "./objects";
+import { changedPaths, createCommit, get, setOwn, shortOid, sortedTree, subject, treesEqual } from "./objects";
 import type { ActorId, FileTree, InProgress, Oid, Path, RefChangeReason } from "./types";
 import { writeTreeMerge } from "./commands/merge";
 
@@ -116,8 +116,8 @@ export function resetMerge(ctx: Ctx, target: Oid | null): void {
       delete index[path];
       delete working[path];
     } else {
-      index[path] = t;
-      working[path] = t;
+      setOwn(index, path, t);
+      setOwn(working, path, t);
     }
   }
   wt.index = sortedTree(index);
@@ -133,7 +133,7 @@ export function resetHardToHead(ctx: Ctx): void {
   const tracked = new Set<Path>([...Object.keys(wt.index), ...Object.keys(wt.conflicts), ...Object.keys(headTree)]);
   const working: Record<Path, string> = { ...wt.workingTree };
   for (const path of tracked) if (get(headTree, path) === undefined) delete working[path];
-  for (const [path, content] of Object.entries(headTree)) working[path] = content;
+  for (const [path, content] of Object.entries(headTree)) setOwn(working, path, content);
   wt.index = sortedTree({ ...headTree });
   wt.workingTree = sortedTree(working);
   if (Object.keys(wt.conflicts).length) ctx.conflictsDiscarded = true;

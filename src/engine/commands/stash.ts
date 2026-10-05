@@ -14,7 +14,7 @@
 import { flag, parseArgs, value } from "../args";
 import { fail, notSupported, twoWayCheckout, type Ctx } from "../context";
 import { mergeTrees } from "../merge3";
-import { createCommit, get, shortOid, sortedTree, subject, treesEqual } from "../objects";
+import { createCommit, get, setOwn, shortOid, sortedTree, subject, treesEqual } from "../objects";
 import { resolveRev } from "../revisions";
 import { unstagedPaths } from "../sequencer";
 import type { FileTree, Path, StashEntry } from "../types";
@@ -70,7 +70,7 @@ function push(ctx: Ctx, args: string[]): void {
   const parents = [head, indexCommit.oid];
   if (withUntracked && untracked.length) {
     const files: Record<Path, string> = {};
-    for (const path of untracked) files[path] = wt.workingTree[path];
+    for (const path of untracked) setOwn(files, path, wt.workingTree[path]);
     parents.push(
       createCommit(ctx.state, {
         parents: [],
@@ -84,7 +84,7 @@ function push(ctx: Ctx, args: string[]): void {
   const workTree: Record<Path, string> = {};
   for (const path of Object.keys(wt.index)) {
     const w = get(wt.workingTree, path);
-    if (w !== undefined) workTree[path] = w;
+    if (w !== undefined) setOwn(workTree, path, w);
   }
   const msg = value(p, "-m");
   const message = msg !== undefined ? `On ${where}: ${msg}` : `WIP on ${where}: ${headLine}`;
@@ -103,7 +103,7 @@ function push(ctx: Ctx, args: string[]): void {
   // Then `git reset --hard`, plus removing the untracked files that were saved.
   const working: Record<Path, string> = { ...wt.workingTree };
   for (const path of Object.keys(wt.index)) if (get(headTree, path) === undefined) delete working[path];
-  for (const [path, content] of Object.entries(headTree)) working[path] = content;
+  for (const [path, content] of Object.entries(headTree)) setOwn(working, path, content);
   if (withUntracked) for (const path of untracked) delete working[path];
   wt.index = sortedTree({ ...headTree });
   wt.workingTree = sortedTree(working);
@@ -173,7 +173,7 @@ function applyEntry(ctx: Ctx, entry: StashEntry, restoreIndex: boolean): boolean
   } else {
     // Without --index, changes come back unstaged, except files the stash added.
     const index: Record<Path, string> = { ...current };
-    for (const [path, content] of Object.entries(wt.index)) if (get(current, path) === undefined) index[path] = content;
+    for (const [path, content] of Object.entries(wt.index)) if (get(current, path) === undefined) setOwn(index, path, content);
     wt.index = sortedTree(index);
   }
   ctx.out(...statusLines(ctx, false));

@@ -1,5 +1,6 @@
 // Readable differences between two snapshots, and between the step outcomes of both sides.
 
+import { own } from "./records";
 import type { StepOutcome, StepRecord } from "./scenario";
 import type { Snapshot } from "./snapshot";
 
@@ -16,7 +17,7 @@ function isObject(v: unknown): v is Record<string, unknown> {
 function diffValue(path: string, real: unknown, engine: unknown, out: string[]): void {
   if (isObject(real) && isObject(engine)) {
     const keys = new Set([...Object.keys(real), ...Object.keys(engine)]);
-    for (const key of [...keys].sort()) diffValue(`${path}[${JSON.stringify(key)}]`, real[key], engine[key], out);
+    for (const key of [...keys].sort()) diffValue(`${path}[${JSON.stringify(key)}]`, own(real, key), own(engine, key), out);
     return;
   }
   if (Array.isArray(real) && Array.isArray(engine)) {

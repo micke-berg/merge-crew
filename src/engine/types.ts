@@ -1,5 +1,5 @@
 // Shared types for the git engine, the levels and the views.
-// Only the lead changes this file. Other agents build against it.
+// Changing a type here is a contract change: update docs/architecture.md with it.
 
 // ---------------------------------------------------------------------------
 // Repository model

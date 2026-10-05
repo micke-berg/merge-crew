@@ -2,7 +2,7 @@
 
 import { flag, parseArgs, value } from "../args";
 import { fail, twoWayCheckout, type Ctx } from "../context";
-import { get, shortOid, sortedTree } from "../objects";
+import { get, has, own, setOwn, shortOid, sortedTree } from "../objects";
 import { select } from "../pathspec";
 import { previousCheckout, resolveRev } from "../revisions";
 import type { FileTree, Oid } from "../types";
@@ -25,7 +25,7 @@ export function switchTo(ctx: Ctx, target: Target): void {
   }
   const oldOid = ctx.headOid();
   const oldLabel = wt.head.kind === "branch" ? wt.head.name : wt.head.oid;
-  const newOid = target.kind === "branch" ? (ctx.state.branches[target.name] ?? null) : target.oid;
+  const newOid = target.kind === "branch" ? (own(ctx.state.branches, target.name) ?? null) : target.oid;
 
   if (target.kind === "branch" && wt.head.kind === "branch" && wt.head.name === target.name) {
     if (newOid) ctx.logHead(wt, oldOid, newOid, `checkout: moving from ${oldLabel} to ${target.name}`);
@@ -69,9 +69,10 @@ function walkAncestors(ctx: Ctx, from: Oid): Set<Oid> {
   const stack = [from];
   while (stack.length) {
     const o = stack.pop() as Oid;
-    if (seen.has(o) || !ctx.state.commits[o]) continue;
+    const commit = own(ctx.state.commits, o);
+    if (seen.has(o) || !commit) continue;
     seen.add(o);
-    stack.push(...ctx.state.commits[o].parents);
+    stack.push(...commit.parents);
   }
   return seen;
 }
@@ -80,7 +81,7 @@ function walkAncestors(ctx: Ctx, from: Oid): Set<Oid> {
 function createAndSwitch(ctx: Ctx, name: string, start: string | undefined, force: boolean): void {
   const wt = ctx.wt;
   checkNewBranchName(ctx, name, force);
-  if (force && ctx.state.branches[name] !== undefined) {
+  if (force && has(ctx.state.branches, name)) {
     const user = ctx.worktreeUsing(name, ctx.actor);
     if (user) fail(`fatal: '${name}' is already used by worktree at '${user.path}'`);
   }
@@ -118,7 +119,7 @@ function switchToName(ctx: Ctx, name: string, allowDetach: boolean): void {
     if (!prev) fail("fatal: invalid reference: @{-1}");
     ref = prev;
   }
-  if (ctx.state.branches[ref] !== undefined) {
+  if (has(ctx.state.branches, ref)) {
     switchTo(ctx, { kind: "branch", name: ref });
     return;
   }
@@ -186,10 +187,10 @@ function checkoutPaths(ctx: Ctx, rev: string | null, specs: string[]): void {
   if (rev === null) {
     const { matched, unmatched } = select(specs, [...Object.keys(wt.index), ...Object.keys(wt.conflicts)]);
     if (unmatched.length) fail(`error: pathspec '${unmatched[0]}' did not match any file(s) known to git`);
-    const unmerged = matched.filter((m) => wt.conflicts[m]);
+    const unmerged = matched.filter((m) => has(wt.conflicts, m));
     if (unmerged.length) fail(...unmerged.map((m) => `error: path '${m}' is unmerged`));
     const working = { ...wt.workingTree };
-    for (const m of matched) working[m] = wt.index[m];
+    for (const m of matched) setOwn(working, m, wt.index[m]);
     wt.workingTree = sortedTree(working);
     ctx.out(`Updated ${matched.length} path${matched.length === 1 ? "" : "s"} from the index`);
     return;
@@ -203,8 +204,8 @@ function checkoutPaths(ctx: Ctx, rev: string | null, specs: string[]): void {
   const working = { ...wt.workingTree };
   const conflicts = { ...wt.conflicts };
   for (const m of matched) {
-    index[m] = tree[m];
-    working[m] = tree[m];
+    setOwn(index, m, tree[m]);
+    setOwn(working, m, tree[m]);
     delete conflicts[m];
   }
   wt.index = sortedTree(index);
@@ -244,7 +245,7 @@ export function checkout(ctx: Ctx, args: string[]): void {
   const [first, ...rest] = p.positional;
   const isRev =
     first === "-" ||
-    ctx.state.branches[first] !== undefined ||
+    has(ctx.state.branches, first) ||
     resolveRev(ctx.state, ctx.actor, first) !== null ||
     (rest.length === 0 && guessRemoteBranch(ctx, first) !== null);
   if (isRev && rest.length === 0) {
@@ -294,7 +295,7 @@ export function restore(ctx: Ctx, args: string[]): void {
   if (unmatched.length) fail(`error: pathspec '${unmatched[0]}' did not match any file(s) known to git`);
 
   if (worktree && !staged) {
-    const unmerged = matched.filter((m) => wt.conflicts[m]);
+    const unmerged = matched.filter((m) => has(wt.conflicts, m));
     if (unmerged.length) fail(...unmerged.map((m) => `error: path '${m}' is unmerged`));
   }
 
@@ -305,7 +306,7 @@ export function restore(ctx: Ctx, args: string[]): void {
     const content = sourceIsIndex ? get(wt.index, path) : get(source, path);
     if (staged) {
       if (content === undefined) delete index[path];
-      else index[path] = content;
+      else setOwn(index, path, content);
       delete conflicts[path];
     }
     if (worktree) {
@@ -313,7 +314,7 @@ export function restore(ctx: Ctx, args: string[]): void {
       if (content === undefined) {
         if (tracked.includes(path)) delete working[path];
       } else {
-        working[path] = content;
+        setOwn(working, path, content);
       }
     }
   }

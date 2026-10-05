@@ -3,7 +3,7 @@
 import { flag, parseArgs, value } from "../args";
 import { fail, twoWayCheckout, type Ctx } from "../context";
 import { mergeTrees, type TreeMergeResult } from "../merge3";
-import { changedPaths, createCommit, get, has, shortOid, sortedTree } from "../objects";
+import { changedPaths, createCommit, get, has, own, setOwn, shortOid, sortedTree } from "../objects";
 import { isAncestor, mergeBases, remoteTrackingKey, resolveRev, splitRev } from "../revisions";
 import type { FileTree, Oid, Path } from "../types";
 import { commitIndex, unmergedFailure } from "./commit";
@@ -28,7 +28,7 @@ export function intoSuffix(ctx: Ctx): string {
 /** The message git's fmt-merge-msg writes for `git merge <name>`. */
 export function defaultMergeMessage(ctx: Ctx, name: string, theirs: Oid): string {
   const { base, suffix } = splitRev(name);
-  const branchOid = ctx.state.branches[base];
+  const branchOid = own(ctx.state.branches, base);
   let msg: string;
   if (branchOid !== undefined && !base.includes("@{")) {
     msg = `Merge branch '${base}'${suffix && branchOid !== theirs ? " (early part)" : ""}`;
@@ -51,7 +51,7 @@ function baseTree(ctx: Ctx, bases: Oid[]): FileTree {
       theirs: "Temporary merge branch 2",
     });
     const next: Record<Path, string> = { ...r.merged };
-    for (const [path, content] of Object.entries(r.conflictFiles)) if (content !== null) next[path] = content;
+    for (const [path, content] of Object.entries(r.conflictFiles)) if (content !== null) setOwn(next, path, content);
     tree = next;
   }
   return tree;
@@ -98,9 +98,10 @@ export function writeTreeMerge(ctx: Ctx, ours: FileTree, result: TreeMergeResult
 
   const working: Record<Path, string> = { ...wt.workingTree };
   for (const path of touched) {
-    const content = path in result.conflictFiles ? result.conflictFiles[path] : get(result.merged, path) ?? null;
+    const conflictFile = own(result.conflictFiles, path);
+    const content = conflictFile !== undefined ? conflictFile : get(result.merged, path) ?? null;
     if (content === null) delete working[path];
-    else working[path] = content;
+    else setOwn(working, path, content);
   }
   wt.index = sortedTree(result.merged);
   wt.workingTree = sortedTree(working);
@@ -212,8 +213,8 @@ function abortMerge(ctx: Ctx): void {
       delete index[path];
       delete working[path];
     } else {
-      index[path] = h;
-      working[path] = h;
+      setOwn(index, path, h);
+      setOwn(working, path, h);
     }
   }
   wt.index = sortedTree(index);

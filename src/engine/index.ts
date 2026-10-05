@@ -1,7 +1,7 @@
 // The Merge Crew git engine: pure functions from (state, command) to (new state, output, events).
 
 import { Ctx, Fail } from "./context";
-import { cloneState, deepEqual, changedPaths } from "./objects";
+import { cloneState, deepEqual, changedPaths, has, own, setOwn, sortedTree } from "./objects";
 import { queries } from "./query";
 import { branch } from "./commands/branch";
 import { checkout, restore, switchCommand } from "./commands/checkout";
@@ -34,7 +34,9 @@ export { queries } from "./query";
 
 type Command = (ctx: Ctx, args: string[]) => void;
 
-const COMMANDS: Record<string, Command> = {
+// Maps, not object literals: the key is whatever the player typed, and a plain object would also
+// answer for inherited names such as "constructor" or "hasOwnProperty".
+const COMMANDS = new Map<string, Command>(Object.entries({
   add,
   rm,
   commit,
@@ -57,12 +59,15 @@ const COMMANDS: Record<string, Command> = {
   stash,
   diff,
   show,
-};
+}));
 
 /** Read-only shell commands for looking at files. */
-const SHELL: Record<string, Command> = { cat, ls };
+const SHELL = new Map<string, Command>([
+  ["cat", cat],
+  ["ls", ls],
+]);
 
-/** Real git commands that a later wave will add. */
+/** Real git commands that Merge Crew does not support yet, answered with a clearer message. */
 const PLANNED = new Set(["tag", "remote", "clean", "mv"]);
 
 function createRepo(options: CreateRepoOptions = {}): RepoState {
@@ -101,18 +106,18 @@ function failure(state: RepoState, output: OutputLine[]): CommandResult {
 function derivedEvents(before: RepoState, after: RepoState, ctx: Ctx): EngineEvent[] {
   const events: EngineEvent[] = [];
   for (const [actor, wt] of Object.entries(after.worktrees)) {
-    const old = before.worktrees[actor];
+    const old = own(before.worktrees, actor);
     if (!old) continue;
     const working = changedPaths(old.workingTree, wt.workingTree);
     if (working.length) events.push({ type: "files-changed", actor, area: "working", paths: working });
     const index = changedPaths(old.index, wt.index);
     if (index.length) events.push({ type: "files-changed", actor, area: "index", paths: index });
-    const resolved = Object.keys(old.conflicts).filter((p) => !wt.conflicts[p]).sort();
+    const resolved = Object.keys(old.conflicts).filter((p) => !has(wt.conflicts, p)).sort();
     if (resolved.length && !ctx.conflictsDiscarded) events.push({ type: "conflict-resolved", actor, paths: resolved });
   }
   const lostBefore = new Set(queries.lost(before));
   const lostAfter = queries.lost(after);
-  const newlyLost = lostAfter.filter((o) => !lostBefore.has(o) && before.commits[o]);
+  const newlyLost = lostAfter.filter((o) => !lostBefore.has(o) && has(before.commits, o));
   const lostAfterSet = new Set(lostAfter);
   const recovered = [...lostBefore].filter((o) => !lostAfterSet.has(o));
   if (newlyLost.length) events.push({ type: "commits-lost", oids: newlyLost });
@@ -129,38 +134,44 @@ function finish(before: RepoState, ctx: Ctx): CommandResult {
 }
 
 function execute(state: RepoState, actor: string, body: (ctx: Ctx) => void): CommandResult {
-  const ctx = new Ctx(cloneState(state), actor, state.clock + 1);
+  let ctx: Ctx | null = null;
   try {
+    ctx = new Ctx(cloneState(state), actor, state.clock + 1);
     body(ctx);
+    return finish(state, ctx);
   } catch (e) {
-    if (e instanceof Fail) return failure(state, [...ctx.output, ...e.lines]);
+    if (e instanceof Fail) return failure(state, [...(ctx?.output ?? []), ...e.lines]);
     const message = e instanceof Error ? e.message : String(e);
+    // The player sees a short message. Developers and tests also get the real error and its stack.
+    // The typeof guard keeps this safe where no `process` exists; bundlers inline NODE_ENV.
+    if (typeof process !== "undefined" && process.env.NODE_ENV !== "production") {
+      console.error("Merge Crew engine error", e);
+    }
     return failure(state, [{ kind: "error", text: `internal engine error: ${message}` }]);
   }
-  return finish(state, ctx);
 }
 
 function run(state: RepoState, input: CommandInput): CommandResult {
   const [program, sub, ...args] = input.argv;
   if (program !== "git") {
-    const shell = program !== undefined ? SHELL[program] : undefined;
+    const shell = program !== undefined ? SHELL.get(program) : undefined;
     if (!shell) {
       return failure(state, [{ kind: "error", text: `${program ?? ""}: shell commands are not supported in Merge Crew yet` }]);
     }
-    if (!state.worktrees[input.actor]) {
+    if (!has(state.worktrees, input.actor)) {
       return failure(state, [{ kind: "error", text: `${program}: '${input.actor}' has no worktree` }]);
     }
     return execute(state, input.actor, (ctx) => shell(ctx, input.argv.slice(1)));
   }
   if (sub === undefined) return failure(state, [{ kind: "error", text: "usage: git <command> [<args>]" }]);
-  const command = COMMANDS[sub];
+  const command = COMMANDS.get(sub);
   if (!command) {
     const text = PLANNED.has(sub)
       ? `git ${sub} is not supported in Merge Crew yet`
       : `git: '${sub}' is not a git command. See 'git --help'.`;
     return failure(state, [{ kind: "error", text }]);
   }
-  if (!state.worktrees[input.actor]) {
+  if (!has(state.worktrees, input.actor)) {
     return failure(state, [{ kind: "error", text: "fatal: not a git repository (or any of the parent directories): .git" }]);
   }
   return execute(state, input.actor, (ctx) => command(ctx, args));
@@ -171,16 +182,16 @@ function edit(state: RepoState, change: FileEdit): CommandResult {
     const wt = ctx.wt;
     const path = change.path.replace(/^(\.\/)+/, "");
     const working = { ...wt.workingTree };
-    if (change.kind === "write") working[path] = change.content;
+    if (change.kind === "write") setOwn(working, path, change.content);
     else delete working[path];
-    const sorted: Record<string, string> = {};
-    for (const key of Object.keys(working).sort()) sorted[key] = working[key];
-    wt.workingTree = sorted;
+    wt.workingTree = sortedTree(working);
   });
 }
 
+type Tokens = { words: string[]; unclosedQuote: '"' | "'" | null };
+
 /** Split a command line into words. Supports single quotes, double quotes and backslash escapes. */
-function parseCommandLine(line: string): string[] {
+function tokenize(line: string): Tokens {
   const words: string[] = [];
   let current = "";
   let inWord = false;
@@ -209,7 +220,26 @@ function parseCommandLine(line: string): string[] {
     }
   }
   if (inWord) words.push(current);
-  return words;
+  return { words, unclosedQuote: quote };
+}
+
+/**
+ * Split a typed line into argv. Lenient: an unclosed quote runs to the end of the line. Call
+ * validateCommandLine first to tell the player about it instead.
+ */
+function parseCommandLine(line: string): string[] {
+  return tokenize(line).words;
+}
+
+/**
+ * Why a typed line cannot be run, or null when it can. A shell would wait for more input after an
+ * unclosed quote; the game has no continuation prompt, so it reports the line instead.
+ */
+export function validateCommandLine(line: string): string | null {
+  const { unclosedQuote } = tokenize(line);
+  if (unclosedQuote === null) return null;
+  const name = unclosedQuote === '"' ? "double" : "single";
+  return `error: unclosed ${name} quote (${unclosedQuote}). Add the closing ${unclosedQuote} and run the command again.`;
 }
 
 export const engine: Engine = { createRepo, run, edit, parseCommandLine };

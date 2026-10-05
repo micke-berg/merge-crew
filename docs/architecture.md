@@ -33,7 +33,7 @@ Writing a git simulator is easy to get subtly wrong, so real git is the referee.
 - **Both runs become comparable snapshots.** The real side and the engine generate different commit ids, so commits are identified by their message. A snapshot holds branches, remote branches, each commit's parents and files, each worktree's HEAD, staged files, working files, conflicts and reflog, and the stash.
 - **Every difference fails the test,** and so does a step that succeeds on one side and fails on the other.
 
-There are 116 scenarios, covering commits, branches, reset, merges with conflicts, remotes and force-push, worktrees, rebase, cherry-pick, revert and stash. Git's settings are pinned so the results are the same on every machine.
+There are 122 scenarios, covering commits, branches, reset, merges with conflicts, remotes and force-push, worktrees, rebase, cherry-pick, revert and stash. Git's settings are pinned so the results are the same on every machine. `tests/oracle/levels.test.ts` also plays every level's setup, scene and documented solution in real git and compares the result.
 
 ## Levels (`src/levels`)
 
@@ -44,7 +44,7 @@ A level is data, not code paths in the UI:
 - `goals`: checks on the resulting state, written with the helpers in `goals.ts`. Goals accept any fair solution and reject shortcuts that lose work or rewrite shared history.
 - `hintContext` and `suggestions`: support for the player.
 
-Every level has a documented solution that was checked in real git first. The tests run setup, intro and solution through the engine and require a win. They also check that wrong approaches fail.
+Every level has a documented solution, kept in a test-only `*.solution.ts` file so it never reaches the browser. The tests run setup, intro and solution through the engine and require a win. They also check that wrong approaches fail.
 
 ## Game state machine (`src/components/game/game.ts`)
 

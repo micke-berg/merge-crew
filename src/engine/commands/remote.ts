@@ -2,7 +2,7 @@
 
 import { flag, parseArgs, value } from "../args";
 import { fail, failWith, notSupported, type Ctx } from "../context";
-import { shortOid } from "../objects";
+import { has, own, setOwn, shortOid } from "../objects";
 import { forkPoint, isAncestor, resolveRev, trackingReflogKey } from "../revisions";
 import type { Oid, OutputLine } from "../types";
 import { setUpstream } from "./branch";
@@ -11,7 +11,7 @@ import { checkNoMergeInProgress, intoSuffix, runMerge } from "./merge";
 import { startRebase } from "./rebase";
 
 function requireRemote(ctx: Ctx, name: string): void {
-  if (!ctx.state.remotes[name]) {
+  if (!has(ctx.state.remotes, name)) {
     fail(
       `fatal: '${name}' does not appear to be a git repository`,
       "fatal: Could not read from remote repository.",
@@ -25,22 +25,24 @@ function requireRemote(ctx: Ctx, name: string): void {
 function defaultRemote(ctx: Ctx): string {
   const wt = ctx.wt;
   if (wt.head.kind === "branch") {
-    const up = ctx.state.upstreams[wt.head.name];
+    const up = own(ctx.state.upstreams, wt.head.name);
     if (up) return up.remote;
   }
   return "origin";
 }
 
 function setTracking(ctx: Ctx, key: string, to: Oid | null, message: string): void {
-  const from = ctx.state.remoteTracking[key] ?? null;
+  const from = own(ctx.state.remoteTracking, key) ?? null;
   if (from === to) return;
   const logKey = trackingReflogKey(key);
   if (to === null) {
     delete ctx.state.remoteTracking[key];
     delete ctx.state.branchReflogs[logKey];
   } else {
-    ctx.state.remoteTracking[key] = to;
-    (ctx.state.branchReflogs[logKey] ??= []).push({ oid: to, previous: from, message, time: ctx.time });
+    setOwn(ctx.state.remoteTracking, key, to);
+    const log = own(ctx.state.branchReflogs, logKey) ?? [];
+    setOwn(ctx.state.branchReflogs, logKey, log);
+    log.push({ oid: to, previous: from, message, time: ctx.time });
   }
   ctx.emit({ type: "remote-tracking-updated", actor: ctx.actor, ref: key, from, to });
 }
@@ -52,11 +54,11 @@ function setTracking(ctx: Ctx, key: string, to: Oid | null, message: string): vo
  * means the branch must not exist yet.
  */
 function leaseExpectation(ctx: Ctx, lease: string, remote: string, dst: string): Oid | null | undefined {
-  if (lease === "") return ctx.state.remoteTracking[`${remote}/${dst}`] ?? null;
+  if (lease === "") return own(ctx.state.remoteTracking, `${remote}/${dst}`) ?? null;
   const colon = lease.indexOf(":");
   const ref = (colon === -1 ? lease : lease.slice(0, colon)).replace(/^refs\/heads\//, "");
   if (ref !== dst) return undefined;
-  if (colon === -1) return ctx.state.remoteTracking[`${remote}/${dst}`] ?? null;
+  if (colon === -1) return own(ctx.state.remoteTracking, `${remote}/${dst}`) ?? null;
   const expect = lease.slice(colon + 1);
   if (expect === "") return null;
   const oid = resolveRev(ctx.state, ctx.actor, expect);
@@ -64,9 +66,24 @@ function leaseExpectation(ctx: Ctx, lease: string, remote: string, dst: string):
   return oid;
 }
 
-type PushUpdate = { src: string | null; srcBranch: string | null; oid: Oid | null; dst: string; force: boolean };
+/** One ref the push wants to change on the remote. `oid: null` deletes `dst`. */
+export type PushUpdate = { src: string | null; srcBranch: string | null; oid: Oid | null; dst: string; force: boolean };
 
-export function push(ctx: Ctx, args: string[]): void {
+/** What `git push` was asked to do, before looking at the repository. */
+export type PushRequest = {
+  /** The remote as typed, or undefined for the default. */
+  remote: string | undefined;
+  /** Refspecs as typed, e.g. "main", "+HEAD:fix", ":old". */
+  specs: string[];
+  setUpstream: boolean;
+  force: boolean;
+  /** --force-with-lease: undefined when not given, "" without a value, else "<branch>[:<expect>]". */
+  lease: string | undefined;
+  delete: boolean;
+};
+
+/** Parse the arguments. Fails only on options Merge Crew does not support. */
+export function parsePush(args: string[]): PushRequest {
   const p = parseArgs("push", args, {
     "-u": {},
     "--set-upstream": { alias: "-u" },
@@ -78,17 +95,28 @@ export function push(ctx: Ctx, args: string[]): void {
     "-q": {},
     "--quiet": { alias: "-q" },
   });
-  const wt = ctx.wt;
-  const [remoteArg, ...specs] = p.positional;
-  const remote = remoteArg ?? defaultRemote(ctx);
-  requireRemote(ctx, remote);
-  const current = wt.head.kind === "branch" ? wt.head.name : null;
-  const updates: PushUpdate[] = [];
+  const [remote, ...specs] = p.positional;
+  return {
+    remote,
+    specs,
+    setUpstream: flag(p, "-u"),
+    force: flag(p, "-f"),
+    lease: flag(p, "--force-with-lease") ? (value(p, "--force-with-lease") ?? "") : undefined,
+    delete: flag(p, "-d"),
+  };
+}
 
-  if (flag(p, "-d")) {
-    if (specs.length === 0) fail("fatal: --delete doesn't make sense without any refs");
-    for (const s of specs) updates.push({ src: null, srcBranch: null, oid: null, dst: s.replace(/^refs\/heads\//, ""), force: false });
-  } else if (specs.length === 0) {
+const stripHeads = (ref: string) => ref.replace(/^refs\/heads\//, "");
+
+/** Turn the request into ref updates: which local commit goes to which remote branch. */
+export function planPush(ctx: Ctx, req: PushRequest, remote: string): PushUpdate[] {
+  const wt = ctx.wt;
+  const current = wt.head.kind === "branch" ? wt.head.name : null;
+  if (req.delete) {
+    if (req.specs.length === 0) fail("fatal: --delete doesn't make sense without any refs");
+    return req.specs.map((s) => ({ src: null, srcBranch: null, oid: null, dst: stripHeads(s), force: false }));
+  }
+  if (req.specs.length === 0) {
     if (!current) {
       fail(
         "fatal: You are not currently on a branch.",
@@ -98,7 +126,7 @@ export function push(ctx: Ctx, args: string[]): void {
         "    git push origin HEAD:<name-of-remote-branch>",
       );
     }
-    const up = ctx.state.upstreams[current];
+    const up = own(ctx.state.upstreams, current);
     let dst = current;
     if (!up) {
       fail(
@@ -120,51 +148,64 @@ export function push(ctx: Ctx, args: string[]): void {
       }
       dst = up.branch;
     }
-    const oid = ctx.state.branches[current];
+    const oid = own(ctx.state.branches, current);
     if (!oid) fail(`error: src refspec ${current} does not match any`, `error: failed to push some refs to '${remote}'`);
-    updates.push({ src: current, srcBranch: current, oid, dst, force: false });
-  } else {
-    for (const raw of specs) {
-      let spec = raw;
-      let force = false;
-      if (spec.startsWith("+")) {
-        force = true;
-        spec = spec.slice(1);
-      }
-      const colon = spec.indexOf(":");
-      const src = colon === -1 ? spec : spec.slice(0, colon);
-      let dst = colon === -1 ? null : spec.slice(colon + 1);
-      if (src === "") {
-        if (!dst) fail(`error: invalid refspec '${raw}'`);
-        updates.push({ src: null, srcBranch: null, oid: null, dst: dst.replace(/^refs\/heads\//, ""), force });
-        continue;
-      }
-      const srcName = src.replace(/^refs\/heads\//, "");
-      let srcBranch: string | null = null;
-      if (ctx.state.branches[srcName] !== undefined) srcBranch = srcName;
-      else if (src === "HEAD" && current) srcBranch = current;
-      const oid = resolveRev(ctx.state, ctx.actor, src);
-      if (!oid) fail(`error: src refspec ${src} does not match any`, `error: failed to push some refs to '${remote}'`);
-      if (dst === null) {
-        if (!srcBranch) {
-          fail(
-            "error: The destination you provided is not a full refname (i.e.,",
-            'starting with "refs/"). Try pushing to a named branch, like',
-            `    git push ${remote} ${src}:<branch>`,
-          );
-        }
-        dst = srcBranch;
-      }
-      updates.push({ src, srcBranch, oid, dst: dst.replace(/^refs\/heads\//, ""), force });
-    }
+    return [{ src: current, srcBranch: current, oid, dst, force: false }];
   }
+  const updates: PushUpdate[] = [];
+  for (const raw of req.specs) {
+    let spec = raw;
+    let force = false;
+    if (spec.startsWith("+")) {
+      force = true;
+      spec = spec.slice(1);
+    }
+    const colon = spec.indexOf(":");
+    const src = colon === -1 ? spec : spec.slice(0, colon);
+    let dst = colon === -1 ? null : spec.slice(colon + 1);
+    if (src === "") {
+      if (!dst) fail(`error: invalid refspec '${raw}'`);
+      updates.push({ src: null, srcBranch: null, oid: null, dst: stripHeads(dst), force });
+      continue;
+    }
+    const srcName = stripHeads(src);
+    let srcBranch: string | null = null;
+    if (has(ctx.state.branches, srcName)) srcBranch = srcName;
+    else if (src === "HEAD" && current) srcBranch = current;
+    const oid = resolveRev(ctx.state, ctx.actor, src);
+    if (!oid) fail(`error: src refspec ${src} does not match any`, `error: failed to push some refs to '${remote}'`);
+    if (dst === null) {
+      if (!srcBranch) {
+        fail(
+          "error: The destination you provided is not a full refname (i.e.,",
+          'starting with "refs/"). Try pushing to a named branch, like',
+          `    git push ${remote} ${src}:<branch>`,
+        );
+      }
+      dst = srcBranch;
+    }
+    updates.push({ src, srcBranch, oid, dst: stripHeads(dst), force });
+  }
+  return updates;
+}
 
+export type PushCheck = {
+  /** The report git prints, one line per ref. */
+  lines: OutputLine[];
+  /** Updates the remote accepts, with the value each ref had before. */
+  accepted: { u: PushUpdate; old: Oid | null; forced: boolean }[];
+  /** Why the push is refused, or null when every update is accepted. */
+  rejected: "non-fast-forward" | "stale" | null;
+};
+
+/** Decide, without changing anything, which updates the remote accepts and why others are refused. */
+export function checkPush(ctx: Ctx, req: PushRequest, remote: string, updates: PushUpdate[]): PushCheck {
   const remoteState = ctx.state.remotes[remote];
   const lines: OutputLine[] = [{ kind: "out", text: `To ${remote}` }];
-  let rejected: "non-fast-forward" | "stale" | null = null;
-  const accepted: { u: PushUpdate; old: Oid | null; forced: boolean }[] = [];
+  let rejected: PushCheck["rejected"] = null;
+  const accepted: PushCheck["accepted"] = [];
   for (const u of updates) {
-    const old = remoteState.branches[u.dst] ?? null;
+    const old = own(remoteState.branches, u.dst) ?? null;
     const label = `${u.src ?? "(delete)"} -> ${u.dst}`;
     if (u.oid === null) {
       if (old === null) {
@@ -181,10 +222,10 @@ export function push(ctx: Ctx, args: string[]): void {
       continue;
     }
     const fastForward = old === null || isAncestor(ctx.state, old, u.oid);
-    if (flag(p, "--force-with-lease")) {
-      const expected = leaseExpectation(ctx, value(p, "--force-with-lease") ?? "", remote, u.dst);
+    if (req.lease !== undefined) {
+      const expected = leaseExpectation(ctx, req.lease, remote, u.dst);
       if (expected === undefined) {
-        if (!fastForward && !u.force && !flag(p, "-f")) {
+        if (!fastForward && !u.force && !req.force) {
           lines.push({ kind: "error", text: ` ! [rejected]        ${label} (non-fast-forward)` });
           rejected = rejected ?? "non-fast-forward";
           continue;
@@ -194,7 +235,7 @@ export function push(ctx: Ctx, args: string[]): void {
         rejected = "stale";
         continue;
       }
-    } else if (!fastForward && !u.force && !flag(p, "-f")) {
+    } else if (!fastForward && !u.force && !req.force) {
       lines.push({ kind: "error", text: ` ! [rejected]        ${label} (non-fast-forward)` });
       rejected = rejected ?? "non-fast-forward";
       continue;
@@ -204,7 +245,6 @@ export function push(ctx: Ctx, args: string[]): void {
     else lines.push({ kind: "out", text: ` + ${shortOid(old)}...${shortOid(u.oid)} ${label} (forced update)` });
     accepted.push({ u, old, forced: !fastForward });
   }
-
   if (rejected) {
     lines.push({ kind: "error", text: `error: failed to push some refs to '${remote}'` });
     if (rejected === "non-fast-forward") {
@@ -214,21 +254,36 @@ export function push(ctx: Ctx, args: string[]): void {
         { kind: "hint", text: "hint: use 'git pull' before pushing again." },
       );
     }
-    failWith(lines);
+  } else if (!accepted.some((a) => a.old !== a.u.oid)) {
+    lines.splice(0, lines.length, { kind: "out", text: "Everything up-to-date" });
   }
+  return { lines, accepted, rejected };
+}
 
-  const changed = accepted.some((a) => a.old !== a.u.oid);
-  if (!changed) lines.splice(0, lines.length, { kind: "out", text: "Everything up-to-date" });
-  ctx.output.push(...lines);
+/** Write accepted updates to the remote, the remote-tracking refs and, with -u, the upstreams. */
+export function applyPush(ctx: Ctx, remote: string, accepted: PushCheck["accepted"], setUpstreams: boolean): void {
+  const remoteState = ctx.state.remotes[remote];
   for (const { u, old, forced } of accepted) {
     if (old !== u.oid) {
       if (u.oid === null) delete remoteState.branches[u.dst];
-      else remoteState.branches[u.dst] = u.oid;
+      else setOwn(remoteState.branches, u.dst, u.oid);
       ctx.emit({ type: "remote-updated", actor: ctx.actor, remote, branch: u.dst, from: old, to: u.oid, forced });
     }
     setTracking(ctx, `${remote}/${u.dst}`, u.oid, "update by push");
-    if (flag(p, "-u") && u.srcBranch) setUpstream(ctx, u.srcBranch, `${remote}/${u.dst}`);
+    if (setUpstreams && u.srcBranch) setUpstream(ctx, u.srcBranch, `${remote}/${u.dst}`);
   }
+}
+
+/** git push. A rejected ref refuses the whole push (see docs/decisions.md). */
+export function push(ctx: Ctx, args: string[]): void {
+  const req = parsePush(args);
+  const remote = req.remote ?? defaultRemote(ctx);
+  requireRemote(ctx, remote);
+  const updates = planPush(ctx, req, remote);
+  const check = checkPush(ctx, req, remote, updates);
+  if (check.rejected) failWith(check.lines);
+  ctx.output.push(...check.lines);
+  applyPush(ctx, remote, check.accepted, req.setUpstream);
 }
 
 /** Copy the remote's branches into remote-tracking refs. `only` limits it to one branch. */
@@ -237,10 +292,10 @@ function fetchRemote(ctx: Ctx, remote: string, opts: { only?: string; prune?: bo
   const lines: string[] = [];
   const names = opts.only !== undefined ? [opts.only] : Object.keys(remoteState.branches).sort();
   for (const name of names) {
-    const to = remoteState.branches[name];
+    const to = own(remoteState.branches, name);
     if (to === undefined) fail(`fatal: couldn't find remote ref ${name}`);
     const key = `${remote}/${name}`;
-    const from = ctx.state.remoteTracking[key] ?? null;
+    const from = own(ctx.state.remoteTracking, key) ?? null;
     if (from === to) continue;
     if (from === null) lines.push(` * [new branch]      ${name} -> ${key}`);
     else if (isAncestor(ctx.state, from, to)) lines.push(`   ${shortOid(from)}..${shortOid(to)}  ${name} -> ${key}`);
@@ -250,7 +305,7 @@ function fetchRemote(ctx: Ctx, remote: string, opts: { only?: string; prune?: bo
   if (opts.prune) {
     for (const key of Object.keys(ctx.state.remoteTracking).sort()) {
       if (!key.startsWith(`${remote}/`)) continue;
-      if (remoteState.branches[key.slice(remote.length + 1)] === undefined) {
+      if (!has(remoteState.branches, key.slice(remote.length + 1))) {
         lines.push(` - [deleted]         (none) -> ${key}`);
         setTracking(ctx, key, null, "");
       }
@@ -305,7 +360,7 @@ export function pull(ctx: Ctx, args: string[]): void {
       "    git pull <remote> <branch>",
     );
   }
-  const up = current ? ctx.state.upstreams[current] : undefined;
+  const up = current ? own(ctx.state.upstreams, current) : undefined;
   let remote: string;
   let branch: string;
   if (branchArg) {
@@ -344,7 +399,7 @@ export function pull(ctx: Ctx, args: string[]): void {
   const startHead = ctx.headOid();
   const fork = rebasing && startHead ? forkPoint(ctx.state, `${remote}/${branch}`, startHead) : null;
   fetchRemote(ctx, remote, { only: branchArg ? branch : undefined, action: "pull" });
-  const theirs = ctx.state.remotes[remote].branches[branch];
+  const theirs = own(ctx.state.remotes[remote].branches, branch);
   if (theirs === undefined) fail(`fatal: couldn't find remote ref ${branch}`);
   const head = ctx.headOid();
   const reflogPrefix = ["pull", ...args].join(" ");

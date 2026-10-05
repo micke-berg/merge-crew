@@ -2,7 +2,7 @@
 
 import { flag, parseArgs, value } from "../args";
 import { fail, notSupported, twoWayCheckout, type Ctx } from "../context";
-import { createCommit, shortOid, sortedTree, subject, treesEqual } from "../objects";
+import { createCommit, own, shortOid, sortedTree, subject, treesEqual } from "../objects";
 import { ancestors, forkPoint, mergeBases, resolveRev, walk } from "../revisions";
 import {
   applyChange,
@@ -41,7 +41,7 @@ function moveDetached(ctx: Ctx, to: Oid, message: string): void {
   ctx.setHead(wt, { kind: "detached", oid: to });
 }
 
-function finish(ctx: Ctx, state: RebaseInProgress, action: string): void {
+function finish(ctx: Ctx, state: Readonly<RebaseInProgress>, action: string): void {
   const wt = ctx.wt;
   const head = ctx.headOid() as Oid;
   wt.inProgress = null;
@@ -56,12 +56,19 @@ function finish(ctx: Ctx, state: RebaseInProgress, action: string): void {
   ctx.emit({ type: "operation", actor: ctx.actor, kind: "rebase", phase: "completed" });
 }
 
-/** Replay the remaining commits. Stops on a conflict, finishes when the list is empty. */
-function runTodo(ctx: Ctx, state: RebaseInProgress, action: string): void {
+/**
+ * Replay the remaining commits. Stops on a conflict, finishes when the list is empty.
+ * `state` is never changed: each step works out the next todo/done pair, and a stop stores a new
+ * in-progress record with exactly that pair.
+ */
+function runTodo(ctx: Ctx, state: Readonly<RebaseInProgress>, action: string): void {
   const wt = ctx.wt;
-  while (state.todo.length) {
-    const oid = state.todo.shift() as Oid;
-    state.done.push(oid);
+  let todo: readonly Oid[] = state.todo;
+  let done: readonly Oid[] = state.done;
+  while (todo.length) {
+    const oid = todo[0];
+    todo = todo.slice(1);
+    done = [...done, oid];
     const commit = ctx.state.commits[oid];
     const head = ctx.headOid() as Oid;
     if (commit.parents[0] === head) {
@@ -75,7 +82,7 @@ function runTodo(ctx: Ctx, state: RebaseInProgress, action: string): void {
     const parentTree = ctx.tree(commit.parents[0] ?? null);
     const conflicted = applyChange(ctx, parentTree, commit.tree, commitLabel(ctx, oid));
     if (conflicted.length) {
-      wt.inProgress = state;
+      wt.inProgress = { ...state, todo: [...todo], done: [...done] };
       const line = `${shortOid(oid)}... ${subject(commit.message)}`;
       ctx.emit({ type: "conflict", actor: ctx.actor, paths: conflicted });
       ctx.emit({ type: "operation", actor: ctx.actor, kind: "rebase", phase: "stopped" });
@@ -111,9 +118,10 @@ export function startRebase(ctx: Ctx, opts: RebaseStart): void {
   let head: Oid;
   if (opts.branchArg !== null) {
     const name = opts.branchArg.replace(/^refs\/heads\//, "");
-    if (ctx.state.branches[name] !== undefined) {
+    const existing = own(ctx.state.branches, name);
+    if (existing !== undefined) {
       branch = name;
-      head = ctx.state.branches[name];
+      head = existing;
       const user = ctx.worktreeUsing(name, ctx.actor);
       if (user) fail(`fatal: '${name}' is already used by worktree at '${user.path}'`);
     } else {
@@ -205,8 +213,7 @@ function continueRebase(ctx: Ctx): void {
   if (unstagedPaths(ctx).length) {
     fail("error: cannot rebase: You have unstaged changes.", "error: Please commit or stash them.");
   }
-  const copy: RebaseInProgress = { ...state, todo: [...state.todo], done: [...state.done] };
-  const stopped = copy.done[copy.done.length - 1];
+  const stopped = state.done[state.done.length - 1];
   if (stopped && !indexMatchesHead(ctx)) {
     const original = ctx.state.commits[stopped];
     const head = ctx.headOid() as Oid;
@@ -221,14 +228,14 @@ function continueRebase(ctx: Ctx): void {
     moveDetached(ctx, created.oid, `rebase (continue): ${subject(original.message)}`);
     ctx.out(`[detached HEAD ${shortOid(created.oid)}] ${subject(original.message)}`);
   }
-  runTodo(ctx, copy, "rebase");
+  runTodo(ctx, state, "rebase");
 }
 
 function skipRebase(ctx: Ctx): void {
   const state = rebaseState(ctx);
   if (!state) noRebase();
   resetHardToHead(ctx);
-  runTodo(ctx, { ...state, todo: [...state.todo], done: [...state.done] }, "rebase");
+  runTodo(ctx, state, "rebase");
 }
 
 function abortRebase(ctx: Ctx): void {
@@ -279,7 +286,7 @@ export function rebase(ctx: Ctx, args: string[]): void {
   const branchArg = p.positional[1] ?? null;
   if (upstreamArg === undefined) {
     const current = wt.head.kind === "branch" ? wt.head.name : null;
-    const up = current ? ctx.state.upstreams[current] : undefined;
+    const up = current ? own(ctx.state.upstreams, current) : undefined;
     if (!up) {
       fail(
         "There is no tracking information for the current branch.",

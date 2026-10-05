@@ -2,7 +2,7 @@
 
 import { flag, parseArgs, value } from "../args";
 import { fail, notSupported, type Ctx } from "../context";
-import { shortOid } from "../objects";
+import { has, own, setOwn, shortOid } from "../objects";
 import { resolveRev } from "../revisions";
 import type { HeadRef, Oid, Worktree } from "../types";
 import { checkNewBranchName, createBranch, trackIfRemote } from "./branch";
@@ -32,7 +32,7 @@ function add(ctx: Ctx, args: string[]): void {
   const path = resolvePath(ctx.wt.path, pathArg);
   const actor = path.split("/").filter(Boolean).pop();
   if (!actor) fail(`fatal: '${pathArg}' is not a valid worktree path`);
-  if (ctx.state.worktrees[actor] || Object.values(ctx.state.worktrees).some((w) => w.path === path)) {
+  if (has(ctx.state.worktrees, actor) || Object.values(ctx.state.worktrees).some((w) => w.path === path)) {
     fail(`fatal: '${path}' already exists`);
   }
 
@@ -61,10 +61,11 @@ function add(ctx: Ctx, args: string[]): void {
   } else {
     // No branch given: check out a branch named like the folder, creating it from HEAD if needed.
     const name = commitish ?? actor;
-    if (ctx.state.branches[name] !== undefined) {
+    const existing = own(ctx.state.branches, name);
+    if (existing !== undefined) {
       const user = ctx.worktreeUsing(name);
       if (user) fail(`fatal: '${name}' is already used by worktree at '${user.path}'`);
-      oid = ctx.state.branches[name];
+      oid = existing;
       head = { kind: "branch", name };
       ctx.out(`Preparing worktree (checking out '${name}')`);
     } else if (commitish !== undefined) {
@@ -97,7 +98,7 @@ function add(ctx: Ctx, args: string[]): void {
     inProgress: null,
   };
   if (head.kind === "branch") wt.headReflog.push({ oid, previous: oid, message: "reset: moving to HEAD", time: ctx.time });
-  ctx.state.worktrees[actor] = wt;
+  setOwn(ctx.state.worktrees, actor, wt);
   ctx.emit({ type: "worktree-added", actor, path, head });
   ctx.out(`HEAD is now at ${ctx.oneline(oid)}`);
 }
@@ -108,7 +109,7 @@ function list(ctx: Ctx): void {
   );
   const width = Math.max(...all.map((w) => w.path.length));
   for (const w of all) {
-    const oid = w.head.kind === "detached" ? w.head.oid : (ctx.state.branches[w.head.name] ?? null);
+    const oid = w.head.kind === "detached" ? w.head.oid : (own(ctx.state.branches, w.head.name) ?? null);
     const where = w.head.kind === "branch" ? `[${w.head.name}]` : "(detached HEAD)";
     ctx.out(`${w.path.padEnd(width)}  ${oid ? shortOid(oid) : "0000000"} ${where}`);
   }
