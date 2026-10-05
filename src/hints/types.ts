@@ -8,6 +8,9 @@ export const MAX_HINTS_PER_RUN = 5;
 /** How many of the player's latest commands go with a hint request. */
 export const MAX_RECENT_COMMANDS = 8;
 
+/** How many of the hints already shown in this run go with a hint request (hint 5 sees hints 1 to 4). */
+export const MAX_PREVIOUS_HINTS = MAX_HINTS_PER_RUN - 1;
+
 /** Size limits for every field of a request. The route rejects anything bigger. */
 export const LIMITS = {
   /** The whole JSON body, in bytes. */
@@ -18,6 +21,8 @@ export const LIMITS = {
   statusSummary: 400,
   goals: 12,
   runId: 64,
+  /** One previously shown hint. The same as the longest hint the server sends. */
+  previousHint: 260,
 } as const;
 
 /** One command the player ran: the line, the first lines of what came back, and whether git accepted it. */
@@ -34,6 +39,11 @@ export type HintRequest = {
   /** A short `git status`-like summary of the player's checkout. */
   statusSummary: string;
   /**
+   * The hint texts already shown in this run, oldest first, at most MAX_PREVIOUS_HINTS. The model is
+   * told not to repeat them and to go one step further. Optional: an older client may leave it out.
+   */
+  previousHints?: string[];
+  /**
    * A random id for this play of the level, made in the browser. Tracing groups the hints of one
    * run into one session with it. Carries nothing about the player.
    */
@@ -48,8 +58,12 @@ export type FallbackReason =
   | "timeout"
   | "empty"
   | "too-long"
+  /** Hints 1 and 2 named a git command. */
+  | "leak-command"
   | "leak-solution"
-  | "leak-force";
+  | "leak-force"
+  /** The hint opens with the same sentence as a hint the player already got in this run. */
+  | "repeats-previous";
 
 export type HintResponse = {
   text: string;

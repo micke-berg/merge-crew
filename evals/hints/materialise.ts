@@ -14,6 +14,7 @@ export function playCase(c: StuckCase): GameState {
   return game;
 }
 
-export function caseRequest(c: StuckCase, hintNumber = 1): HintRequest {
-  return buildHintRequest(playCase(c), hintNumber);
+/** The request for hint `hintNumber`, after the game showed `shownHints` (oldest first) in this run. */
+export function caseRequest(c: StuckCase, hintNumber = 1, shownHints: readonly string[] = []): HintRequest {
+  return buildHintRequest(playCase(c), hintNumber, undefined, shownHints);
 }

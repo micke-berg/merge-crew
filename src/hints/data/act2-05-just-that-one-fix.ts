@@ -19,7 +19,7 @@ export const hints: LevelHints = {
   ].join("\n"),
   /** Used when the model is off, fails, or its hint is rejected. Gentle first, then more specific. */
   scripted: [
-    "Drift's branch has three commits, and only one of them is the table fix. git log --oneline drift lists them.",
+    "Drift's branch has three commits, and only one of them is the table fix. Which one is it?",
     "Don't merge the whole branch. Copy just the fix onto main.",
     "git cherry-pick copies a single commit onto the branch you're on. Pick the table fix, then git push.",
   ],

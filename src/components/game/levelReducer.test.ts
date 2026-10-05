@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { getLevel } from "@/levels";
-import { MAX_HINTS_PER_RUN } from "@/hints/types";
+import { LIMITS, MAX_HINTS_PER_RUN, MAX_PREVIOUS_HINTS } from "@/hints/types";
+import { buildHintRequest, fetchHint } from "./hintRequest";
 import {
   canAskHint,
   hintBubble,
@@ -249,5 +250,47 @@ describe("Tidy's hints", () => {
     m = play(m, { type: "hint-ask" }, { type: "hint-answer", key, text: "A hint." }, { type: "tour", steps });
     expect(m.hint).toBeNull();
     expect(canAskHint(m)).toBe(false);
+  });
+
+  describe("previous hints", () => {
+    afterEach(() => vi.unstubAllGlobals());
+
+    /** Ask for a hint and answer it, the way useLevel does. */
+    const answer = (m: LevelModel, text: string, refund = false) => {
+      const key = nextHintKey(m);
+      return play(m, { type: "hint-ask" }, { type: "hint-answer", key, text, refund });
+    };
+
+    it("remembers the hints shown in this run, not refunded lines, and restart forgets them", () => {
+      let m = answer(inPlay(), "First hint.");
+      m = answer(m, "I can't reach my notes right now.", true);
+      m = answer(m, "Second hint.");
+      expect(m.hintsShown).toEqual(["First hint.", "Second hint."]);
+      const r = runScene(play(m, { type: "restart", level: firstSave }, { type: "begin" }));
+      expect(r.hintsShown).toEqual([]);
+    });
+
+    it("the next request carries them, oldest first, and the client sends them", async () => {
+      let m = inPlay();
+      expect(buildHintRequest(m.game, m.hintsUsed + 1, undefined, m.hintsShown).previousHints).toEqual([]);
+      m = answer(answer(m, "First hint."), "Second hint.");
+      const req = buildHintRequest(m.game, m.hintsUsed + 1, "run-1234-abcd", m.hintsShown);
+      expect(req).toMatchObject({ hintNumber: 3, previousHints: ["First hint.", "Second hint."], runId: "run-1234-abcd" });
+
+      const fetchMock = vi.fn(async () => Response.json({ text: "Third hint.", source: "ai" }));
+      vi.stubGlobal("fetch", fetchMock);
+      expect(await fetchHint(req)).toEqual({ text: "Third hint.", refund: false });
+      const sent = JSON.parse((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
+      expect(sent.previousHints).toEqual(["First hint.", "Second hint."]);
+    });
+
+    it("sends at most the latest four, each within the size limit", () => {
+      let m = inPlay();
+      for (let i = 1; i < MAX_HINTS_PER_RUN; i++) m = answer(m, `Hint ${i} `.padEnd(LIMITS.previousHint + 20, "x"));
+      const req = buildHintRequest(m.game, MAX_HINTS_PER_RUN, undefined, ["Hint 0", ...m.hintsShown]);
+      expect(req.previousHints).toHaveLength(MAX_PREVIOUS_HINTS);
+      expect(req.previousHints![0]).toMatch(/^Hint 1 /);
+      for (const h of req.previousHints!) expect(h.length).toBeLessThanOrEqual(LIMITS.previousHint);
+    });
   });
 });

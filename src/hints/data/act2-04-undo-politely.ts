@@ -21,7 +21,7 @@ export const hints: LevelHints = {
   ].join("\n"),
   /** Used when the model is off, fails, or its hint is rejected. Gentle first, then more specific. */
   scripted: [
-    "First catch up with what everyone else sees. git pull, then git log --oneline to spot Blaze's commit.",
+    "First catch up with what everyone else sees on origin. Then find Blaze's commit in the history.",
     "Blaze's commit is shared and I built on top of it, so undo it with a new commit instead of rewriting history.",
     "git revert makes a new commit that undoes an old one. Point it at Blaze's commit, then git push.",
   ],

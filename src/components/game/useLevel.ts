@@ -66,7 +66,7 @@ export function useLevel(level: Level) {
     const key = nextHintKey(m);
     // One random id per play of the level; a restart starts a new one.
     if (runIdFor.current.run !== m.run) runIdFor.current = { run: m.run, id: newRunId() };
-    const request = buildHintRequest(m.game, m.hintsUsed + 1, runIdFor.current.id);
+    const request = buildHintRequest(m.game, m.hintsUsed + 1, runIdFor.current.id, m.hintsShown);
     dispatch({ type: "hint-ask" });
     void fetchHint(request).then(({ text, refund }) => dispatch({ type: "hint-answer", key, text, refund }));
   };

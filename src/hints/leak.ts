@@ -52,34 +52,55 @@ function gitPhrases(hint: string): string[] {
   return out;
 }
 
-export type LeakVerdict = { ok: true } | { ok: false; reason: Extract<FallbackReason, "leak-solution" | "leak-force"> };
+/**
+ * Git subcommands a hint might name. Matching a list rather than any word after "git" keeps plain
+ * sentences such as "git keeps a diary" or "git stops on the conflict" allowed.
+ */
+const SUBCOMMANDS = [
+  "add", "am", "apply", "archive", "bisect", "blame", "branch", "checkout", "cherry-pick", "clean", "clone", "commit",
+  "config", "describe", "diff", "fetch", "gc", "grep", "help", "init", "log", "ls-files", "merge", "mv", "notes", "pull",
+  "push", "rebase", "reflog", "remote", "reset", "restore", "revert", "rm", "shortlog", "show", "stash", "status",
+  "submodule", "switch", "tag", "worktree",
+];
+const GIT_COMMAND = new RegExp(`\\bgit (?:${SUBCOMMANDS.map((c) => c.replace("-", "\\-")).join("|")})(?![\\w-])`);
+
+/** Hints from this number on may name a git command; earlier ones must stay with ideas and places. */
+export const FIRST_COMMAND_HINT = 3;
+
+export type LeakVerdict = { ok: true } | { ok: false; reason: Extract<FallbackReason, "leak-command" | "leak-solution" | "leak-force"> };
 
 /**
- * Reject a hint that contains the answer. `solution` is the level's documented solution; commands in
- * `publicCommands` (the level's suggestion buttons, which fill in the exact command for the player)
- * are already on screen, so naming them gives nothing away.
+ * Reject a hint that hands the player the next action. `solution` is the level's documented
+ * solution; `hintNumber` is which hint of the run this is (1 for the first).
  *
- * A hint leaks when it
- * - contains a force flag (`--force`, `--force-with-lease`, `git push ... -f`), or
- * - contains a solution command line that is not already a suggestion button, or
- * - has a `git <subcommand>` phrase matching a solution step's subcommand that also names one of
- *   that step's arguments (`git branch rescue main@{1}` against `git branch tidy-rescue main@{1}`).
+ * Every hint leaks when it contains a force flag (`--force`, `--force-with-lease`, `git push ... -f`).
+ * Hints 1 and 2 also leak when they name any `git <subcommand>` (quotes and backticks dropped, any
+ * case): they point at an idea or a place, and the player finds the command. Concept words such as
+ * "the reflog" or "a branch" are fine.
+ * Hint 3 and later may name a command, but leak when they contain a solution command line that has
+ * arguments, or a `git <subcommand>` phrase matching a solution step that also names one of that
+ * step's arguments (`git branch rescue main@{1}` against `git branch tidy-rescue main@{1}`).
+ * The suggestion buttons do not make a command safe: a hint that says which button to press next
+ * still does the player's thinking.
  */
-export function checkLeak(hint: string, solution: readonly SolutionCommand[], publicCommands: readonly string[]): LeakVerdict {
+export function checkLeak(hint: string, solution: readonly SolutionCommand[], hintNumber: number): LeakVerdict {
   const h = normalise(hint);
   // Warning against a force-push in words ("don't force anything") is fine; the flag itself is not.
   if (/--force\b/.test(h) || /\bgit push\b[^.;\n]*\s-f\b/.test(h)) {
     return { ok: false, reason: "leak-force" };
   }
-  const shown = new Set(publicCommands.map(normalise));
-  const secret = solution.filter((argv) => !shown.has(normalise(argv.join(" "))));
+  if (hintNumber < FIRST_COMMAND_HINT) {
+    return GIT_COMMAND.test(h) ? { ok: false, reason: "leak-command" } : { ok: true };
+  }
 
-  for (const argv of secret) {
+  for (const argv of solution) {
+    // A bare command (`git push`, `git stash list`) is the command name, which hint 3 may say.
+    if (argv.length <= 1 + commandKey(argv).length) continue;
     if (h.includes(normalise(argv.join(" ")))) return { ok: false, reason: "leak-solution" };
   }
 
   const phrases = gitPhrases(h);
-  for (const argv of secret) {
+  for (const argv of solution) {
     const key = commandKey(argv);
     const args = telltaleArgs(argv);
     if (key.length === 0 || args.length === 0) continue;
@@ -110,14 +131,44 @@ export function countSentences(s: string): number {
     .filter(Boolean).length;
 }
 
-export type HintVerdict = { ok: true; text: string } | { ok: false; reason: Extract<FallbackReason, "empty" | "too-long" | "leak-solution" | "leak-force"> };
+export type HintVerdict =
+  | { ok: true; text: string }
+  | {
+      ok: false;
+      reason: Extract<FallbackReason, "empty" | "too-long" | "leak-command" | "leak-solution" | "leak-force" | "repeats-previous">;
+    };
 
-/** Everything a model hint must pass before the player sees it. */
-export function vetHint(raw: string, solution: readonly SolutionCommand[], publicCommands: readonly string[]): HintVerdict {
+/** A sentence reduced to its words, for comparing hints: case, punctuation and spacing ignored. */
+function words(s: string): string {
+  return s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
+}
+
+/** The first sentence of a hint, reduced to its words. */
+export function openingWords(hint: string): string {
+  return words(cleanHint(hint).split(/[.!?]+(?:\s+|$)/)[0] ?? "");
+}
+
+/**
+ * A new hint that opens with the same sentence as an earlier one re-says it instead of going a step
+ * further (the most common weak hint in the evals), so it is replaced by the next scripted hint.
+ */
+export function repeatsPrevious(hint: string, previousHints: readonly string[]): boolean {
+  const opening = openingWords(hint);
+  return opening.length > 0 && previousHints.some((p) => openingWords(p) === opening);
+}
+
+/** Everything a model hint must pass before the player sees it. `hintNumber` sets how specific it may be. */
+export function vetHint(
+  raw: string,
+  solution: readonly SolutionCommand[],
+  hintNumber: number,
+  previousHints: readonly string[] = [],
+): HintVerdict {
   const text = cleanHint(raw);
   if (!text) return { ok: false, reason: "empty" };
   if (text.length > MAX_HINT_CHARS || countSentences(text) > MAX_HINT_SENTENCES) return { ok: false, reason: "too-long" };
-  const leak = checkLeak(text, solution, publicCommands);
+  const leak = checkLeak(text, solution, hintNumber);
   if (!leak.ok) return leak;
+  if (repeatsPrevious(text, previousHints)) return { ok: false, reason: "repeats-previous" };
   return { ok: true, text };
 }

@@ -16,14 +16,36 @@ export const CRITERIA = {
   noAnswer: "Does not give the answer away: no full command line that finishes a step, and nothing about --force.",
   short: "One or two short sentences.",
   voice: "Sounds like Tidy: calm, kind, plain words, no lecturing, no markdown.",
+  moreSpecificThanPrevious:
+    "Compared with the previous hints, it adds something new and is one step more specific (a narrower place to look, or the command to reach for). Repeating or rewording a previous hint fails.",
 } as const;
 
 export type Criterion = keyof typeof CRITERIA;
-export type Grade = { pass: Record<Criterion, boolean>; notes: string; overall: boolean };
+/** `pass` holds the criteria that applied: moreSpecificThanPrevious only when there were previous hints. */
+export type Grade = { pass: Partial<Record<Criterion, boolean>>; notes: string; overall: boolean };
 
-const KEYS = Object.keys(CRITERIA) as Criterion[];
+/** Criteria for every hint. */
+export const BASE_CRITERIA: readonly Criterion[] = ["towardNextIdea", "noAnswer", "short", "voice"];
 
-export function graderPrompt(input: { context: string; goal: string; situation: string; expect: string; hint: string }): string {
+export type GraderInput = {
+  context: string;
+  goal: string;
+  situation: string;
+  expect: string;
+  hint: string;
+  /** Hints already shown in this run, oldest first. When present, moreSpecificThanPrevious is graded too. */
+  previousHints?: readonly string[];
+};
+
+export function criteriaFor(input: Pick<GraderInput, "previousHints">): Criterion[] {
+  return input.previousHints?.length ? [...BASE_CRITERIA, "moreSpecificThanPrevious"] : [...BASE_CRITERIA];
+}
+
+export function graderPrompt(input: GraderInput): string {
+  const keys = criteriaFor(input);
+  const previous = input.previousHints?.length
+    ? ["", "<previous_hints>", ...input.previousHints.map((h, i) => `${i + 1}. ${h}`), "</previous_hints>"]
+    : [];
   return [
     "You grade hints in Merge Crew, a browser game that teaches git. Tidy, a calm and kind robot, gives the player a hint when they are stuck.",
     "",
@@ -38,18 +60,19 @@ export function graderPrompt(input: { context: string; goal: string; situation: 
     "</player_situation>",
     "",
     `<a_good_hint_points_toward>${input.expect}</a_good_hint_points_toward>`,
+    ...previous,
     "",
     `<hint>${input.hint}</hint>`,
     "",
     "Judge the hint on each criterion, pass or fail:",
-    ...KEYS.map((k) => `- ${k}: ${CRITERIA[k]}`),
+    ...keys.map((k) => `- ${k}: ${CRITERIA[k]}`),
     "",
-    'Answer with JSON only, no other text: {"towardNextIdea": true|false, "noAnswer": true|false, "short": true|false, "voice": true|false, "notes": "one sentence"}',
+    `Answer with JSON only, no other text: {${keys.map((k) => `"${k}": true|false`).join(", ")}, "notes": "one sentence"}`,
   ].join("\n");
 }
 
-/** Parse the grader's JSON answer. Anything unreadable fails every criterion, so it shows up. */
-export function parseGrade(text: string): Grade {
+/** Parse the grader's JSON answer for `keys`. Anything unreadable fails every criterion, so it shows up. */
+export function parseGrade(text: string, keys: readonly Criterion[] = BASE_CRITERIA): Grade {
   const match = text.match(/\{[\s\S]*\}/);
   let data: Record<string, unknown> = {};
   try {
@@ -57,13 +80,13 @@ export function parseGrade(text: string): Grade {
   } catch {
     data = {};
   }
-  const pass = Object.fromEntries(KEYS.map((k) => [k, data[k] === true])) as Record<Criterion, boolean>;
+  const pass = Object.fromEntries(keys.map((k) => [k, data[k] === true])) as Partial<Record<Criterion, boolean>>;
   const notes = typeof data.notes === "string" ? data.notes : match ? "" : `unreadable grader answer: ${text.slice(0, 120)}`;
-  return { pass, notes, overall: KEYS.every((k) => pass[k]) };
+  return { pass, notes, overall: keys.every((k) => pass[k]) };
 }
 
 export async function grade(
-  input: Parameters<typeof graderPrompt>[0],
+  input: GraderInput,
   model: LanguageModel = GRADER_MODEL,
 ): Promise<Grade> {
   const { text } = await generateText({
@@ -74,5 +97,5 @@ export async function grade(
     maxRetries: 1,
     timeout: 30_000,
   });
-  return parseGrade(text);
+  return parseGrade(text, criteriaFor(input));
 }

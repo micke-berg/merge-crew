@@ -86,6 +86,7 @@ export async function getHint(request: HintRequest, data: HintLevel, deps: HintD
     recentCommands: request.recentCommands,
     statusSummary: request.statusSummary,
     hintNumber: request.hintNumber,
+    previousHints: request.previousHints ?? [],
   });
 
   const controller = new AbortController();
@@ -119,7 +120,7 @@ export async function getHint(request: HintRequest, data: HintLevel, deps: HintD
     clearTimeout(timer);
   }
 
-  const verdict = vetHint(raw, data.solution, data.level.suggestions);
+  const verdict = vetHint(raw, data.solution, request.hintNumber, request.previousHints ?? []);
   recordSafetyCheck(raw, verdict);
   if (!verdict.ok) return { ...scripted(data, request.hintNumber, verdict.reason), raw, model };
   return { text: verdict.text, source: "ai", raw, model };

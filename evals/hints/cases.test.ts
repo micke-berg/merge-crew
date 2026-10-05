@@ -12,7 +12,7 @@ import { MAX_RECENT_COMMANDS } from "@/hints/types";
 import { parseHintRequest } from "@/hints/validate";
 import { recentCommands } from "@/components/game/hintRequest";
 import { CASES } from "./cases";
-import { CRITERIA, grade, parseGrade } from "./grader";
+import { BASE_CRITERIA, grade, parseGrade } from "./grader";
 import { caseRequest, playCase } from "./materialise";
 
 const goalCount = (id: string) => hintLevel(id)?.level.goals.length;
@@ -49,6 +49,7 @@ describe("stuck cases", () => {
       recentCommands: req.recentCommands,
       statusSummary: req.statusSummary,
       hintNumber: req.hintNumber,
+      previousHints: req.previousHints ?? [],
     });
     const current = data.level.goals[req.goals.findIndex((g) => !g)].description;
     expect(prompt).toContain(`<current_goal>\n${current}\n</current_goal>`);
@@ -57,14 +58,16 @@ describe("stuck cases", () => {
 
   it.each(CASES.map((c) => [c.id, c] as const))("%s: a leaking model answer falls back to the scripted hint", async (_id, c) => {
     const data = hintLevel(c.levelId)!;
-    const shown = new Set(data.level.suggestions);
-    const secret = data.solution.find((argv) => !shown.has(argv.join(" ")));
-    const leak = secret ? `Just type ${secret.join(" ")}.` : "Then git push --force.";
-    for (const n of [1, 3]) {
-      const out = await getHint(caseRequest(c, n), data, { model: replyModel(leak), env: {} });
+    // A solution line with arguments leaks at every hint number.
+    const secret = data.solution.find((argv) => argv.length > 2 && argv[1] !== "stash")!;
+    const leak = `Just type ${secret.join(" ")}.`;
+    const shown: string[] = [];
+    for (const n of [1, 2, 3]) {
+      const out = await getHint(caseRequest(c, n, shown), data, { model: replyModel(leak), env: {} });
       expect(out.source).toBe("scripted");
-      expect(out.reason === "leak-solution" || out.reason === "leak-force").toBe(true);
-      expect(out.text).toBe(data.scripted[Math.min(n, 3) - 1]);
+      expect(out.reason).toBe(n < 3 ? "leak-command" : "leak-solution");
+      expect(out.text).toBe(data.scripted[n - 1]);
+      shown.push(out.text);
     }
   });
 
@@ -72,6 +75,16 @@ describe("stuck cases", () => {
     const data = hintLevel(c.levelId)!;
     const out = await getHint(caseRequest(c, 1), data, { env: {} });
     expect(out).toEqual({ text: data.scripted[0], source: "scripted", reason: "no-credentials" });
+  });
+});
+
+describe("previous hints in eval requests", () => {
+  it("carry the hints shown before, as the game sends them", () => {
+    const c = CASES[0];
+    expect(caseRequest(c, 1).previousHints).toEqual([]);
+    const req = caseRequest(c, 3, ["One.", "Two."]);
+    expect(req.previousHints).toEqual(["One.", "Two."]);
+    expect(parseHintRequest(JSON.parse(JSON.stringify(req)), goalCount)).toEqual({ ok: true, request: req });
   });
 });
 
@@ -101,12 +114,29 @@ describe("model grader (offline parts)", () => {
     expect(Object.values(bad.pass).every((p) => p === false)).toBe(true);
   });
 
+  it("grades moreSpecificThanPrevious only when there were previous hints", async () => {
+    const reply = '{"towardNextIdea": true, "noAnswer": true, "short": true, "voice": true, "moreSpecificThanPrevious": false, "notes": "repeats"}';
+    const first = replyModel(reply);
+    const g1 = await grade({ context: "ctx", goal: "goal", situation: "sit", expect: "push", hint: "Share it." }, first);
+    expect(g1.overall).toBe(true);
+    expect(g1.pass.moreSpecificThanPrevious).toBeUndefined();
+    expect(JSON.stringify(first.doGenerateCalls[0].prompt)).not.toContain("moreSpecificThanPrevious");
+
+    const later = replyModel(reply);
+    const g2 = await grade({ context: "ctx", goal: "goal", situation: "sit", expect: "push", hint: "Share it.", previousHints: ["Share it."] }, later);
+    expect(g2.pass.moreSpecificThanPrevious).toBe(false);
+    expect(g2.overall).toBe(false);
+    const sent = JSON.stringify(later.doGenerateCalls[0].prompt);
+    expect(sent).toContain("<previous_hints>");
+    expect(sent).toContain("moreSpecificThanPrevious");
+  });
+
   it("grades with the rubric through a (mock) model", async () => {
     const model = replyModel('{"towardNextIdea": true, "noAnswer": true, "short": true, "voice": true, "notes": "fine"}');
     const g = await grade({ context: "ctx", goal: "goal", situation: "sit", expect: "push", hint: "Time to share it." }, model);
     expect(g.overall).toBe(true);
     const sent = JSON.stringify(model.doGenerateCalls[0].prompt);
-    for (const k of Object.keys(CRITERIA)) expect(sent).toContain(k);
+    for (const k of BASE_CRITERIA) expect(sent).toContain(k);
     expect(sent).toContain("Time to share it.");
   });
 

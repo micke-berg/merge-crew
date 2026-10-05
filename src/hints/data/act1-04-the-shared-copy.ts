@@ -22,7 +22,7 @@ export const hints: LevelHints = {
   ].join("\n"),
   /** Used when the model is off, fails, or its hint is rejected. Gentle first, then more specific. */
   scripted: [
-    "git status compares your copy with origin. Are you ahead, behind, or both?",
+    "Your copy and origin may not match anymore. Are you ahead, behind, or both?",
     "Origin has a commit you don't have yet. Bring it in first, then save your sign and share it.",
     "git pull brings my Saturday hours into your copy. Then add and commit sign.txt, and finish with git push.",
   ],

@@ -2,7 +2,7 @@
 // the player can already see: their recent commands, which goals are met and a status summary.
 
 import { queries } from "@/engine";
-import { LIMITS, MAX_RECENT_COMMANDS, type HintRequest, type HintResponse, type RecentCommand } from "@/hints/types";
+import { LIMITS, MAX_PREVIOUS_HINTS, MAX_RECENT_COMMANDS, type HintRequest, type HintResponse, type RecentCommand } from "@/hints/types";
 import type { GameState } from "./game";
 
 const OUTPUT_LINES = 3;
@@ -60,13 +60,19 @@ export function statusSummary(game: GameState): string {
   return clip(parts.join(" "), LIMITS.statusSummary);
 }
 
-export function buildHintRequest(game: GameState, hintNumber: number, runId?: string): HintRequest {
+/**
+ * The hint request for hint number `hintNumber`. `shownHints` are the hints Tidy already showed in
+ * this run, oldest first; the latest ones go along so the next hint can build on them.
+ */
+export function buildHintRequest(game: GameState, hintNumber: number, runId?: string, shownHints: readonly string[] = []): HintRequest {
+  const keep = Math.min(MAX_PREVIOUS_HINTS, hintNumber - 1);
   return {
     levelId: game.level.id,
     hintNumber,
     recentCommands: recentCommands(game),
     goals: [...game.goals],
     statusSummary: statusSummary(game),
+    previousHints: keep > 0 ? shownHints.slice(-keep).map((h) => clip(h.trim(), LIMITS.previousHint)).filter(Boolean) : [],
     ...(runId ? { runId } : {}),
   };
 }
