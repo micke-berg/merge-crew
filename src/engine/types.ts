@@ -237,7 +237,23 @@ export type ScriptStep =
   /** A robot line. `files` names working files the line talks about; the files panel highlights them while it shows. */
   | { kind: "say"; actor: RobotId; text: string; mood?: Mood; files?: Path[] }
   | { kind: "mood"; actor: RobotId; mood: Mood }
-  | { kind: "pause"; ms: number };
+  | { kind: "pause"; ms: number }
+  /**
+   * A guided-tour step: a robot explains one part of the screen while the game highlights it.
+   * `target` names a screen region; `focus` optionally narrows a map highlight to commits (by message)
+   * or branches (by name). Waits for a click like a spoken line.
+   */
+  | {
+      kind: "point";
+      actor: RobotId;
+      target: ScreenTarget;
+      text: string;
+      mood?: Mood;
+      focus?: { commits?: string[]; branches?: string[]; lost?: boolean };
+    };
+
+/** Screen regions a guided-tour step can point at. */
+export type ScreenTarget = "map" | "jobbar" | "terminal" | "suggestions" | "goals" | "files";
 
 export type Goal = {
   id: string;
