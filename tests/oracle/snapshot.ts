@@ -222,12 +222,18 @@ function inProgressKind(gitDir: string): string | null {
   return null;
 }
 
-/** True when the worktree has an operation in progress or unmerged index entries. */
-export async function hasStoppedOperation(worktreeDir: string): Promise<boolean> {
-  if (!existsSync(join(worktreeDir, ".git"))) return false;
-  if (inProgressKind(gitDirOf(worktreeDir)) !== null) return true;
+/**
+ * What an operation stopped part-way leaves in a worktree: the in-progress marker and its target,
+ * plus the unmerged index entries. Empty when nothing is in progress.
+ */
+export async function stopSignature(worktreeDir: string): Promise<string> {
+  if (!existsSync(join(worktreeDir, ".git"))) return "";
+  const gitDir = gitDirOf(worktreeDir);
+  const kind = inProgressKind(gitDir);
+  const target = kind === "merge" ? (readText(join(gitDir, "MERGE_HEAD")) ?? "") : "";
   const r = await runGit(worktreeDir, ["ls-files", "-u"]);
-  return r.code === 0 && r.stdout.trim().length > 0;
+  const unmerged = r.code === 0 ? r.stdout.trim() : "";
+  return kind === null && unmerged === "" ? "" : `${kind ?? "none"} ${target.trim()}\n${unmerged}`;
 }
 
 type RealWorktree = { actor: string; dir: string; gitDir: string };

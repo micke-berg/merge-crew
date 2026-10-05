@@ -1,4 +1,4 @@
-import { commitFile, del, git, stops, write, type Scenario } from "../scenario";
+import { commitFile, del, fails, git, stops, write, type Scenario } from "../scenario";
 
 const P = "player";
 
@@ -59,6 +59,7 @@ export const merges: Scenario[] = [
       git(P, "switch main"),
       ...commitFile(P, "a.txt", "line 1\nmain\nline 3\n", "Main edit"),
       stops(git(P, ["merge", "feature", "-m", "Merge feature"])),
+      fails(git(P, ["commit", "-m", "Too early"])),
       write(P, "a.txt", "line 1\nmain and feature\nline 3\n"),
       git(P, "add a.txt"),
       git(P, ["commit", "-m", "Merge feature, resolved"]),

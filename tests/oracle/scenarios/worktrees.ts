@@ -28,7 +28,7 @@ export const worktrees: Scenario[] = [
       fails(git(P, "branch -d blaze")),
       fails(git("blaze", "switch main")),
       fails(git(P, "worktree add /crew/tidy main")),
-      fails(git(P, "worktree add /crew/blaze -b other")),
+      fails(git(P, "worktree add --detach /crew/blaze HEAD")),
     ],
   },
   {

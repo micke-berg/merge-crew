@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { gitOut, runGit } from "./git-cli";
 import { isGitStep, isWriteStep, type Scenario, type StepRecord } from "./scenario";
-import { fromRealGit, hasStoppedOperation, type Snapshot } from "./snapshot";
+import { fromRealGit, stopSignature, type Snapshot } from "./snapshot";
 
 export type RealGitResult = { records: StepRecord[]; snapshot: Snapshot; dir: string };
 
@@ -41,6 +41,10 @@ export async function runRealGit(scenario: Scenario): Promise<RealGitResult> {
       if (isGitStep(step)) {
         const [cmd, ...args] = step.argv;
         if (cmd !== "git") throw new Error(`step ${i}: only git commands are supported, got ${cmd}`);
+        // A nonzero exit counts as "stopped" only when the step itself left a stopped operation
+        // behind. A command that fails while a merge is already open (commit with unresolved
+        // conflicts) changes nothing and is an ordinary error.
+        const before = await stopSignature(cwd);
         let r;
         try {
           r = await runGit(cwd, args.map((a) => mapPath(root, a)), { actor: step.actor, tick });
@@ -50,7 +54,8 @@ export async function runRealGit(scenario: Scenario): Promise<RealGitResult> {
           continue;
         }
         const output = (r.stdout + r.stderr).split(root).join("");
-        const outcome = r.code === 0 ? "ok" : (await hasStoppedOperation(cwd)) ? "stopped" : "error";
+        const after = r.code === 0 ? "" : await stopSignature(cwd);
+        const outcome = r.code === 0 ? "ok" : after !== "" && after !== before ? "stopped" : "error";
         records.push({ step, outcome, output });
       } else if (isWriteStep(step)) {
         const file = join(cwd, step.write);
