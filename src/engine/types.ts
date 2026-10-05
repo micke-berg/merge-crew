@@ -31,7 +31,10 @@ export type HeadRef =
   | { kind: "branch"; name: string }
   | { kind: "detached"; oid: Oid };
 
-/** One reflog line. `message` follows git's wording, e.g. "commit: Add login", "reset: moving to HEAD~2". */
+/**
+ * One reflog line. `message` follows git's wording, e.g. "commit: Add login", "reset: moving to HEAD~2".
+ * Reflog arrays are stored oldest first.
+ */
 export type ReflogEntry = {
   oid: Oid;
   previous: Oid | null;
@@ -125,7 +128,11 @@ export type CommandResult = {
    * conflict is ok: true (git exits non-zero there, but the state did change), with a "conflict" event.
    */
   ok: boolean;
-  /** The new state. Equal to the input state when `ok` is false. */
+  /**
+   * The new state. Equal to the input state when `ok` is false. A refused command never leaves partial
+   * changes, even where real git does (for example a failed pull keeping fetched refs). Those cases are
+   * listed as known differences in docs/decisions.md.
+   */
   state: RepoState;
   output: OutputLine[];
   events: EngineEvent[];
@@ -221,7 +228,7 @@ export interface Queries {
 
 export type RobotId = "tidy" | "blaze" | "drift" | "hoarder";
 
-export type Mood = "idle" | "talking" | "thinking" | "happy" | "celebrate" | "scared" | "guilty";
+export type Mood = "idle" | "talking" | "thinking" | "happy" | "celebrate" | "scared" | "guilty" | "surprised";
 
 /** One step of a script. Setup steps run instantly; scene steps are played back with animation. */
 export type ScriptStep =

@@ -2,6 +2,12 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-10-05 — Engine wave 1: refused commands change nothing
+
+- **A refused command returns the unchanged state, even where real git leaves partial changes.** Teaching git's half-finished failure states is not a goal, and a clean rule keeps levels predictable. Known differences from git: a failed pull drops the fetched refs; a push with several refspecs applies none if one is rejected; `worktree add` on a used path creates no branch.
+- **A merge or pull that stops on a conflict is `ok: true`** with a conflict event, because the state did change.
+- **Other known differences:** no rename detection in merges; criss-cross merges with several common ancestors are simplified.
+
 ## 2026-10-05 — Spec approved, art route changed
 
 - **Spec approved by the owner as written.**
