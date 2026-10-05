@@ -21,6 +21,11 @@ export type ScenarioStep = GitStep | WriteStep | DeleteStep;
 export type Scenario = {
   name: string;
   steps: ScenarioStep[];
+  /**
+   * The scenario makes copies of commits with the same message (rebase, cherry-pick, amend --no-edit),
+   * so some labels carry a tree hash. Without this flag the self-test treats that as a mistake.
+   */
+  copiesCommits?: boolean;
 };
 
 export function isGitStep(step: ScenarioStep): step is GitStep {

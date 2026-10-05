@@ -5,7 +5,7 @@ import { fail, notSupported, type Ctx } from "../context";
 import { shortOid } from "../objects";
 import { resolveRev } from "../revisions";
 import type { HeadRef, Oid, Worktree } from "../types";
-import { checkNewBranchName, createBranch } from "./branch";
+import { checkNewBranchName, createBranch, trackIfRemote } from "./branch";
 
 /** Resolve `path` against `cwd` like a POSIX shell would, e.g. "/repo" + "../crew/blaze" = "/crew/blaze". */
 export function resolvePath(cwd: string, path: string): string {
@@ -80,7 +80,10 @@ function add(ctx: Ctx, args: string[]): void {
     }
   }
 
-  if (created) createBranch(ctx, created.name, oid, created.start);
+  if (created) {
+    createBranch(ctx, created.name, oid, created.start);
+    trackIfRemote(ctx, created.name, created.start);
+  }
   const tree = ctx.tree(oid);
   const wt: Worktree = {
     actor,

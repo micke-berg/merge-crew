@@ -134,7 +134,8 @@ export function reset(ctx: Ctx, args: string[]): void {
     wt.index = sortedTree({ ...target });
     wt.conflicts = {};
   }
-  if (effective !== "soft" && wt.inProgress) {
+  // A reset ends a merge, cherry-pick or revert, but a stopped rebase carries on (git keeps its state).
+  if (effective !== "soft" && wt.inProgress && wt.inProgress.kind !== "rebase") {
     ctx.emit({ type: "operation", actor: ctx.actor, kind: wt.inProgress.kind, phase: "aborted" });
     wt.inProgress = null;
   }

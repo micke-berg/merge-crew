@@ -2,11 +2,24 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-10-05 — Pocket Machines character art
+
+- The owner chose Pocket Machines from three directions. Tidy walks, Blaze rolls, Drift hovers and Hoarder shuffles. Each has eight standard states and one signature action.
+- Delivery is transparent PNG sprite sheets, four 512 by 512 px frames per row, with a shared ground anchor and manifest. Artwork is licensed under CC0-1.0; see `ASSETS.md`.
+- The asset import does not change the current game components. Use the supplied manifest and drawing helper when replacing the placeholders.
+
 ## 2026-10-05 — Engine wave 1: refused commands change nothing
 
 - **A refused command returns the unchanged state, even where real git leaves partial changes.** Teaching git's half-finished failure states is not a goal, and a clean rule keeps levels predictable. Known differences from git: a failed pull drops the fetched refs; a push with several refspecs applies none if one is rejected; `worktree add` on a used path creates no branch.
 - **A merge or pull that stops on a conflict is `ok: true`** with a conflict event, because the state did change.
 - **Other known differences:** no rename detection in merges; criss-cross merges with several common ancestors are simplified.
+- **Wave 2 known differences (rebase, cherry-pick, revert, stash, diff, show):**
+  - `stash apply`/`pop` refused because an untracked file from the stash is in the way changes nothing; git has already merged the tracked changes at that point.
+  - `rebase --continue` with unstaged changes is refused, and a later pick that would overwrite local changes refuses the whole command instead of stopping part-way.
+  - Concluding a stopped multi-commit cherry-pick or revert with a plain `git commit` ends the sequence; the remaining commits are not kept for `--continue` as git does.
+  - `git diff` and `git show` follow git's format (blob ids, function context, "No newline" markers) but have no indent heuristic, so hunk edges can differ in rare ambiguous cases. Unmerged paths print as `* Unmerged path <file>` instead of a combined diff, merge commits show no diff, and there are no Date lines. The `--stat` graph scaling is approximate.
+  - `git status` during a rebase lists the done and remaining picks in a simplified form.
+  - Remote-tracking refs keep a reflog (for pull --rebase's fork point and `origin/main@{1}`). types.ts has no field for it yet, so it is stored in `branchReflogs` under the full ref name, e.g. `refs/remotes/origin/main`.
 
 ## 2026-10-05 — Spec approved, art route changed
 

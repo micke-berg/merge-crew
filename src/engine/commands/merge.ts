@@ -2,7 +2,7 @@
 
 import { flag, parseArgs, value } from "../args";
 import { fail, twoWayCheckout, type Ctx } from "../context";
-import { mergeTrees } from "../merge3";
+import { mergeTrees, type TreeMergeResult } from "../merge3";
 import { changedPaths, createCommit, get, has, shortOid, sortedTree } from "../objects";
 import { isAncestor, mergeBases, remoteTrackingKey, resolveRev, splitRev } from "../revisions";
 import type { FileTree, Oid, Path } from "../types";
@@ -55,6 +55,58 @@ function baseTree(ctx: Ctx, bases: Oid[]): FileTree {
     tree = next;
   }
   return tree;
+}
+
+/**
+ * Write the result of a three-way tree merge into the running worktree: the index gets every
+ * cleanly merged path, the working files get the merged content or conflict markers, and conflicts
+ * are recorded. `ours` is the tree the merge started from (HEAD, or the index for stash apply).
+ * Fails without changing anything when the merge would overwrite local changes or untracked files.
+ * Returns the conflicted paths, sorted.
+ */
+export function writeTreeMerge(ctx: Ctx, ours: FileTree, result: TreeMergeResult): Path[] {
+  const wt = ctx.wt;
+  const conflicted = Object.keys(result.conflicts).sort();
+  const touched = new Set<Path>([...changedPaths(ours, result.merged), ...conflicted]);
+
+  const dirty: Path[] = [];
+  const untracked: Path[] = [];
+  for (const path of touched) {
+    const w = get(wt.workingTree, path);
+    if (has(ours, path)) {
+      if (w !== undefined && w !== ours[path]) dirty.push(path);
+    } else if (w !== undefined) {
+      untracked.push(path);
+    }
+  }
+  if (dirty.length) {
+    fail(
+      "error: Your local changes to the following files would be overwritten by merge:",
+      ...dirty.sort().map((p) => `\t${p}`),
+      "Please commit your changes or stash them before you merge.",
+      "Aborting",
+    );
+  }
+  if (untracked.length) {
+    fail(
+      "error: The following untracked working tree files would be overwritten by merge:",
+      ...untracked.sort().map((p) => `\t${p}`),
+      "Please move or remove them before you merge.",
+      "Aborting",
+    );
+  }
+
+  const working: Record<Path, string> = { ...wt.workingTree };
+  for (const path of touched) {
+    const content = path in result.conflictFiles ? result.conflictFiles[path] : get(result.merged, path) ?? null;
+    if (content === null) delete working[path];
+    else working[path] = content;
+  }
+  wt.index = sortedTree(result.merged);
+  wt.workingTree = sortedTree(working);
+  wt.conflicts = { ...result.conflicts };
+  ctx.out(...result.messages);
+  return conflicted;
 }
 
 export function runMerge(ctx: Ctx, opts: MergeOptions): void {
@@ -111,45 +163,7 @@ export function runMerge(ctx: Ctx, opts: MergeOptions): void {
     ours: "HEAD",
     theirs: opts.label,
   });
-  const conflicted = Object.keys(result.conflicts);
-  const touched = new Set<Path>([...changedPaths(headTree, result.merged), ...conflicted]);
-
-  const dirty: Path[] = [];
-  const untracked: Path[] = [];
-  for (const path of touched) {
-    const w = get(wt.workingTree, path);
-    if (has(headTree, path)) {
-      if (w !== undefined && w !== headTree[path]) dirty.push(path);
-    } else if (w !== undefined) {
-      untracked.push(path);
-    }
-  }
-  if (dirty.length) {
-    fail(
-      "error: Your local changes to the following files would be overwritten by merge:",
-      ...dirty.sort().map((p) => `\t${p}`),
-      "Please commit your changes or stash them before you merge.",
-      "Aborting",
-    );
-  }
-  if (untracked.length) {
-    fail(
-      "error: The following untracked working tree files would be overwritten by merge:",
-      ...untracked.sort().map((p) => `\t${p}`),
-      "Please move or remove them before you merge.",
-      "Aborting",
-    );
-  }
-
-  const working: Record<Path, string> = { ...wt.workingTree };
-  for (const path of touched) {
-    const content = path in result.conflictFiles ? result.conflictFiles[path] : get(result.merged, path) ?? null;
-    if (content === null) delete working[path];
-    else working[path] = content;
-  }
-  wt.index = sortedTree(result.merged);
-  wt.workingTree = sortedTree(working);
-  ctx.out(...result.messages);
+  const conflicted = writeTreeMerge(ctx, headTree, result);
 
   if (conflicted.length === 0) {
     const commit = createCommit(ctx.state, {
@@ -166,10 +180,9 @@ export function runMerge(ctx: Ctx, opts: MergeOptions): void {
     return;
   }
 
-  wt.conflicts = { ...result.conflicts };
   wt.inProgress = { kind: "merge", theirs: opts.theirs, message: opts.message };
   ctx.emit({ type: "operation", actor: ctx.actor, kind: "merge", phase: "started" });
-  ctx.emit({ type: "conflict", actor: ctx.actor, paths: conflicted.sort() });
+  ctx.emit({ type: "conflict", actor: ctx.actor, paths: conflicted });
   ctx.emit({ type: "operation", actor: ctx.actor, kind: "merge", phase: "stopped" });
   ctx.err("Automatic merge failed; fix conflicts and then commit the result.");
 }

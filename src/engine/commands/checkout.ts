@@ -46,8 +46,9 @@ export function switchTo(ctx: Ctx, target: Target): void {
   }
 
   const head = target.kind === "branch" ? { kind: "branch" as const, name: target.name } : { kind: "detached" as const, oid: target.oid };
+  const stayDetached = wt.head.kind === "detached" && target.kind === "detached" && oldOid === newOid;
   ctx.setHead(wt, head);
-  if (newOid) {
+  if (newOid && !stayDetached) {
     const toLabel = target.kind === "branch" ? target.name : target.label;
     ctx.logHead(wt, oldOid, newOid, `checkout: moving from ${oldLabel} to ${toLabel}`);
   }

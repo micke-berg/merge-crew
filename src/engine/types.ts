@@ -53,8 +53,8 @@ export type ConflictEntry = {
 export type InProgress =
   | { kind: "merge"; theirs: Oid; message: string }
   | { kind: "rebase"; onto: Oid; todo: Oid[]; done: Oid[]; origHead: Oid; branch: string | null }
-  | { kind: "cherry-pick"; oid: Oid }
-  | { kind: "revert"; oid: Oid };
+  | { kind: "cherry-pick"; oid: Oid; todo?: Oid[]; head?: Oid | null }
+  | { kind: "revert"; oid: Oid; todo?: Oid[]; head?: Oid | null };
 
 /**
  * One checkout of the shared repository. The player owns the main worktree, and each robot works in

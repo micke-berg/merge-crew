@@ -70,9 +70,10 @@ describe("oracle: real git self-test", () => {
       .map(({ r, i }) => `step ${i} ${JSON.stringify(r.step)}: expected ${r.step.expect ?? "ok"}, got ${r.outcome}\n${r.output}`);
     expect(wrong).toEqual([]);
     expect(checkSane(scenario.name, snapshot)).toEqual([]);
-    // Labels come from unique messages, except where a scenario amends without editing the message.
+    // Labels come from unique messages, except where a scenario copies commits (amend --no-edit,
+    // rebase, cherry-pick).
     const tagged = Object.keys(snapshot.commits).filter((l) => l.includes("{tree:"));
-    if (!scenario.name.includes("--no-edit")) expect(tagged).toEqual([]);
+    if (!scenario.name.includes("--no-edit") && !scenario.copiesCommits) expect(tagged).toEqual([]);
   });
 
   it("a conflicting merge records markers, conflict stages and the merge in progress", () => {

@@ -131,7 +131,8 @@ export class Ctx {
       this.updateBranch(wt.head.name, to, reason, message);
     } else {
       const from = wt.head.oid;
-      this.logHead(wt, from, to, message);
+      // A detached HEAD that does not move gets no reflog line (unlike a branch, whose HEAD does).
+      if (from !== to) this.logHead(wt, from, to, message);
       this.setHead(wt, { kind: "detached", oid: to });
     }
   }

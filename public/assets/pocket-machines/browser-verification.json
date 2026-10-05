@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-05",
+  "imageLoads": 36,
+  "stateSelectors": 9,
+  "checks": {
+    "frameInspection": "passed",
+    "playback": "passed",
+    "pause": "passed",
+    "mirroring": "passed",
+    "backgrounds": "passed",
+    "helperFrameSelection": "passed",
+    "helperMirroredAnchor": "passed"
+  },
+  "viewportWidths": [
+    1440,
+    390,
+    320
+  ],
+  "horizontalOverflow": false,
+  "visualReviews": [
+    "generated source boards",
+    "pose-review.png",
+    "desktop signature preview",
+    "390px panic preview"
+  ],
+  "gameIntegration": "not-tested",
+  "lint": "not-run",
+  "typecheck": "not-run",
+  "applicationTests": "not-run",
+  "build": "not-run"
+}

@@ -6,11 +6,16 @@ import { queries } from "./query";
 import { branch } from "./commands/branch";
 import { checkout, restore, switchCommand } from "./commands/checkout";
 import { commit } from "./commands/commit";
+import { diff, show } from "./commands/diff";
 import { add, rm } from "./commands/files";
 import { log, reflog } from "./commands/log";
 import { merge } from "./commands/merge";
+import { cherryPick, revert } from "./commands/pick";
+import { rebase } from "./commands/rebase";
 import { fetch, pull, push } from "./commands/remote";
 import { reset } from "./commands/reset";
+import { cat, ls } from "./commands/shell";
+import { stash } from "./commands/stash";
 import { status } from "./commands/status";
 import { worktree } from "./commands/worktree";
 import type {
@@ -46,10 +51,19 @@ const COMMANDS: Record<string, Command> = {
   fetch,
   pull,
   worktree,
+  rebase,
+  "cherry-pick": cherryPick,
+  revert,
+  stash,
+  diff,
+  show,
 };
 
+/** Read-only shell commands for looking at files. */
+const SHELL: Record<string, Command> = { cat, ls };
+
 /** Real git commands that a later wave will add. */
-const PLANNED = new Set(["rebase", "cherry-pick", "revert", "stash", "diff", "show", "tag", "remote", "clean", "mv"]);
+const PLANNED = new Set(["tag", "remote", "clean", "mv"]);
 
 function createRepo(options: CreateRepoOptions = {}): RepoState {
   return {
@@ -129,7 +143,14 @@ function execute(state: RepoState, actor: string, body: (ctx: Ctx) => void): Com
 function run(state: RepoState, input: CommandInput): CommandResult {
   const [program, sub, ...args] = input.argv;
   if (program !== "git") {
-    return failure(state, [{ kind: "error", text: `${program ?? ""}: shell commands are not supported in Merge Crew yet` }]);
+    const shell = program !== undefined ? SHELL[program] : undefined;
+    if (!shell) {
+      return failure(state, [{ kind: "error", text: `${program ?? ""}: shell commands are not supported in Merge Crew yet` }]);
+    }
+    if (!state.worktrees[input.actor]) {
+      return failure(state, [{ kind: "error", text: `${program}: '${input.actor}' has no worktree` }]);
+    }
+    return execute(state, input.actor, (ctx) => shell(ctx, input.argv.slice(1)));
   }
   if (sub === undefined) return failure(state, [{ kind: "error", text: "usage: git <command> [<args>]" }]);
   const command = COMMANDS[sub];
