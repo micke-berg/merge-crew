@@ -13,17 +13,22 @@ export function levelLabel(level: Level) {
   return `Act ${level.act} · Level ${level.order}`;
 }
 
+const FOCUSABLE = "button, a[href], input, textarea, select, [tabindex]:not([tabindex='-1'])";
+
 /** A centred card over a dimmed screen. Esc calls onClose when given. */
 export function Modal({
   children,
   label,
   onClose,
   wide = false,
+  className,
 }: {
   children: ReactNode;
   label: string;
   onClose?: () => void;
   wide?: boolean;
+  /** Replaces the card's width and padding classes, for bigger panels such as the conflict editor. */
+  className?: string;
 }) {
   const closeRef = useRef(onClose);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -41,6 +46,22 @@ export function Modal({
       if (e.key === "Escape" && closeRef.current) {
         e.preventDefault();
         closeRef.current();
+      } else if (e.key === "Tab") {
+        // Keep focus inside the dialog.
+        const card = cardRef.current;
+        if (!card) return;
+        const items = [...card.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => !el.hasAttribute("disabled"));
+        if (items.length === 0) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        const active = document.activeElement;
+        if (e.shiftKey && (active === first || !card.contains(active))) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && (active === last || !card.contains(active))) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
     window.addEventListener("keydown", onKey);
@@ -67,7 +88,7 @@ export function Modal({
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 8, scale: 0.98 }}
         transition={{ type: "spring", stiffness: 340, damping: 30 }}
-        className={`relative w-full ${wide ? "max-w-xl" : "max-w-lg"} rounded-[28px] border border-[#D8CCB5] bg-[#FFFDF8] p-6 text-[#26283B] shadow-[0_30px_80px_-20px_rgba(60,44,20,0.55)] md:p-8`}
+        className={`relative w-full ${className ?? `${wide ? "max-w-xl" : "max-w-lg"} p-6 md:p-8`} rounded-[28px] border border-[#D8CCB5] bg-[#FFFDF8] text-[#26283B] shadow-[0_30px_80px_-20px_rgba(60,44,20,0.55)]`}
       >
         {children}
       </motion.div>
@@ -75,9 +96,9 @@ export function Modal({
   );
 }
 
-const primary =
+export const primary =
   "inline-flex items-center justify-center gap-2 rounded-full bg-[#26283B] px-6 py-3 text-[15px] font-bold text-[#F7F1E5] shadow-[0_3px_0_#11121c] transition-transform hover:-translate-y-px active:translate-y-px focus-visible:ring-4 focus-visible:ring-[#2563C9]/40 focus-visible:outline-none";
-const secondary =
+export const secondary =
   "inline-flex items-center justify-center rounded-full border border-[#C9BCA4] px-4 py-2.5 text-sm font-semibold text-[#5D5649] transition-colors hover:bg-[#F3ECDF] hover:text-[#26283B] focus-visible:ring-4 focus-visible:ring-[#2563C9]/30 focus-visible:outline-none";
 
 export function BriefCard({ level, onStart }: { level: Level; onStart: () => void }) {

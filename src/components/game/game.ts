@@ -254,3 +254,31 @@ export function runPlayerCommand(s: GameState, line: string): CommandOutcome {
   if (won) state = enterScript({ ...state, phase: "outro", cursor: 0 });
   return { state, ok: r.ok, changed, won };
 }
+
+/**
+ * The player saved a file in the conflict editor. Not a git command: it writes the working file
+ * through the engine, so events, goals and the win check work the same way a command's would.
+ * Does not count as a command.
+ */
+export function editPlayerFile(s: GameState, path: string, content: string): CommandOutcome {
+  if (s.phase !== "play") return { state: s, ok: true, changed: false, won: false };
+  const r = engine.edit(s.repo, { kind: "write", actor: "player", path, content });
+  const changed = r.ok && r.state !== s.repo;
+  const lines: NewLine[] = r.ok
+    ? [{ kind: "note", text: `You saved ${path}.` }]
+    : r.output.map((o) => ({ kind: o.kind, actor: "player", text: o.text }));
+  if (r.ok && s.repo.worktrees.player?.conflicts[path]) {
+    lines.push({ kind: "hint", actor: "player", text: `Now stage it with git add ${path}` });
+  }
+  const goals = changed ? checkGoals(s.level, r.state) : s.goals;
+  const won = changed && goals.length > 0 && goals.every(Boolean);
+  let state: GameState = {
+    ...s,
+    repo: r.state,
+    events: changed ? r.events : s.events,
+    goals,
+    ...addLines(s, lines),
+  };
+  if (won) state = enterScript({ ...state, phase: "outro", cursor: 0 });
+  return { state, ok: r.ok, changed, won };
+}

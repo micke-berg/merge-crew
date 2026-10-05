@@ -14,6 +14,8 @@ import { DialogueBox } from "./DialogueBox";
 import { FilesPanel, type OpenFile } from "./FilesPanel";
 import { GoalsPanel } from "./GoalsPanel";
 import { Logo } from "./Logo";
+import { ConflictEditor } from "./ConflictEditor";
+import { conflictSource } from "./conflicts";
 import { BriefCard, FileViewer, WinCard, levelLabel } from "./Overlays";
 import { Terminal, type TerminalHandle } from "./Terminal";
 import { useLevel } from "./useLevel";
@@ -22,10 +24,11 @@ export function LevelScreen({ levelId }: { levelId: string }) {
   const level = getLevel(levelId);
   if (!level) return null;
   // A new level id gets a fresh game.
-  return <Game key={level.id} level={level} />;
+  return <LevelGame key={level.id} level={level} />;
 }
 
-function Game({ level }: { level: Level }) {
+/** One level's screen, for a level object that may not be in the level list (tests, dev pages). */
+export function LevelGame({ level }: { level: Level }) {
   const g = useLevel(level);
   const { game } = g;
   // Fetch the robot sheets this level plays, so no state change waits on the network.
@@ -64,9 +67,17 @@ function Game({ level }: { level: Level }) {
     if (playing) requestAnimationFrame(() => terminal.current?.focus());
   };
 
+  const player = game.repo.worktrees.player;
   const openContent = open
-    ? (open.area === "staged" ? game.repo.worktrees.player?.index[open.path] : game.repo.worktrees.player?.workingTree[open.path])
+    ? (open.area === "staged" ? player?.index[open.path] : player?.workingTree[open.path])
     : undefined;
+  // Conflicted files open in the editor during the player turn, and read-only during scenes.
+  const openConflict = open && playing && open.area === "working" && player ? player.conflicts[open.path] : undefined;
+
+  const saveFile = (path: string, content: string) => {
+    g.edit(path, content);
+    closeFile();
+  };
 
   const cast = (["player", ...level.crew] as const).filter((a, i, all) => all.indexOf(a) === i);
 
@@ -174,7 +185,18 @@ function Game({ level }: { level: Level }) {
           {game.phase === "won" && (
             <WinCard key="won" level={level} commands={game.commands} next={next} onReplay={g.restart} />
           )}
-          {open && openContent !== undefined && (
+          {open && openConflict && player && (
+            <ConflictEditor
+              key={`conflict-${open.path}`}
+              path={open.path}
+              content={openContent}
+              entry={openConflict}
+              source={conflictSource(player)}
+              onSave={(content) => saveFile(open.path, content)}
+              onClose={closeFile}
+            />
+          )}
+          {open && !openConflict && openContent !== undefined && (
             <FileViewer key="file" path={open.path} area={open.area} content={openContent} onClose={closeFile} />
           )}
         </AnimatePresence>

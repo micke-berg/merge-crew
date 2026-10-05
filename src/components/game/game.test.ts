@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { engine } from "@/engine";
 import { levels, solutions } from "@/levels";
-import { advance, advanceUntilClick, begin, runPlayerCommand, skipScript, startLevel, type GameState } from "./game";
+import { advance, advanceUntilClick, begin, editPlayerFile, runPlayerCommand, skipScript, startLevel, type GameState } from "./game";
 
 /** Play a scene to its end the way an impatient player clicks through it. */
 function clickThrough(s: GameState): GameState {
@@ -32,6 +32,9 @@ describe.each(levels.map((l) => [l.id, l] as const))("level %s", (id, level) => 
         const out = runPlayerCommand(s, typed(step.argv));
         expect(out.ok, out.state.log.at(-1)?.text).toBe(true);
         s = out.state;
+      } else if (step.kind === "edit" && step.edit.kind === "write" && step.edit.actor === "player") {
+        // The player's own file edits go through the conflict editor's action.
+        s = editPlayerFile(s, step.edit.path, step.edit.content).state;
       } else if (step.kind === "edit") {
         s = { ...s, repo: engine.edit(s.repo, step.edit).state };
       }
@@ -47,6 +50,9 @@ describe.each(levels.map((l) => [l.id, l] as const))("level %s", (id, level) => 
     expect(s.phase).toBe("play");
     for (const step of solutions[id]) {
       if (step.kind === "git") s = runPlayerCommand(s, typed(step.argv)).state;
+      else if (step.kind === "edit" && step.edit.kind === "write" && step.edit.actor === "player") {
+        s = editPlayerFile(s, step.edit.path, step.edit.content).state;
+      } else if (step.kind === "edit") s = { ...s, repo: engine.edit(s.repo, step.edit).state };
     }
     expect(skipScript(s).phase).toBe("won");
   });

@@ -6,7 +6,7 @@ import { useEffect, useReducer } from "react";
 import { useReducedMotion } from "motion/react";
 import type { Level } from "@/engine/types";
 import { buildSchedule } from "@/components/map/timeline";
-import { advance, begin, runPlayerCommand, skipScript, startLevel, type GameState, type Wait } from "./game";
+import { advance, begin, editPlayerFile, runPlayerCommand, skipScript, startLevel, type GameState, type Wait } from "./game";
 import { markLevelComplete } from "./progress";
 
 type Model = {
@@ -22,6 +22,7 @@ type Action =
   | { type: "continue" }
   | { type: "skip" }
   | { type: "command"; line: string }
+  | { type: "edit"; path: string; content: string }
   | { type: "restart"; level: Level };
 
 const NONE: Wait = { kind: "none" };
@@ -52,6 +53,12 @@ function reducer(m: Model, a: Action): Model {
       const out = runPlayerCommand(m.game, a.line);
       if (out.state === m.game) return m;
       // A winning command plays out on the map before the closing scene starts.
+      const wait: Wait = out.won && out.changed ? { kind: "animate", events: out.state.events } : NONE;
+      return { ...m, game: out.state, wait };
+    }
+    case "edit": {
+      const out = editPlayerFile(m.game, a.path, a.content);
+      if (out.state === m.game) return m;
       const wait: Wait = out.won && out.changed ? { kind: "animate", events: out.state.events } : NONE;
       return { ...m, game: out.state, wait };
     }
@@ -101,6 +108,8 @@ export function useLevel(level: Level) {
     next: () => dispatch({ type: "continue" }),
     skip: () => dispatch({ type: "skip" }),
     command: (line: string) => dispatch({ type: "command", line }),
+    /** Save a working file from the conflict editor. */
+    edit: (path: string, content: string) => dispatch({ type: "edit", path, content }),
     restart: () => dispatch({ type: "restart", level }),
   };
 }
