@@ -55,6 +55,12 @@ export const level: Level = {
   title: "Drift's long walk",
   brief:
     "Drift started a branch long ago and never looked back at main. Now it wants in, and main has moved on. Bring Drift's work home and settle the conflict fairly.",
+  mission: {
+    situation:
+      "Drift wrote a slogan for the café's sign on a branch it started long ago. Meanwhile main added its own new line to the sign, so the two clash.",
+    job: "Merge Drift's branch into main, keep both new lines on the sign, and push the result to origin.",
+    practise: ["git merge", "git add", "git commit", "git push"],
+  },
   crew: ["drift", "tidy"],
   setup: [
     write("player", "sign.txt", "LEMONADE\nOpen 9 to 5\n"),
@@ -83,16 +89,16 @@ export const level: Level = {
     // Drift's signature float, coming back from wherever it has been.
     mood("drift", "happy"),
     pause(700),
-    say("drift", "Hello. I drew a cloud. And I wrote a slogan for the sign. It took a while.", "happy"),
-    say("tidy", "Drift, your branch starts at the very first commit. Main has three new ones since.", "thinking"),
+    say("drift", "Hello. I wrote a slogan for the café's sign, sign.txt. And drew a cloud. It took a while.", "happy", ["sign.txt"]),
+    say("tidy", "Look at the map, Drift. Your line starts at main's very first stop. Main has three new ones since.", "thinking"),
     say("drift", "Main moves? I thought it waited for me.", "surprised"),
-    say("tidy", "It never waits. And you both added a line at the bottom of sign.txt. Git can't pick one for us.", "talking"),
-    say("drift", "Then you pick, Lead. Both lines are nice. Mine is a little nicer.", "happy"),
+    say("tidy", "And main added a line at the bottom of sign.txt too. Git can't pick one, so the merge will stop and ask.", "talking", ["sign.txt"]),
+    say("drift", "Then you pick, Lead. Keep both, maybe. Mine is a little nicer.", "happy"),
   ],
   goals: [
     {
       id: "drift-on-origin",
-      description: "Drift's cloud and slogan are on main on origin",
+      description: "Merge Drift's cloud and slogan into main and push them to origin",
       check: allOf(
         remoteBranchContains("origin", "main", DRIFT_CLOUD),
         remoteBranchContains("origin", "main", DRIFT_SLOGAN),
@@ -100,12 +106,12 @@ export const level: Level = {
     },
     {
       id: "both-lines",
-      description: "The sign on origin keeps both new lines, with no conflict markers left",
+      description: "The sign keeps both new lines, with no conflict markers left",
       check: fileInTipHasLines(remoteBranch("origin", "main"), "sign.txt", ["LEMONADE", MAIN_LINE, DRIFT_LINE]),
     },
     {
       id: "main-kept",
-      description: "Main's own commits stay exactly as they were",
+      description: "Main's own commits stay exactly as they were (no rebase, no force)",
       check: allOf(
         originalCommitReachableFrom(remoteBranch("origin", "main"), PRICES),
         originalCommitReachableFrom(remoteBranch("origin", "main"), ICED_TEA),

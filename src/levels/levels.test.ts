@@ -78,6 +78,27 @@ describe("level data", () => {
     for (const s of level.suggestions) expect(s.startsWith("git ")).toBe(true);
   });
 
+  it.each(levels.map((l) => [l.id, l] as const))("%s has a mission card and a short opening scene", (_, level) => {
+    expect(level.mission?.situation.length).toBeGreaterThan(0);
+    expect(level.mission?.job.length).toBeGreaterThan(0);
+    expect(level.mission?.practise.length).toBeGreaterThan(0);
+    // Short scenes: the story sets the job up, the job bar carries the instructions.
+    expect(level.intro.filter((s) => s.kind === "say").length).toBeLessThanOrEqual(5);
+  });
+
+  it.each(levels.map((l) => [l.id, l] as const))("%s: every file a robot line points at is in the player's files", (_, level) => {
+    let state = runSteps(engine.createRepo(), level.setup);
+    for (const step of level.intro) {
+      if (step.kind === "say") {
+        for (const path of step.files ?? []) {
+          expect(Object.hasOwn(state.worktrees.player.workingTree, path), `${step.actor}: "${step.text}" -> ${path}`).toBe(true);
+        }
+      } else {
+        state = runSteps(state, [step]);
+      }
+    }
+  });
+
   it("has exactly one documented solution per level", () => {
     expect(Object.keys(solutions).sort()).toEqual(levels.map((l) => l.id).sort());
   });

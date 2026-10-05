@@ -15,8 +15,14 @@ export const write = (actor: ActorId, path: Path, content: string): ScriptStep =
   edit: { kind: "write", actor, path, content },
 });
 
-export const say = (actor: RobotId, text: string, mood?: Mood): ScriptStep =>
-  mood ? { kind: "say", actor, text, mood } : { kind: "say", actor, text };
+/** A robot line. `files` are working files the line mentions; the files panel highlights them. */
+export const say = (actor: RobotId, text: string, mood?: Mood, files?: Path[]): ScriptStep => ({
+  kind: "say",
+  actor,
+  text,
+  ...(mood ? { mood } : {}),
+  ...(files?.length ? { files } : {}),
+});
 
 export const mood = (actor: RobotId, m: Mood): ScriptStep => ({ kind: "mood", actor, mood: m });
 

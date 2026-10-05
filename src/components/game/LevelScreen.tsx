@@ -13,6 +13,9 @@ import { preloadSheets } from "@/components/robots/Sprite";
 import { DialogueBox } from "./DialogueBox";
 import { FilesPanel, type OpenFile } from "./FilesPanel";
 import { GoalsPanel } from "./GoalsPanel";
+import { JobBar } from "./JobBar";
+import { PremiseCard } from "./Premise";
+import { markPremiseSeen, usePremiseSeen } from "./premiseStorage";
 import { Logo } from "./Logo";
 import { ConflictEditor } from "./ConflictEditor";
 import { conflictSource } from "./conflicts";
@@ -39,6 +42,8 @@ export function LevelGame({ level }: { level: Level }) {
   useGameSounds({ events: game.events, repo: game.repo, goals: game.goals, phase: game.phase, log: game.log, reduce });
   const terminal = useRef<TerminalHandle>(null);
   const [open, setOpen] = useState<OpenFile | null>(null);
+  // A first-time player who lands straight on a level gets the opening story before the brief.
+  const premiseSeen = usePremiseSeen();
 
   const inScene = game.phase === "intro" || game.phase === "outro";
   const playing = game.phase === "play";
@@ -125,7 +130,7 @@ export function LevelGame({ level }: { level: Level }) {
           {/* map */}
           <section
             aria-label="History map"
-            className="relative h-[46dvh] min-h-[320px] overflow-hidden rounded-3xl border border-line shadow-[0_1px_0_white_inset,0_10px_30px_-12px_rgba(74,58,32,0.35)] md:col-span-2 lg:col-span-1 lg:h-auto"
+            className="relative h-[40dvh] min-h-[300px] overflow-hidden rounded-3xl border border-line shadow-[0_1px_0_white_inset,0_10px_30px_-12px_rgba(74,58,32,0.35)] md:col-span-2 lg:col-span-1 lg:h-auto"
           >
             <HistoryMap
               key={g.run}
@@ -155,11 +160,17 @@ export function LevelGame({ level }: { level: Level }) {
           {/* side column: goals and files */}
           <div className="flex min-h-0 flex-col gap-3 md:order-last md:col-span-2 md:grid md:grid-cols-2 lg:order-none lg:col-span-1 lg:row-span-2 lg:flex">
             <GoalsPanel goals={level.goals} done={game.goals} />
-            <FilesPanel repo={game.repo} where={where} onOpen={setOpen} />
+            <FilesPanel
+              repo={game.repo}
+              where={where}
+              onOpen={setOpen}
+              highlight={inScene && game.bubble?.files.length ? { actor: game.bubble.actor, files: game.bubble.files } : null}
+            />
           </div>
 
           {/* command box */}
-          <div className="flex h-[320px] flex-col md:col-span-2 lg:col-span-1 lg:h-auto lg:min-h-0">
+          <div className="flex h-[372px] flex-col gap-2 md:col-span-2 lg:col-span-1 lg:h-auto lg:min-h-0">
+            <JobBar goals={level.goals} done={game.goals} won={game.phase === "outro" || game.phase === "won"} />
             <Terminal
               ref={terminal}
               log={game.log}
@@ -176,6 +187,7 @@ export function LevelGame({ level }: { level: Level }) {
                   awaitingClick={g.awaitingClick}
                   onNext={g.next}
                   reduce={reduce}
+                  onOpenFile={(path) => setOpen({ path, area: "working" })}
                 />
                 ) : undefined
               }
@@ -184,7 +196,10 @@ export function LevelGame({ level }: { level: Level }) {
         </main>
 
         <AnimatePresence>
-          {game.phase === "brief" && <BriefCard key="brief" level={level} onStart={g.begin} />}
+          {game.phase === "brief" && !premiseSeen && (
+            <PremiseCard key="premise" onDone={() => markPremiseSeen()} doneLabel="On to the first job" />
+          )}
+          {game.phase === "brief" && premiseSeen && <BriefCard key="brief" level={level} onStart={g.begin} />}
           {game.phase === "won" && (
             <WinCard key="won" level={level} commands={game.commands} next={next} onReplay={g.restart} />
           )}

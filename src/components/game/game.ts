@@ -9,6 +9,7 @@ import type {
   Level,
   Mood,
   OutputLine,
+  Path,
   RepoState,
   RobotId,
   ScriptStep,
@@ -25,7 +26,8 @@ export type TermLine =
 /** A terminal line before it gets its id. */
 type NewLine = TermLine extends infer T ? (T extends TermLine ? Omit<T, "id"> : never) : never;
 
-export type Bubble = { actor: RobotId; text: string; mood: Mood };
+/** A robot line on screen. `files` are working files the line mentions, highlighted in the files panel. */
+export type Bubble = { actor: RobotId; text: string; mood: Mood; files: readonly Path[] };
 
 export type GameState = {
   level: Level;
@@ -169,7 +171,7 @@ export function advance(s: GameState): { state: GameState; wait: Wait } {
     case "say": {
       const mood = step.mood ?? "talking";
       return {
-        state: { ...next, bubble: { actor: step.actor, text: step.text, mood }, moods: { ...s.moods, [step.actor]: mood } },
+        state: { ...next, bubble: { actor: step.actor, text: step.text, mood, files: step.files ?? [] }, moods: { ...s.moods, [step.actor]: mood } },
         wait: { kind: "click" },
       };
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion, MotionConfig } from "motion/react";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { levels } from "@/levels";
 import { actorColor } from "@/lib/palette";
@@ -9,6 +9,8 @@ import { Logo } from "./Logo";
 import { ACT_NAMES } from "./Overlays";
 import { useProgress } from "./progress";
 import { RobotPortrait } from "./RobotPortrait";
+import { CAFE_NAME, PremiseCard } from "./Premise";
+import { markPremiseSeen, usePremiseSeen } from "./premiseStorage";
 import { preloadSheets } from "@/components/robots/Sprite";
 import type { SpriteRobot } from "@/components/robots/sheets.generated";
 
@@ -38,6 +40,14 @@ export function StartScreen() {
   const started = done.length > 0;
   const acts = [1, 2, 3] as const;
   useEffect(() => preloadSheets(CREW_SHEETS), []);
+  const premiseSeen = usePremiseSeen();
+  const [replay, setReplay] = useState(false);
+  const showPremise = replay || !premiseSeen;
+  const closePremise = () => {
+    markPremiseSeen();
+    setReplay(false);
+    requestAnimationFrame(() => playRef.current?.focus({ preventScroll: true }));
+  };
 
   return (
     <MotionConfig reducedMotion="user">
@@ -64,8 +74,17 @@ export function StartScreen() {
                 Merge Crew
               </motion.h1>
               <p className="mt-4 max-w-xl text-lg leading-relaxed text-body md:text-xl">
-                Your robot crew keeps breaking the repository. You fix it, with real git commands.
+                You lead four robots who build the website of {CAFE_NAME}, a tiny robot café, and when they break
+                something, you fix it with real git commands.
               </p>
+              <button
+                type="button"
+                onClick={() => setReplay(true)}
+                className="mt-3 inline-flex items-center gap-1.5 rounded-full text-[14px] font-semibold text-soft underline decoration-line-strong underline-offset-4 hover:text-ink focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none"
+              >
+                <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden><path d="M1.5 0.8 L9 5 L1.5 9.2 Z" fill="currentColor" /></svg>
+                Watch the opening again
+              </button>
             </div>
             <Link
               href={`/level/${firstOpen.id}`}
@@ -161,6 +180,7 @@ export function StartScreen() {
           </footer>
         </div>
       </div>
+      <AnimatePresence>{showPremise && <PremiseCard key="premise" onDone={closePremise} />}</AnimatePresence>
     </MotionConfig>
   );
 }

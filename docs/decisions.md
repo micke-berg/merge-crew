@@ -2,6 +2,14 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-10-05 — Story and first run: Café Cog
+
+- **The crew's world is a small robot café, Café Cog.** The crew builds and runs the café's website (menu, prices, opening hours, the sign); the player is their new lead and keeps the crew's work safe and shipped. Why: after playing, the maintainer had no idea who they were or why they were there, and scenes opened mid-conversation about things never shown. The existing level content (lemonade, prices, sign, iced tea, tip jar) already fit a café.
+- **A short opening story, shown once.** Six lines and a café front with the crew, on the first visit (start screen or a level opened directly), remembered in browser storage, skippable, and replayable from the start screen. The start screen carries a one-sentence version.
+- **Story and instructions are separate.** Each level has a mission card in plain words (what's going on, your job, what you'll practise) on the brief. A "Your job" bar sits directly above the terminal at every width and shows the first unmet goal. Scenes were cut to at most five lines, start from what is on screen, and name each file they mention. In Act 1, every teaching line Tidy says is word for word the goal the job bar shows.
+- **Contract change (additive, in `src/engine/types.ts`):** `Level.mission?: { situation; job; practise }`, and `files?: Path[]` on the `say` script step. While a line with `files` shows, the files panel highlights those files and the line shows them as chips that open the file. A level test plays each intro and checks every named file exists in the player's working files at that line.
+- **No git behaviour changed.** Only `say` lines, briefs, goal descriptions, suggestions and missions were edited; every setup and intro git or edit step is identical, and the real-git level test is green.
+
 ## 2026-10-05 — Pocket Machines character art
 
 - The maintainer chose Pocket Machines from three directions. Tidy walks, Blaze rolls, Drift hovers and Hoarder shuffles. Each has eight standard states and one signature action.

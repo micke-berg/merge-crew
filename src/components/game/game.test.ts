@@ -115,6 +115,8 @@ describe("player commands", () => {
     const s = advanceUntilClick(begin(startLevel(level)));
     expect(s.phase).toBe("intro");
     expect(s.bubble?.actor).toBe("blaze");
+    // The line names the file it talks about, for the files panel to highlight.
+    expect(s.bubble?.files).toEqual(["sign.txt"]);
   });
 });
 

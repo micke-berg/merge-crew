@@ -234,7 +234,8 @@ export type Mood = "idle" | "talking" | "thinking" | "happy" | "celebrate" | "sc
 export type ScriptStep =
   | { kind: "git"; actor: ActorId; argv: string[] }
   | { kind: "edit"; edit: FileEdit }
-  | { kind: "say"; actor: RobotId; text: string; mood?: Mood }
+  /** A robot line. `files` names working files the line talks about; the files panel highlights them while it shows. */
+  | { kind: "say"; actor: RobotId; text: string; mood?: Mood; files?: Path[] }
   | { kind: "mood"; actor: RobotId; mood: Mood }
   | { kind: "pause"; ms: number };
 
@@ -251,8 +252,13 @@ export type Level = {
   /** Order within the act, starting at 1. */
   order: number;
   title: string;
-  /** One or two sentences shown before the level starts. */
+  /** One or two sentences shown before the level starts, and in the level list. */
   brief: string;
+  /**
+   * The level's mission card, in plain words rather than robot voice. Shown on the brief card above
+   * the goals. `practise` lists the commands the level teaches, e.g. ["git add", "git commit"].
+   */
+  mission?: { situation: string; job: string; practise: string[] };
   crew: RobotId[];
   /** Runs instantly from createRepo() to build the starting repository. */
   setup: ScriptStep[];

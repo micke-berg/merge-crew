@@ -106,9 +106,8 @@ export function BriefCard({ level, onStart }: { level: Level; onStart: () => voi
         {levelLabel(level)} · {ACT_NAMES[level.act]}
       </p>
       <h1 className="mt-1.5 text-3xl leading-tight font-extrabold tracking-tight md:text-[34px]">{level.title}</h1>
-      <p className="mt-3 text-[16px] leading-relaxed text-body">{level.brief}</p>
 
-      <div className="mt-5 flex flex-wrap gap-3">
+      <div className="mt-3 flex flex-wrap gap-2">
         {(["player", ...level.crew] as const).map((a) => (
           <div key={a} className="flex items-center gap-2 rounded-full bg-sunk py-1 pr-3.5 pl-1">
             <RobotPortrait actor={a} size={34} still />
@@ -119,7 +118,8 @@ export function BriefCard({ level, onStart }: { level: Level; onStart: () => voi
         ))}
       </div>
 
-      <h2 className="mt-6 text-[12px] font-bold tracking-[0.12em] text-muted uppercase">To win</h2>
+      {level.mission ? <MissionCard mission={level.mission} /> : <p className="mt-3 text-[16px] leading-relaxed text-body">{level.brief}</p>}
+      <h2 className="mt-6 text-[12px] font-bold tracking-[0.12em] text-muted uppercase">Done when</h2>
       <ul className="mt-2 flex flex-col gap-1.5">
         {level.goals.map((g) => (
           <li key={g.id} className="flex gap-2.5 text-[14.5px] leading-snug">
@@ -140,6 +140,30 @@ export function BriefCard({ level, onStart }: { level: Level; onStart: () => voi
         </span>
       </div>
     </Modal>
+  );
+}
+
+/** The level's mission in plain words: what is going on, what the player does, what they practise. */
+function MissionCard({ mission }: { mission: NonNullable<Level["mission"]> }) {
+  return (
+    <dl className="mt-4 flex flex-col gap-3">
+      <div>
+        <dt className="text-[12px] font-bold tracking-[0.12em] text-muted uppercase">{"What's going on"}</dt>
+        <dd className="mt-0.5 text-[15.5px] leading-snug text-body">{mission.situation}</dd>
+      </div>
+      <div className="rounded-2xl border-2 border-ink bg-card px-4 py-3">
+        <dt className="text-[12px] font-bold tracking-[0.12em] text-ink uppercase">Your job</dt>
+        <dd className="mt-0.5 text-[16.5px] leading-snug font-bold text-ink">{mission.job}</dd>
+      </div>
+      <div>
+        <dt className="text-[12px] font-bold tracking-[0.12em] text-muted uppercase">{"You'll practise"}</dt>
+        <dd className="mt-1.5 flex flex-wrap gap-1.5">
+          {mission.practise.map((c) => (
+            <code key={c} className="rounded-lg bg-ink px-2 py-0.5 font-mono text-[12.5px] text-paper">{c}</code>
+          ))}
+        </dd>
+      </div>
+    </dl>
   );
 }
 

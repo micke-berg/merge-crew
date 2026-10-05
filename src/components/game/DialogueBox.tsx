@@ -14,6 +14,8 @@ type Props = {
   awaitingClick: boolean;
   onNext: () => void;
   reduce: boolean;
+  /** Open a file the line mentions. */
+  onOpenFile?: (path: string) => void;
 };
 
 /** Keys that move a scene on. Ignored while the player is typing or has a control focused. */
@@ -28,7 +30,7 @@ function targetIsControl(e: KeyboardEvent) {
 }
 
 /** The dialogue strip: who speaks, what they say, and a nudge to continue. */
-export function DialogueBox({ bubble, lineKey, awaitingClick, onNext, reduce }: Props) {
+export function DialogueBox({ bubble, lineKey, awaitingClick, onNext, reduce, onOpenFile }: Props) {
   return (
     <div className="flex min-h-[92px] items-end">
       <AnimatePresence mode="wait">
@@ -39,6 +41,7 @@ export function DialogueBox({ bubble, lineKey, awaitingClick, onNext, reduce }: 
             awaitingClick={awaitingClick}
             onNext={onNext}
             reduce={reduce}
+            onOpenFile={onOpenFile}
           />
         )}
       </AnimatePresence>
@@ -49,7 +52,7 @@ export function DialogueBox({ bubble, lineKey, awaitingClick, onNext, reduce }: 
 /** Typing speed of robot lines. Slow enough to read along and for the voice blips to land. */
 const CHARS_PER_SECOND = 45;
 
-function Line({ bubble, awaitingClick, onNext, reduce }: Omit<Props, "lineKey" | "bubble"> & { bubble: Bubble }) {
+function Line({ bubble, awaitingClick, onNext, reduce, onOpenFile }: Omit<Props, "lineKey" | "bubble"> & { bubble: Bubble }) {
   const c = actorColor(bubble.actor);
   const full = bubble.text;
   const [shown, setShown] = useState(reduce ? full.length : 0);
@@ -110,6 +113,28 @@ function Line({ bubble, awaitingClick, onNext, reduce }: Omit<Props, "lineKey" |
           {full.slice(0, shown)}
           <span className="invisible">{full.slice(shown)}</span>
         </p>
+        {bubble.files.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {bubble.files.map((path) => (
+              <button
+                key={path}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenFile?.(path);
+                }}
+                className="inline-flex items-center gap-1.5 rounded-full border bg-white px-2.5 py-0.5 font-mono text-[12px] font-semibold text-ink transition-transform hover:-translate-y-px focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none"
+                style={{ borderColor: c.line }}
+                title={`Show ${path}`}
+              >
+                <svg width="10" height="12" viewBox="0 0 10 12" aria-hidden>
+                  <path d="M1 1h5l3 3v7H1z" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+                </svg>
+                {path}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <span
         className={`absolute right-3 bottom-2 flex items-center gap-1 text-[11px] font-semibold text-muted transition-opacity duration-200 ${done && awaitingClick ? "opacity-100" : "opacity-0"}`}

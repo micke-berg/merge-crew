@@ -19,12 +19,16 @@ Merge Crew is built by several AI coding agents working at the same time, each o
 
 ## Levels
 
+- 2026-10-05 — Rewriting scene dialogue can quietly point at files the player does not have: a file that lives only on a robot's branch or in the stash. A test now plays each intro and checks that every file a line highlights is in the player's working files at that moment. Writing Act 1's teaching lines to match the goal text word for word keeps the story and the job bar from drifting apart.
+
 - 2026-10-05 — Check a level's story in real git, not just its commands. In a shared repository, commits "lost" to a force-push stay reachable through the robot's own branch and worktree, and a plain pull refuses to drop diverged commits. The force-push scene had to reset both checkouts to make the loss real.
 - 2026-10-05 — Real git refuses `git rebase main drift` when `drift` is checked out in a robot's worktree. Robots holding their branches limits what the player can do to them, so goals must accept every fair route (merge, or rebasing a copy).
 - 2026-10-05 — Running every suggestion button through the engine, not only the solutions, found a button offering `git log --graph`, which the engine did not support.
 - 2026-10-05 — Goals evaluated during a scripted scene showed "2/3 done" before the problem had even happened. Goals are now checked from the player's turn on.
 
 ## Interface
+
+- 2026-10-05 — A player-facing complaint ("I don't know why I'm here, the robots tell me what to do") turned into four concrete defects only after naming them: no premise, scenes referring to unseen things, instructions inside jokes, and the task falling below the fold at tablet width. Playing as a first-timer at 800 px also exposed a terminal that did not fill its fixed-height column, leaving a gap that pushed the goals further down.
 
 - 2026-10-05 — Several layout problems appeared only when playing a level to the end in a browser; the unit tests were green throughout. A speech bubble hid the one tag the force-push scene is about, and robot name labels covered the player's marker after a merge once the wider final art arrived.
 - 2026-10-05 — Measuring the artwork's bounding boxes with a throwaway script gave a safe shared crop (about half the pixels) and the per-robot widths used for spacing. The web sprites are about 11% of the source size.

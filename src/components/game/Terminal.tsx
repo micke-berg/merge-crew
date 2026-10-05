@@ -97,7 +97,7 @@ export function Terminal({ log, active, where, path, suggestions, onRun, ref, sc
   return (
     <section
       aria-label="Command box"
-      className={`flex min-h-0 flex-col rounded-3xl bg-ink p-2.5 text-paper shadow-[0_10px_30px_-12px_rgba(20,20,40,0.6)] transition-shadow duration-300 ${
+      className={`flex min-h-0 flex-1 flex-col rounded-3xl bg-ink p-2.5 text-paper shadow-[0_10px_30px_-12px_rgba(20,20,40,0.6)] transition-shadow duration-300 ${
         active ? "ring-2 ring-term-prompt/70 ring-offset-2 ring-offset-desk" : ""
       }`}
     >

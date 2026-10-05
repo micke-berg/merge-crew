@@ -53,6 +53,12 @@ export const level: Level = {
   title: "Blaze was in a hurry",
   brief:
     "Blaze pushed to main with --force. Tidy's work has vanished from origin and from your checkout. Find it and bring it back without rewriting anything.",
+  mission: {
+    situation:
+      "Blaze made the café's sign louder and pushed it with --force, which overwrites whatever is there. That wiped Tidy's price list off origin, the shared copy the website is built from, and out of your files.",
+    job: "Find Tidy's lost price list and put it back on origin next to Blaze's sign, without forcing anything.",
+    practise: ["git reflog", "git branch", "git merge", "git push"],
+  },
   crew: ["tidy", "blaze"],
   setup: [
     write("player", "sign.txt", "LEMONADE\n"),
@@ -77,33 +83,31 @@ export const level: Level = {
     git("blaze", "commit", "-m", BLAZE),
   ],
   intro: [
-    say("blaze", "Done! Sign is louder. Shipping it.", "happy"),
-    say("tidy", "Lovely. Pull first, please. I pushed the price list this morning.", "talking"),
-    say("blaze", "Pull? Main is SO messy. Mine is cleaner. I'll just push mine.", "talking"),
+    say("blaze", "Done! The café's sign, sign.txt, is LOUDER now. Shipping it with --force. No time to pull.", "happy", ["sign.txt"]),
+    say("tidy", "Wait! I put the price list, prices.txt, on origin this morning. Origin is the shared copy!", "scared", ["prices.txt"]),
     // The overconfident wheelie (Blaze's signature), right before the force-push.
     mood("blaze", "celebrate"),
     pause(900),
     git("blaze", "push", "--force", "origin", "blaze:main"),
     pause(600),
-    say("blaze", "Boom. And I synced everyone's checkout to the new main. You're welcome!", "happy"),
+    say("blaze", "Boom. And I reset everyone's files to match the new main. You're welcome!", "happy"),
     git("player", "fetch"),
     git("player", "reset", "--hard", "origin/main"),
     git("tidy", "reset", "--hard", "origin/main"),
     pause(400),
     mood("tidy", "scared"),
-    say("tidy", "Blaze. Where is my price list.", "scared"),
-    say("blaze", "The old main? It was in the way. Gone. Very clean now.", "guilty"),
-    say("tidy", "Nothing is really gone in git, Blaze. It's just lost. Lead, can you find it?", "thinking"),
+    say("tidy", "My price list is gone. From origin and from your files. Blaze!", "scared"),
+    say("tidy", "Git's reflog remembers where main has been. Lead, bring my price list back, without forcing anything.", "thinking"),
   ],
   goals: [
     {
       id: "tidy-back-on-origin",
-      description: "Get Tidy's two price list commits back onto main on origin",
+      description: "Get Tidy's price list (both commits) back onto main on origin",
       check: allOf(remoteBranchContains("origin", "main", TIDY_1), remoteBranchContains("origin", "main", TIDY_2)),
     },
     {
       id: "blaze-kept",
-      description: "Keep Blaze's louder sign on origin's main, as it is",
+      description: "Keep Blaze's louder sign on origin's main too, as it is",
       check: originalCommitReachableFrom(remoteBranch("origin", "main"), BLAZE),
     },
     {

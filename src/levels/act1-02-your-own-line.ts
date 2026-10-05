@@ -9,6 +9,12 @@ export const level: Level = {
   title: "Your own line",
   brief:
     "Branches let you try things without touching main. Put your snack idea on a branch of its own, then come back to main.",
+  mission: {
+    situation:
+      "You added bolts to the café's snack menu, snacks.txt. It's an experiment, so it should not go straight onto main, the version the café's website uses.",
+    job: "Save the bolts on a branch of their own, then switch back to main.",
+    practise: ["git switch -c", "git add", "git commit", "git switch"],
+  },
   crew: ["tidy"],
   setup: [
     write("player", "snacks.txt", "Robot snacks\n"),
@@ -18,20 +24,21 @@ export const level: Level = {
     write("player", "snacks.txt", "Robot snacks\n- bolts\n"),
   ],
   intro: [
-    say("tidy", "See the main line on the map? That's main. Everyone relies on it, so we keep it calm.", "talking"),
-    say("tidy", "You've added bolts to the snack menu. Bold. Let's not put that straight on main.", "thinking"),
-    say("tidy", "Make a branch of your own and switch to it. Your unsaved change comes with you.", "talking"),
-    say("tidy", "Commit it there, then switch back to main. Main stays untouched, your idea stays safe.", "happy"),
+    say("tidy", "See the line on the map? That's main, the version the café's website uses. We keep it calm.", "talking"),
+    say("tidy", "You've added bolts to the snack menu, snacks.txt. Bold. Let's not put that on main yet.", "thinking", ["snacks.txt"]),
+    say("tidy", "A branch is your own line to try things on. Unsaved changes come along when you switch to it.", "talking"),
+    say("tidy", "Save the bolts on a new branch: git switch -c bolts, then git add snacks.txt and git commit.", "talking", ["snacks.txt"]),
+    say("tidy", "Then go back with git switch main. Main stays untouched, your idea stays safe.", "happy"),
   ],
   goals: [
     {
       id: "branch-with-commit",
-      description: "Commit the snack change on a new branch",
+      description: "Save the bolts on a new branch: git switch -c bolts, then git add snacks.txt and git commit",
       check: someBranchAheadOf("main"),
     },
     {
       id: "back-on-main",
-      description: "Switch back to main with a clean working tree",
+      description: "Go back to main with nothing unsaved: git switch main",
       check: allOf(currentBranchIs("player", "main"), workingTreeClean("player")),
     },
   ],
