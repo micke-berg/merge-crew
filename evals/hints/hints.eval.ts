@@ -56,6 +56,14 @@ async function inBatches<T, R>(items: T[], size: number, fn: (item: T) => Promis
   return out;
 }
 
+/**
+ * Compare models without editing code: HINT_EVAL_MODEL overrides the hint model for this run (an AI
+ * Gateway model string), and HINT_EVAL_BATCH sets how many cases run at once (default 4; use 1 on
+ * rate-limited plans).
+ */
+const evalModel = process.env.HINT_EVAL_MODEL || HINT_MODEL;
+const batchSize = Math.max(1, Number(process.env.HINT_EVAL_BATCH) || 4);
+
 describe("live hint evals", () => {
   if (!live) {
     it.skip("skipped: no AI Gateway credentials (set AI_GATEWAY_API_KEY or pull VERCEL_OIDC_TOKEN), or HINTS_AI=off", () => {});
@@ -64,10 +72,10 @@ describe("live hint evals", () => {
 
   it("hints for every stuck case, checked and graded", async () => {
     const jobs = CASES.flatMap((c) => HINT_NUMBERS.map((n) => ({ c, n })));
-    const rows = await inBatches(jobs, 4, async ({ c, n }): Promise<Row> => {
+    const rows = await inBatches(jobs, batchSize, async ({ c, n }): Promise<Row> => {
       const data = hintLevel(c.levelId)!;
       const req = caseRequest(c, n);
-      const out = await getHint(req, data);
+      const out = await getHint(req, data, evalModel === HINT_MODEL ? {} : { model: evalModel });
       const row: Row = {
         caseId: c.id,
         levelId: c.levelId,
@@ -102,7 +110,7 @@ describe("live hint evals", () => {
     const graded = rows.filter((r) => r.grade);
     const rate = (f: (r: Row) => boolean, of: Row[]) => (of.length ? Math.round((of.filter(f).length / of.length) * 100) : 0);
     const summary = {
-      hintModel: HINT_MODEL,
+      hintModel: evalModel,
       graderModel: GRADER_MODEL,
       graderCalibrated: false,
       runs: rows.length,
