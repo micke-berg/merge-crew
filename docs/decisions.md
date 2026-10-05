@@ -1,0 +1,13 @@
+# Decisions
+
+Newest first. Each entry: date, what was decided, why.
+
+## 2026-10-05 — Project start
+
+- **Standalone game, public from the first commit, MIT licence for code.** Art has its own licences, listed in `ASSETS.md`.
+- **Game loop: the player leads a crew of robot coding agents who make real agent mistakes.** Act 1 teaches, Act 2 fixes, Act 3 leads with rule cards. Why: no existing git game teaches the problems people now hit while working with coding agents, and existing games mostly show only the commit graph.
+- **Flat 2D with soft shadows, no 3D, no photo mode.** Why: an early 3D sketch read as a molecule model, not a game. The appeal has to come from the characters and the animation, and 3D made the history harder to read.
+- **Real character art, low cost.** First choice: a free, CC BY licensed Rive robot as the base style, adapted into four crew members. Commissioning custom art is an option after the first playable level, if the base art falls short.
+- **Own git simulator, checked against real git in tests.** Why: browser git libraries lack rebase, reflog and worktrees, and earlier attempts drifted because nothing defined correct behaviour.
+- **Scripted robots in v1. Live AI robots and local models are out of v1.** Why: levels must play the same way every time, and running costs must stay near zero.
+- **AI is used for hints only in v1,** with a low-cost model, a hard spending cap, evals and tracing.
