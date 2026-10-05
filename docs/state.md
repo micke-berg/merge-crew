@@ -4,7 +4,8 @@ Updated: 2026-10-05
 
 ## Where things stand
 
-- Spec approved. Art brief is with the owner (external AI art tool); robots are code-drawn stand-ins until then.
+- Spec approved.
+- Pocket Machines selected by the owner. The full set is in `public/assets/pocket-machines/` under CC0-1.0, recorded in `ASSETS.md`. It contains 36 four-frame sheets, four portraits, a manifest, a drawing helper and an interactive preview. The live game still uses code-drawn placeholders; integration is the next art task.
 - `main` has wave 1 (PR #1): engine, real-git comparison tests (45 scenarios), history map, four levels.
 - Branch `feat/playable-level`: all four levels playable at `/level/[id]` with a start screen. Scenes with dialogue, a terminal with history and suggestions, files panel, goals panel, brief and win panels, progress saved in the browser. act2-01 was played start to win in a browser by the lead.
 - In progress on the same branch: engine wave 2 (rebase, cherry-pick, revert, stash, diff, cat, ls) in `src/engine/` and `tests/oracle/`.

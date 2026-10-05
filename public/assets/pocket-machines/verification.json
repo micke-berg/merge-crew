@@ -1,0 +1,1811 @@
+{
+  "date": "2026-10-05",
+  "files": {
+    "sheets": 36,
+    "frames": 144,
+    "portraits": 4
+  },
+  "checks": "Dimensions, counts, alpha, nonempty frames, safe padding, state coverage, consistent anchors and resting scale passed.",
+  "sheets": [
+    {
+      "character": "tidy",
+      "state": "idle",
+      "file": "sprites/tidy-idle.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 176,
+            "top": 169,
+            "right": 383,
+            "bottom": 461
+          },
+          "transparentPixels": 216463
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 170,
+            "top": 165,
+            "right": 375,
+            "bottom": 462
+          },
+          "transparentPixels": 215943
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 172,
+            "top": 166,
+            "right": 379,
+            "bottom": 462
+          },
+          "transparentPixels": 216194
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 174,
+            "top": 169,
+            "right": 382,
+            "bottom": 461
+          },
+          "transparentPixels": 216100
+        }
+      ]
+    },
+    {
+      "character": "tidy",
+      "state": "move",
+      "file": "sprites/tidy-move.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 148,
+            "top": 173,
+            "right": 383,
+            "bottom": 461
+          },
+          "transparentPixels": 215278
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 174,
+            "top": 172,
+            "right": 375,
+            "bottom": 461
+          },
+          "transparentPixels": 218170
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 156,
+            "top": 173,
+            "right": 385,
+            "bottom": 462
+          },
+          "transparentPixels": 215786
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 172,
+            "top": 172,
+            "right": 361,
+            "bottom": 461
+          },
+          "transparentPixels": 218125
+        }
+      ]
+    },
+    {
+      "character": "tidy",
+      "state": "hop",
+      "file": "sprites/tidy-hop.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 151,
+            "top": 196,
+            "right": 360,
+            "bottom": 436
+          },
+          "transparentPixels": 224683
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 189,
+            "top": 160,
+            "right": 399,
+            "bottom": 433
+          },
+          "transparentPixels": 222440
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 177,
+            "top": 154,
+            "right": 377,
+            "bottom": 409
+          },
+          "transparentPixels": 226382
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 184,
+            "top": 199,
+            "right": 374,
+            "bottom": 435
+          },
+          "transparentPixels": 224743
+        }
+      ]
+    },
+    {
+      "character": "tidy",
+      "state": "talk",
+      "file": "sprites/tidy-talk.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 163,
+            "top": 166,
+            "right": 395,
+            "bottom": 461
+          },
+          "transparentPixels": 211809
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 168,
+            "top": 166,
+            "right": 409,
+            "bottom": 461
+          },
+          "transparentPixels": 211719
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 165,
+            "top": 164,
+            "right": 366,
+            "bottom": 461
+          },
+          "transparentPixels": 212395
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 165,
+            "top": 165,
+            "right": 401,
+            "bottom": 462
+          },
+          "transparentPixels": 212468
+        }
+      ]
+    },
+    {
+      "character": "tidy",
+      "state": "happy",
+      "file": "sprites/tidy-happy.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 160,
+            "top": 163,
+            "right": 386,
+            "bottom": 461
+          },
+          "transparentPixels": 212374
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 153,
+            "top": 160,
+            "right": 394,
+            "bottom": 462
+          },
+          "transparentPixels": 211796
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 144,
+            "top": 151,
+            "right": 398,
+            "bottom": 447
+          },
+          "transparentPixels": 213050
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 156,
+            "top": 165,
+            "right": 391,
+            "bottom": 462
+          },
+          "transparentPixels": 211640
+        }
+      ]
+    },
+    {
+      "character": "tidy",
+      "state": "scared",
+      "file": "sprites/tidy-scared.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 167,
+            "top": 182,
+            "right": 373,
+            "bottom": 461
+          },
+          "transparentPixels": 215388
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 148,
+            "top": 172,
+            "right": 392,
+            "bottom": 461
+          },
+          "transparentPixels": 215049
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 178,
+            "top": 196,
+            "right": 357,
+            "bottom": 461
+          },
+          "transparentPixels": 221362
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 175,
+            "top": 196,
+            "right": 369,
+            "bottom": 461
+          },
+          "transparentPixels": 219334
+        }
+      ]
+    },
+    {
+      "character": "tidy",
+      "state": "guilty",
+      "file": "sprites/tidy-guilty.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 170,
+            "top": 166,
+            "right": 390,
+            "bottom": 462
+          },
+          "transparentPixels": 213173
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 182,
+            "top": 172,
+            "right": 368,
+            "bottom": 461
+          },
+          "transparentPixels": 217368
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 153,
+            "top": 166,
+            "right": 364,
+            "bottom": 462
+          },
+          "transparentPixels": 215432
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 170,
+            "top": 166,
+            "right": 402,
+            "bottom": 462
+          },
+          "transparentPixels": 213272
+        }
+      ]
+    },
+    {
+      "character": "tidy",
+      "state": "thinking",
+      "file": "sprites/tidy-thinking.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 164,
+            "top": 170,
+            "right": 363,
+            "bottom": 462
+          },
+          "transparentPixels": 214882
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 161,
+            "top": 167,
+            "right": 339,
+            "bottom": 461
+          },
+          "transparentPixels": 218656
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 150,
+            "top": 164,
+            "right": 350,
+            "bottom": 461
+          },
+          "transparentPixels": 215924
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 165,
+            "top": 168,
+            "right": 346,
+            "bottom": 461
+          },
+          "transparentPixels": 217332
+        }
+      ]
+    },
+    {
+      "character": "tidy",
+      "state": "signature",
+      "file": "sprites/tidy-signature.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 174,
+            "top": 179,
+            "right": 385,
+            "bottom": 461
+          },
+          "transparentPixels": 215687
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 173,
+            "top": 175,
+            "right": 358,
+            "bottom": 462
+          },
+          "transparentPixels": 217740
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 168,
+            "top": 174,
+            "right": 350,
+            "bottom": 462
+          },
+          "transparentPixels": 218776
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 171,
+            "top": 174,
+            "right": 401,
+            "bottom": 462
+          },
+          "transparentPixels": 214811
+        }
+      ]
+    },
+    {
+      "character": "blaze",
+      "state": "idle",
+      "file": "sprites/blaze-idle.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 155,
+            "top": 166,
+            "right": 413,
+            "bottom": 462
+          },
+          "transparentPixels": 209176
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 155,
+            "top": 166,
+            "right": 414,
+            "bottom": 462
+          },
+          "transparentPixels": 208890
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 155,
+            "top": 166,
+            "right": 413,
+            "bottom": 462
+          },
+          "transparentPixels": 209384
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 155,
+            "top": 166,
+            "right": 413,
+            "bottom": 462
+          },
+          "transparentPixels": 209263
+        }
+      ]
+    },
+    {
+      "character": "blaze",
+      "state": "move",
+      "file": "sprites/blaze-move.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 155,
+            "top": 166,
+            "right": 419,
+            "bottom": 462
+          },
+          "transparentPixels": 208401
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 156,
+            "top": 170,
+            "right": 421,
+            "bottom": 462
+          },
+          "transparentPixels": 207428
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 154,
+            "top": 168,
+            "right": 418,
+            "bottom": 462
+          },
+          "transparentPixels": 208600
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 155,
+            "top": 169,
+            "right": 413,
+            "bottom": 462
+          },
+          "transparentPixels": 209398
+        }
+      ]
+    },
+    {
+      "character": "blaze",
+      "state": "hop",
+      "file": "sprites/blaze-hop.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 155,
+            "top": 200,
+            "right": 420,
+            "bottom": 453
+          },
+          "transparentPixels": 215660
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 160,
+            "top": 136,
+            "right": 408,
+            "bottom": 427
+          },
+          "transparentPixels": 211699
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 170,
+            "top": 143,
+            "right": 405,
+            "bottom": 410
+          },
+          "transparentPixels": 217179
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 155,
+            "top": 189,
+            "right": 415,
+            "bottom": 453
+          },
+          "transparentPixels": 214044
+        }
+      ]
+    },
+    {
+      "character": "blaze",
+      "state": "talk",
+      "file": "sprites/blaze-talk.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 155,
+            "top": 164,
+            "right": 409,
+            "bottom": 461
+          },
+          "transparentPixels": 209667
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 156,
+            "top": 167,
+            "right": 456,
+            "bottom": 461
+          },
+          "transparentPixels": 205456
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 155,
+            "top": 166,
+            "right": 411,
+            "bottom": 461
+          },
+          "transparentPixels": 210017
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 156,
+            "top": 167,
+            "right": 440,
+            "bottom": 461
+          },
+          "transparentPixels": 207019
+        }
+      ]
+    },
+    {
+      "character": "blaze",
+      "state": "happy",
+      "file": "sprites/blaze-happy.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 154,
+            "top": 166,
+            "right": 410,
+            "bottom": 461
+          },
+          "transparentPixels": 209522
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 152,
+            "top": 166,
+            "right": 459,
+            "bottom": 461
+          },
+          "transparentPixels": 204472
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 152,
+            "top": 150,
+            "right": 449,
+            "bottom": 447
+          },
+          "transparentPixels": 204644
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 151,
+            "top": 165,
+            "right": 445,
+            "bottom": 461
+          },
+          "transparentPixels": 205346
+        }
+      ]
+    },
+    {
+      "character": "blaze",
+      "state": "scared",
+      "file": "sprites/blaze-scared.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 152,
+            "top": 179,
+            "right": 407,
+            "bottom": 461
+          },
+          "transparentPixels": 213511
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 150,
+            "top": 177,
+            "right": 419,
+            "bottom": 461
+          },
+          "transparentPixels": 207238
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 155,
+            "top": 171,
+            "right": 406,
+            "bottom": 461
+          },
+          "transparentPixels": 214242
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 156,
+            "top": 184,
+            "right": 410,
+            "bottom": 461
+          },
+          "transparentPixels": 213114
+        }
+      ]
+    },
+    {
+      "character": "blaze",
+      "state": "guilty",
+      "file": "sprites/blaze-guilty.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 159,
+            "top": 169,
+            "right": 409,
+            "bottom": 462
+          },
+          "transparentPixels": 212863
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 159,
+            "top": 167,
+            "right": 411,
+            "bottom": 462
+          },
+          "transparentPixels": 214226
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 159,
+            "top": 167,
+            "right": 410,
+            "bottom": 462
+          },
+          "transparentPixels": 208290
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 156,
+            "top": 165,
+            "right": 435,
+            "bottom": 462
+          },
+          "transparentPixels": 209347
+        }
+      ]
+    },
+    {
+      "character": "blaze",
+      "state": "thinking",
+      "file": "sprites/blaze-thinking.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 153,
+            "top": 166,
+            "right": 409,
+            "bottom": 462
+          },
+          "transparentPixels": 208439
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 153,
+            "top": 163,
+            "right": 399,
+            "bottom": 461
+          },
+          "transparentPixels": 210209
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 157,
+            "top": 164,
+            "right": 403,
+            "bottom": 462
+          },
+          "transparentPixels": 208519
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 155,
+            "top": 164,
+            "right": 399,
+            "bottom": 462
+          },
+          "transparentPixels": 209020
+        }
+      ]
+    },
+    {
+      "character": "blaze",
+      "state": "signature",
+      "file": "sprites/blaze-signature.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 151,
+            "top": 196,
+            "right": 422,
+            "bottom": 461
+          },
+          "transparentPixels": 212975
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 93,
+            "top": 187,
+            "right": 365,
+            "bottom": 462
+          },
+          "transparentPixels": 214644
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 153,
+            "top": 184,
+            "right": 434,
+            "bottom": 462
+          },
+          "transparentPixels": 214979
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 151,
+            "top": 181,
+            "right": 405,
+            "bottom": 462
+          },
+          "transparentPixels": 210725
+        }
+      ]
+    },
+    {
+      "character": "drift",
+      "state": "idle",
+      "file": "sprites/drift-idle.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 145,
+            "top": 166,
+            "right": 374,
+            "bottom": 461
+          },
+          "transparentPixels": 220916
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 141,
+            "top": 167,
+            "right": 368,
+            "bottom": 461
+          },
+          "transparentPixels": 221531
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 145,
+            "top": 166,
+            "right": 374,
+            "bottom": 461
+          },
+          "transparentPixels": 220917
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 144,
+            "top": 167,
+            "right": 373,
+            "bottom": 462
+          },
+          "transparentPixels": 220582
+        }
+      ]
+    },
+    {
+      "character": "drift",
+      "state": "move",
+      "file": "sprites/drift-move.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 177,
+            "top": 174,
+            "right": 394,
+            "bottom": 461
+          },
+          "transparentPixels": 222382
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 157,
+            "top": 175,
+            "right": 360,
+            "bottom": 461
+          },
+          "transparentPixels": 224261
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 154,
+            "top": 163,
+            "right": 394,
+            "bottom": 461
+          },
+          "transparentPixels": 220755
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 177,
+            "top": 174,
+            "right": 394,
+            "bottom": 461
+          },
+          "transparentPixels": 222416
+        }
+      ]
+    },
+    {
+      "character": "drift",
+      "state": "hop",
+      "file": "sprites/drift-hop.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 147,
+            "top": 226,
+            "right": 366,
+            "bottom": 447
+          },
+          "transparentPixels": 227450
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 164,
+            "top": 150,
+            "right": 387,
+            "bottom": 440
+          },
+          "transparentPixels": 222002
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 169,
+            "top": 142,
+            "right": 360,
+            "bottom": 409
+          },
+          "transparentPixels": 226864
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 145,
+            "top": 209,
+            "right": 365,
+            "bottom": 454
+          },
+          "transparentPixels": 226077
+        }
+      ]
+    },
+    {
+      "character": "drift",
+      "state": "talk",
+      "file": "sprites/drift-talk.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 158,
+            "top": 164,
+            "right": 380,
+            "bottom": 461
+          },
+          "transparentPixels": 222239
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 154,
+            "top": 166,
+            "right": 416,
+            "bottom": 461
+          },
+          "transparentPixels": 222093
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 155,
+            "top": 169,
+            "right": 369,
+            "bottom": 461
+          },
+          "transparentPixels": 223787
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 151,
+            "top": 168,
+            "right": 393,
+            "bottom": 462
+          },
+          "transparentPixels": 223085
+        }
+      ]
+    },
+    {
+      "character": "drift",
+      "state": "happy",
+      "file": "sprites/drift-happy.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 149,
+            "top": 170,
+            "right": 384,
+            "bottom": 461
+          },
+          "transparentPixels": 223030
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 136,
+            "top": 182,
+            "right": 396,
+            "bottom": 461
+          },
+          "transparentPixels": 220802
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 152,
+            "top": 163,
+            "right": 394,
+            "bottom": 447
+          },
+          "transparentPixels": 222919
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 158,
+            "top": 174,
+            "right": 376,
+            "bottom": 461
+          },
+          "transparentPixels": 224764
+        }
+      ]
+    },
+    {
+      "character": "drift",
+      "state": "scared",
+      "file": "sprites/drift-scared.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 138,
+            "top": 166,
+            "right": 372,
+            "bottom": 461
+          },
+          "transparentPixels": 221624
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 119,
+            "top": 181,
+            "right": 374,
+            "bottom": 461
+          },
+          "transparentPixels": 222364
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 153,
+            "top": 169,
+            "right": 363,
+            "bottom": 461
+          },
+          "transparentPixels": 224847
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 157,
+            "top": 172,
+            "right": 355,
+            "bottom": 461
+          },
+          "transparentPixels": 225462
+        }
+      ]
+    },
+    {
+      "character": "drift",
+      "state": "guilty",
+      "file": "sprites/drift-guilty.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 143,
+            "top": 165,
+            "right": 351,
+            "bottom": 462
+          },
+          "transparentPixels": 222566
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 156,
+            "top": 178,
+            "right": 346,
+            "bottom": 461
+          },
+          "transparentPixels": 224196
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 118,
+            "top": 162,
+            "right": 343,
+            "bottom": 461
+          },
+          "transparentPixels": 219061
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 151,
+            "top": 181,
+            "right": 395,
+            "bottom": 461
+          },
+          "transparentPixels": 221894
+        }
+      ]
+    },
+    {
+      "character": "drift",
+      "state": "thinking",
+      "file": "sprites/drift-thinking.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 146,
+            "top": 161,
+            "right": 361,
+            "bottom": 461
+          },
+          "transparentPixels": 219833
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 160,
+            "top": 169,
+            "right": 372,
+            "bottom": 461
+          },
+          "transparentPixels": 222475
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 152,
+            "top": 159,
+            "right": 367,
+            "bottom": 461
+          },
+          "transparentPixels": 221930
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 177,
+            "top": 163,
+            "right": 365,
+            "bottom": 462
+          },
+          "transparentPixels": 224026
+        }
+      ]
+    },
+    {
+      "character": "drift",
+      "state": "signature",
+      "file": "sprites/drift-signature.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 173,
+            "top": 165,
+            "right": 412,
+            "bottom": 461
+          },
+          "transparentPixels": 220579
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 174,
+            "top": 183,
+            "right": 408,
+            "bottom": 461
+          },
+          "transparentPixels": 221059
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 176,
+            "top": 164,
+            "right": 396,
+            "bottom": 461
+          },
+          "transparentPixels": 220181
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 168,
+            "top": 171,
+            "right": 365,
+            "bottom": 461
+          },
+          "transparentPixels": 224729
+        }
+      ]
+    },
+    {
+      "character": "hoarder",
+      "state": "idle",
+      "file": "sprites/hoarder-idle.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 102,
+            "top": 166,
+            "right": 402,
+            "bottom": 461
+          },
+          "transparentPixels": 190352
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 103,
+            "top": 166,
+            "right": 402,
+            "bottom": 462
+          },
+          "transparentPixels": 191241
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 103,
+            "top": 166,
+            "right": 403,
+            "bottom": 461
+          },
+          "transparentPixels": 190670
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 102,
+            "top": 166,
+            "right": 401,
+            "bottom": 461
+          },
+          "transparentPixels": 191116
+        }
+      ]
+    },
+    {
+      "character": "hoarder",
+      "state": "move",
+      "file": "sprites/hoarder-move.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 101,
+            "top": 155,
+            "right": 401,
+            "bottom": 461
+          },
+          "transparentPixels": 188000
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 104,
+            "top": 156,
+            "right": 403,
+            "bottom": 461
+          },
+          "transparentPixels": 188694
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 97,
+            "top": 156,
+            "right": 397,
+            "bottom": 461
+          },
+          "transparentPixels": 188919
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 105,
+            "top": 156,
+            "right": 402,
+            "bottom": 461
+          },
+          "transparentPixels": 188988
+        }
+      ]
+    },
+    {
+      "character": "hoarder",
+      "state": "hop",
+      "file": "sprites/hoarder-hop.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 103,
+            "top": 174,
+            "right": 406,
+            "bottom": 461
+          },
+          "transparentPixels": 191786
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 112,
+            "top": 158,
+            "right": 411,
+            "bottom": 461
+          },
+          "transparentPixels": 190881
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 114,
+            "top": 138,
+            "right": 414,
+            "bottom": 437
+          },
+          "transparentPixels": 193205
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 98,
+            "top": 171,
+            "right": 401,
+            "bottom": 461
+          },
+          "transparentPixels": 191247
+        }
+      ]
+    },
+    {
+      "character": "hoarder",
+      "state": "talk",
+      "file": "sprites/hoarder-talk.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 99,
+            "top": 167,
+            "right": 394,
+            "bottom": 461
+          },
+          "transparentPixels": 192131
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 91,
+            "top": 166,
+            "right": 437,
+            "bottom": 461
+          },
+          "transparentPixels": 189002
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 102,
+            "top": 167,
+            "right": 389,
+            "bottom": 461
+          },
+          "transparentPixels": 192685
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 100,
+            "top": 165,
+            "right": 428,
+            "bottom": 461
+          },
+          "transparentPixels": 189594
+        }
+      ]
+    },
+    {
+      "character": "hoarder",
+      "state": "happy",
+      "file": "sprites/hoarder-happy.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 97,
+            "top": 166,
+            "right": 387,
+            "bottom": 461
+          },
+          "transparentPixels": 191907
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 88,
+            "top": 165,
+            "right": 435,
+            "bottom": 461
+          },
+          "transparentPixels": 186938
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 106,
+            "top": 141,
+            "right": 392,
+            "bottom": 447
+          },
+          "transparentPixels": 193970
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 100,
+            "top": 169,
+            "right": 428,
+            "bottom": 461
+          },
+          "transparentPixels": 190274
+        }
+      ]
+    },
+    {
+      "character": "hoarder",
+      "state": "scared",
+      "file": "sprites/hoarder-scared.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 100,
+            "top": 177,
+            "right": 382,
+            "bottom": 461
+          },
+          "transparentPixels": 194913
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 96,
+            "top": 170,
+            "right": 425,
+            "bottom": 461
+          },
+          "transparentPixels": 193763
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 111,
+            "top": 174,
+            "right": 385,
+            "bottom": 461
+          },
+          "transparentPixels": 197852
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 108,
+            "top": 174,
+            "right": 384,
+            "bottom": 461
+          },
+          "transparentPixels": 196651
+        }
+      ]
+    },
+    {
+      "character": "hoarder",
+      "state": "guilty",
+      "file": "sprites/hoarder-guilty.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 107,
+            "top": 167,
+            "right": 389,
+            "bottom": 462
+          },
+          "transparentPixels": 195379
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 116,
+            "top": 176,
+            "right": 394,
+            "bottom": 462
+          },
+          "transparentPixels": 198205
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 104,
+            "top": 166,
+            "right": 387,
+            "bottom": 462
+          },
+          "transparentPixels": 194134
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 109,
+            "top": 166,
+            "right": 423,
+            "bottom": 462
+          },
+          "transparentPixels": 194481
+        }
+      ]
+    },
+    {
+      "character": "hoarder",
+      "state": "thinking",
+      "file": "sprites/hoarder-thinking.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 107,
+            "top": 164,
+            "right": 386,
+            "bottom": 462
+          },
+          "transparentPixels": 194567
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 109,
+            "top": 164,
+            "right": 395,
+            "bottom": 462
+          },
+          "transparentPixels": 193974
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 105,
+            "top": 168,
+            "right": 397,
+            "bottom": 462
+          },
+          "transparentPixels": 193235
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 109,
+            "top": 165,
+            "right": 388,
+            "bottom": 462
+          },
+          "transparentPixels": 194942
+        }
+      ]
+    },
+    {
+      "character": "hoarder",
+      "state": "signature",
+      "file": "sprites/hoarder-signature.png",
+      "width": 2048,
+      "height": 512,
+      "frameCount": 4,
+      "frames": [
+        {
+          "frame": 0,
+          "bounds": {
+            "left": 107,
+            "top": 164,
+            "right": 389,
+            "bottom": 462
+          },
+          "transparentPixels": 194281
+        },
+        {
+          "frame": 1,
+          "bounds": {
+            "left": 97,
+            "top": 142,
+            "right": 380,
+            "bottom": 462
+          },
+          "transparentPixels": 190047
+        },
+        {
+          "frame": 2,
+          "bounds": {
+            "left": 109,
+            "top": 163,
+            "right": 393,
+            "bottom": 461
+          },
+          "transparentPixels": 193864
+        },
+        {
+          "frame": 3,
+          "bounds": {
+            "left": 109,
+            "top": 167,
+            "right": 389,
+            "bottom": 462
+          },
+          "transparentPixels": 195550
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Merge Crew — Pocket Machines</title>
+<style>
+:root{color-scheme:light;--ink:#352642;--paper:#f7f3ec;--line:#e1d9ce;--stage:#f0ece4}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,-apple-system,sans-serif}main{max-width:1500px;margin:auto;padding:36px 28px 56px}header{display:flex;justify-content:space-between;gap:20px;align-items:end;margin-bottom:24px}h1{font-size:clamp(28px,4vw,46px);letter-spacing:-1.5px;margin:0;line-height:1.1}p{margin:8px 0}.eyebrow{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#776b7a}.badge{border:1px solid var(--line);border-radius:24px;padding:8px 14px;font-size:13px;white-space:nowrap}.controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:14px 0}.controls button,.controls select{font:inherit;font-size:14px;border:1px solid #cec3d4;background:white;color:var(--ink);border-radius:9px;padding:9px 13px;cursor:pointer}.controls button[aria-pressed=true]{background:var(--ink);color:white;border-color:var(--ink)}button:focus-visible,select:focus-visible{outline:3px solid #6c58a4;outline-offset:3px}.extra-controls{border-top:1px solid var(--line);gap:14px;margin-bottom:20px}.extra-controls label{display:flex;align-items:center;gap:8px;font-size:13px}.map{height:330px;position:relative;border:1px solid var(--line);border-radius:18px;background:var(--stage);overflow:hidden;background-image:radial-gradient(#d7d0c7 1px,transparent 1px);background-size:28px 28px}.map svg{width:100%;height:100%;position:absolute}.mini{position:absolute;width:82px;height:82px;pointer-events:none}.bubble{position:absolute;left:14%;top:35px;width:180px;height:62px;background:white;border-radius:18px;box-shadow:0 4px 12px #35264212}.bubble:after{content:'';position:absolute;bottom:-10px;left:30px;border-top:14px solid white;border-right:16px solid transparent}.command{position:absolute;bottom:14px;left:18px;right:18px;height:42px;background:#352642;border-radius:12px;display:flex;justify-content:space-between;align-items:center;padding:0 14px;color:#f4efe5}.caret{width:2px;height:20px;background:#f4efe5}.arrow{width:27px;height:27px;border-radius:50%;display:grid;place-items:center;background:#d6c5ef;color:#352642}.section-label{margin:24px 0 12px;font-size:13px;display:flex;justify-content:space-between;gap:12px}.crew{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.card{border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#fff9}.portrait-stage{height:390px;display:grid;place-items:center;overflow:hidden;background:var(--stage)}.portrait{width:384px;height:384px;max-width:none;flex-shrink:0}.card-copy{padding:16px 18px;border-top:1px solid var(--line)}.card-copy h2{font-size:21px;margin:0}.role{font-size:13px;color:#776b7a;margin-top:3px}.signature{font-size:13px;margin-top:8px;min-height:40px}.frames{display:flex;gap:6px;align-items:center;font-size:13px}.frames button{font-size:13px;padding:6px 10px}footer{margin-top:26px;font-size:13px;color:#776b7a}footer a{color:inherit}.status{font-size:13px;margin-left:auto}.dark{--stage:#25202d}.checker{--stage:#eee}.checker .portrait-stage,.checker .map{background-color:white;background-image:conic-gradient(#e6e1ea 25%,white 0 50%,#e6e1ea 0 75%,white 0);background-size:24px 24px}.dark .map{background-image:radial-gradient(#4b4059 1px,transparent 1px)}.dark .bubble{background:#fff}.help{font-size:13px;color:#776b7a}.map-caption{font-size:12px;margin:7px 0 0;color:#776b7a}
+@media(max-width:1300px){.crew{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:650px){main{padding:24px 14px}header{display:block}.badge{display:inline-block;margin-top:14px}.crew{grid-template-columns:minmax(0,1fr)}.map{height:285px}.bubble{width:115px;height:48px;left:9%}.portrait-stage{height:390px}.status{width:100%;margin:0}.extra-controls{gap:10px}.controls button{padding:8px 10px}.section-label{flex-direction:column;gap:2px}}
+</style>
+</head>
+<body><main>
+<header><div><div class="eyebrow">Merge Crew · character set</div><h1>Pocket Machines</h1><p>Four little agents. Nine ways to get into trouble.</p></div><div class="badge">36 sheets · 144 keyframes</div></header>
+<div class="controls" id="states" role="group" aria-label="Animation state"></div>
+<div class="controls extra-controls">
+<button id="play" aria-pressed="false">Pause</button><button id="mirror" aria-pressed="false">Face left</button>
+<label>Background <select id="background"><option value="warm">Warm</option><option value="dark">Dark</option><option value="checker">Transparency grid</option></select></label>
+<div class="frames" role="group" aria-label="Inspect individual frames">Frame <button data-frame="0">1</button><button data-frame="1">2</button><button data-frame="2">3</button><button data-frame="3">4</button></div>
+<span class="status" id="status" role="status">Loading artwork…</span>
+</div>
+<section class="map" aria-label="Crew at approximately 64 pixels tall on a git metro map">
+<svg viewBox="0 0 1000 330" preserveAspectRatio="none" aria-hidden="true"><g fill="none" stroke-width="5" stroke-linejoin="round"><path stroke="#66b4ac" d="M0 205H1000"/><path stroke="#ec916c" d="M290 205L375 130H610L690 205"/><path stroke="#aaa0ce" d="M545 130L605 85H1000"/><path stroke="#d9b34a" d="M340 205L390 255H720L770 205"/></g><g fill="var(--stage)" stroke-width="5"><g stroke="#66b4ac"><circle cx="70" cy="205" r="10"/><circle cx="170" cy="205" r="10"/><circle cx="290" cy="205" r="10"/><circle cx="340" cy="205" r="10"/><circle cx="690" cy="205" r="10"/><circle cx="770" cy="205" r="10"/><circle cx="910" cy="205" r="10"/></g><g stroke="#ec916c"><circle cx="410" cy="130" r="10"/><circle cx="545" cy="130" r="10"/></g><g stroke="#aaa0ce"><circle cx="745" cy="85" r="10"/><circle cx="900" cy="85" r="10"/></g><g stroke="#d9b34a"><circle cx="545" cy="255" r="10"/><circle cx="655" cy="255" r="10"/></g></g></svg>
+<div class="bubble" aria-hidden="true"></div><canvas class="mini" data-character="tidy" width="512" height="512" aria-label="Tidy at map size"></canvas><canvas class="mini" data-character="blaze" width="512" height="512" aria-label="Blaze at map size"></canvas><canvas class="mini" data-character="drift" width="512" height="512" aria-label="Drift at map size"></canvas><canvas class="mini" data-character="hoarder" width="512" height="512" aria-label="Hoarder at map size"></canvas><div class="command" aria-hidden="true"><span class="caret"></span><span class="arrow">›</span></div>
+</section><p class="map-caption">Map artwork is approximately 64 px tall. The drawings below are approximately 300 px tall, on desktop, including antennas and packs.</p>
+<div class="section-label"><span>Same state, four personalities</span><span>Four drawn keyframes per animation · click a frame to inspect it</span></div>
+<section class="crew" id="crew" aria-label="Crew portraits"></section>
+<p class="help">One-shot actions repeat here for review. Use the loop flag in manifest.json when integrating them into the game.</p>
+<footer>Artwork generated with OpenAI image generation; Pocket Machines direction selected for Merge Crew. <a href="README.md">Integration notes, licence and usage terms</a> · <a href="manifest.json">Animation manifest</a></footer>
+</main>
+<script>
+const manifest={
+  "version": 1,
+  "format": "png-sprite-sheets",
+  "frameWidth": 512,
+  "frameHeight": 512,
+  "framesPerAnimation": 4,
+  "layout": "single-row",
+  "anchor": {
+    "x": 256,
+    "y": 464
+  },
+  "facing": "right",
+  "restingArtworkHeight": 300,
+  "mapScale": 0.21333333333333335,
+  "portraitScale": 1,
+  "characters": {
+    "tidy": {
+      "name": "Tidy",
+      "portrait": "portraits/tidy.png",
+      "restingArtworkHeight": 300,
+      "mapScale": 0.21333333333333335,
+      "portraitScale": 1,
+      "signature": "Tidy straightens two plain small blank file cards into a neat stack: 1 notices crooked cards held in its own hands; 2 gently squares the edges; 3 satisfied neat stack; 4 offers the tidy stack. Props stay close within frame, no marks or words.",
+      "animations": {
+        "idle": {
+          "file": "sprites/tidy-idle.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 2,
+          "loop": true,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "move": {
+          "file": "sprites/tidy-move.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 8,
+          "loop": true,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "hop": {
+          "file": "sprites/tidy-hop.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 5,
+          "loop": false,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "talk": {
+          "file": "sprites/tidy-talk.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 6,
+          "loop": true,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "happy": {
+          "file": "sprites/tidy-happy.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 5,
+          "loop": false,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "scared": {
+          "file": "sprites/tidy-scared.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 8,
+          "loop": true,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "guilty": {
+          "file": "sprites/tidy-guilty.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 5,
+          "loop": false,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "thinking": {
+          "file": "sprites/tidy-thinking.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 5,
+          "loop": true,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "signature": {
+          "file": "sprites/tidy-signature.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 5,
+          "loop": false,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        }
+      }
+    },
+    "blaze": {
+      "name": "Blaze",
+      "portrait": "portraits/blaze.png",
+      "restingArtworkHeight": 300,
+      "mapScale": 0.21333333333333335,
+      "portraitScale": 1,
+      "signature": "Blaze performs a tiny playful overconfident wheelie: 1 rev-ready cocky lean; 2 tips back on main wheel rear stabilizer raised; 3 balances proudly with lifted hands; 4 lands and gives a sheepish confident grin. No speed lines or smoke or scary imagery.",
+      "animations": {
+        "idle": {
+          "file": "sprites/blaze-idle.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 2,
+          "loop": true,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "move": {
+          "file": "sprites/blaze-move.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 8,
+          "loop": true,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "hop": {
+          "file": "sprites/blaze-hop.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 5,
+          "loop": false,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "talk": {
+          "file": "sprites/blaze-talk.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 6,
+          "loop": true,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "happy": {
+          "file": "sprites/blaze-happy.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 5,
+          "loop": false,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "scared": {
+          "file": "sprites/blaze-scared.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 8,
+          "loop": true,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "guilty": {
+          "file": "sprites/blaze-guilty.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 5,
+          "loop": false,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "thinking": {
+          "file": "sprites/blaze-thinking.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 5,
+          "loop": true,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "signature": {
+          "file": "sprites/blaze-signature.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 5,
+          "loop": false,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        }
+      }
+    },
+    "drift": {
+      "name": "Drift",
+      "portrait": "portraits/drift.png",
+      "restingArtworkHeight": 300,
+      "mapScale": 0.21333333333333335,
+      "portraitScale": 1,
+      "signature": "Drift follows its own wobbling antenna bead: 1 notices bead; 2 bead bends forward and head looks up; 3 distracted lean reaches toward bead; 4 snaps back softly surprised. Antenna always stays attached to body. No external objects or symbols.",
+      "animations": {
+        "idle": {
+          "file": "sprites/drift-idle.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 2,
+          "loop": true,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "move": {
+          "file": "sprites/drift-move.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 8,
+          "loop": true,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "hop": {
+          "file": "sprites/drift-hop.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 5,
+          "loop": false,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "talk": {
+          "file": "sprites/drift-talk.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 6,
+          "loop": true,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "happy": {
+          "file": "sprites/drift-happy.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 5,
+          "loop": false,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "scared": {
+          "file": "sprites/drift-scared.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 8,
+          "loop": true,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "guilty": {
+          "file": "sprites/drift-guilty.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 5,
+          "loop": false,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "thinking": {
+          "file": "sprites/drift-thinking.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 5,
+          "loop": true,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "signature": {
+          "file": "sprites/drift-signature.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 5,
+          "loop": false,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        }
+      }
+    },
+    "hoarder": {
+      "name": "Hoarder",
+      "portrait": "portraits/hoarder.png",
+      "restingArtworkHeight": 300,
+      "mapScale": 0.21333333333333335,
+      "portraitScale": 1,
+      "signature": "Hoarder nervously opens its backpack and catches one escaping blank folder: 1 hugs files; 2 pack lid opens and folder peeks out; 3 catches the folder close to chest; 4 closes pack and hugs all folders with relieved eye. All props close to robot, no text, no separate distant loose pieces.",
+      "animations": {
+        "idle": {
+          "file": "sprites/hoarder-idle.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 2,
+          "loop": true,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "move": {
+          "file": "sprites/hoarder-move.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 8,
+          "loop": true,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "hop": {
+          "file": "sprites/hoarder-hop.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 5,
+          "loop": false,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "talk": {
+          "file": "sprites/hoarder-talk.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 6,
+          "loop": true,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "happy": {
+          "file": "sprites/hoarder-happy.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 5,
+          "loop": false,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "scared": {
+          "file": "sprites/hoarder-scared.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 8,
+          "loop": true,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "guilty": {
+          "file": "sprites/hoarder-guilty.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 5,
+          "loop": false,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "thinking": {
+          "file": "sprites/hoarder-thinking.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 5,
+          "loop": true,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        },
+        "signature": {
+          "file": "sprites/hoarder-signature.png",
+          "frameCount": 4,
+          "frameWidth": 512,
+          "frameHeight": 512,
+          "fps": 5,
+          "loop": false,
+          "anchor": {
+            "x": 256,
+            "y": 464
+          }
+        }
+      }
+    }
+  }
+}
+;
+const names=Object.keys(manifest.characters);
+const labels={idle:'Idle',move:'Move',hop:'Hop',talk:'Talk',happy:'Celebrate',scared:'Panic',guilty:'Oops',thinking:'Thinking',signature:'Signature'};
+const roles={tidy:'Calm, organised, helpful',blaze:'Fast, confident, impatient',drift:'Dreamy and distracted',hoarder:'Anxious and protective'};
+const actions={tidy:'Straightens a crooked stack of files.',blaze:'Attempts a tiny, overconfident wheelie.',drift:'Gets distracted by its own antenna.',hoarder:'Catches a file escaping from its backpack.'};
+let state='idle',paused=false,mirrored=false,start=performance.now(),heldFrame=0;
+const images={},canvases=[];
+for(const name of names){
+  const card=document.createElement('article');card.className='card';card.innerHTML=`<div class="portrait-stage"><canvas class="portrait" width="512" height="512" data-character="${name}" aria-label="${manifest.characters[name].name} animated portrait"></canvas></div><div class="card-copy"><h2>${manifest.characters[name].name}</h2><div class="role">${roles[name]}</div><div class="signature">${actions[name]}</div></div>`;document.querySelector('#crew').append(card);
+}
+for(const [key,label] of Object.entries(labels)){
+  const b=document.createElement('button');b.textContent=label;b.dataset.state=key;b.setAttribute('aria-pressed',String(key===state));b.addEventListener('click',()=>{state=key;start=performance.now();heldFrame=0;updateButtons();render(performance.now());});document.querySelector('#states').append(b);
+}
+for(const canvas of document.querySelectorAll('canvas'))canvases.push({canvas,ctx:canvas.getContext('2d'),name:canvas.dataset.character,mini:canvas.classList.contains('mini')});
+function updateButtons(){for(const b of document.querySelectorAll('[data-state]'))b.setAttribute('aria-pressed',String(b.dataset.state===state));document.querySelector('#play').textContent=paused?'Play':'Pause';document.querySelector('#play').setAttribute('aria-pressed',String(paused));document.querySelector('#mirror').setAttribute('aria-pressed',String(mirrored));document.querySelector('#mirror').textContent=mirrored?'Face right':'Face left';}
+function frameFor(name,now){const a=manifest.characters[name].animations[state];return paused?heldFrame:Math.floor((now-start)/1000*a.fps)%4;}
+function placeMinis(){const map=document.querySelector('.map'),h=map.clientHeight;const pos={tidy:[.17,205/330],blaze:[.41,130/330],drift:[.745,85/330],hoarder:[.545,255/330]};for(const item of canvases.filter(c=>c.mini)){const [x,y]=pos[item.name],s=manifest.characters[item.name].mapScale,d=manifest.frameWidth*s;item.canvas.style.width=d+'px';item.canvas.style.height=d+'px';item.canvas.style.left=`calc(${x*100}% - ${manifest.anchor.x*s}px)`;item.canvas.style.top=`${y*h-manifest.anchor.y*s-3}px`;}}
+function render(now){
+  for(const item of canvases){const im=images[item.name+'-'+state];if(!im?.complete||!im.naturalWidth)continue;const frame=frameFor(item.name,now);item.ctx.clearRect(0,0,manifest.frameWidth,manifest.frameHeight);item.ctx.save();if(mirrored){item.ctx.translate(manifest.frameWidth,0);item.ctx.scale(-1,1);}item.ctx.drawImage(im,frame*manifest.frameWidth,0,manifest.frameWidth,manifest.frameHeight,0,0,manifest.frameWidth,manifest.frameHeight);item.ctx.restore();}
+  const f=frameFor('tidy',now);document.querySelector('#status').textContent=`${labels[state]} · frame ${f+1}/4${paused?' · paused':''}`;
+  for(const b of document.querySelectorAll('[data-frame]'))b.setAttribute('aria-pressed',String(Number(b.dataset.frame)===f));
+  window.previewState={state,paused,mirrored,frame:f,loaded:Object.values(images).filter(i=>i.complete&&i.naturalWidth).length};
+}
+document.querySelector('#play').onclick=()=>{if(!paused)heldFrame=frameFor('tidy',performance.now());paused=!paused;start=performance.now()-heldFrame/manifest.characters.tidy.animations[state].fps*1000;updateButtons();render(performance.now());};
+document.querySelector('#mirror').onclick=()=>{mirrored=!mirrored;updateButtons();render(performance.now());};
+document.querySelector('#background').onchange=e=>{document.body.classList.remove('dark','checker');if(e.target.value!=='warm')document.body.classList.add(e.target.value);};
+for(const b of document.querySelectorAll('[data-frame]'))b.onclick=()=>{heldFrame=Number(b.dataset.frame);paused=true;updateButtons();render(performance.now());};
+function placePortraits(){for(const item of canvases.filter(c=>!c.mini)){const d=Math.min(manifest.frameWidth*manifest.characters[item.name].portraitScale,item.canvas.parentElement.clientWidth-16);item.canvas.style.width=d+'px';item.canvas.style.height=d+'px';item.canvas.parentElement.style.height=(d+16)+'px';}}
+window.addEventListener('resize',()=>{placeMinis();placePortraits();});
+const reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;if(reduced){paused=true;updateButtons();}
+const loading=[];for(const name of names)for(const [key,a] of Object.entries(manifest.characters[name].animations)){const im=new Image();images[name+'-'+key]=im;loading.push(new Promise((resolve,reject)=>{im.onload=resolve;im.onerror=()=>reject(Error('Could not load '+a.file));}));im.src=a.file;}
+Promise.all(loading).then(()=>{placeMinis();placePortraits();window.previewReady=true;render(performance.now());const tick=now=>{render(now);requestAnimationFrame(tick);};requestAnimationFrame(tick);}).catch(e=>{document.querySelector('#status').textContent=e.message;window.previewError=e.message;});
+</script></body></html>
