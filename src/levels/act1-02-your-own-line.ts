@@ -44,15 +44,6 @@ export const level: Level = {
       check: allOf(currentBranchIs("player", "main"), workingTreeClean("player")),
     },
   ],
-  hintContext: [
-    "Teaching level for branch and switch. main has one commit ('Start the snack menu').",
-    "snacks.txt is modified and not staged (a line '- bolts' was added). The player must not commit it on main.",
-    "Intended path: create and switch to a new branch with any name (git switch -c <name>, or git branch + git switch),",
-    "stage and commit snacks.txt there, then switch back to main. The uncommitted change follows the switch to the new branch.",
-    "Goal: some branch other than main has a commit main does not have, the player is on main, and the working tree is clean.",
-    "If the player commits on main by mistake, a fix is to create a branch at that commit and move main back,",
-    "but steer them first toward checking which branch they are on with git status or git branch.",
-  ].join("\n"),
   suggestions: ["git status", "git branch", "git switch -c bolts", "git add snacks.txt", 'git commit -m "Add bolts"', "git switch main"],
   outro: [
     // The player names the branch; "bolts" is what the job bar suggests. If it is called something

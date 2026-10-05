@@ -2,6 +2,16 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-10-05 — AI hints from Tidy
+
+- **"Ask Tidy" gives a hint from a low-cost model, with scripted hints as the safety net.** The model is `anthropic/claude-haiku-4.5` through the Vercel AI Gateway, with `google/gemini-2.5-flash-lite` as the Gateway's fallback model, at most 120 output tokens and a 6 second timeout. Every level has three scripted hints, gentle to specific. They are used when the model is switched off (`HINTS_AI=off`), has no credentials, fails, times out, or gives a hint the checks reject. The response says which source was used and why, so traces and evals can tell them apart.
+- **Answer safety is checked in code.** A hint is rejected when it contains a force flag, a documented solution command that is not already a suggestion button, or the same git subcommand with one of the solution's own arguments. A prompt instruction alone can be talked around; a string check cannot.
+- **Contract change (in `src/engine/types.ts`): `Level.hintContext` is removed.** It held the intended fix in plain words and shipped to every browser with the level list. The context now lives in server-only modules (`src/hints/data`, guarded by `import "server-only"`) next to the scripted hints, and the build output is checked for it. `src/levels/solutions.ts` may now also be imported by those server modules, for the leak check.
+- **Five hints per level per run, counted in the browser; a best-effort per-IP limit on the server.** The server limit lives in one instance's memory, so it is not a guarantee. The hard cap on spending is the AI Gateway budget on the Vercel project, as the spec's "hard monthly spending cap".
+- **The hint never blocks the game.** It shows in the dialogue strip under an active command box, so the player keeps typing while reading it.
+- **Tracing to Langfuse only when its keys are set.** The AI SDK's ready-made OpenTelemetry integration is a separate package this project does not install, so a small integration on `@langfuse/tracing` records each model call. Without keys nothing is sent.
+- **Evals:** deterministic checks run with the normal tests, without network. A live eval with a rubric-based model grader runs on demand (`npm run eval:hints`). The grader is not yet checked against human judgement; `evals/hints/labels.example.json` is the format for doing that.
+
 ## 2026-10-05 — A guided screen tour
 
 - **Tidy points at the screen in the first level.** After playing, the maintainer said nobody explains the map: that the line is main, where the saved versions are. The first level's opening now has Tidy point at the map (every dot is a commit), the main line, the files, the job bar and the command box, one short sentence each, while the game dims everything else softly and outlines that part in Tidy's colour. The tour replaced the opening lines that said the same thing, so the scene grew by four lines, not five.

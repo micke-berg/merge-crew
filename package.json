@@ -9,9 +9,17 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
+    "eval:hints": "vitest run --config vitest.evals.config.ts",
     "sprites": "node scripts/build-sprites.mjs"
   },
   "dependencies": {
+    "@langfuse/otel": "5.11.1",
+    "@langfuse/tracing": "5.11.1",
+    "@langfuse/vercel-ai-sdk": "5.11.1",
+    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/resources": "2.11.0",
+    "@opentelemetry/sdk-trace-node": "2.11.0",
+    "ai": "7.0.118",
     "motion": "13.4.4",
     "next": "16.3.8",
     "react": "19.3.0",
@@ -31,5 +39,10 @@
   },
   "engines": {
     "node": ">=24"
+  },
+  "overrides": {
+    "@langfuse/core": "5.11.1",
+    "@ai-sdk/otel": "1.0.118",
+    "ai": "7.0.118"
   }
 }

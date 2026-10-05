@@ -4,8 +4,8 @@ import { git, mood, pause, say, write } from "./script";
 
 const SIGN = "Paint the sign";
 const PRICES = "Add the price list";
-const BLAZE = "Make everything FREE";
-const TIDY = "Add a tip jar";
+export const BLAZE = "Make everything FREE";
+export const TIDY = "Add a tip jar";
 
 const GOOD_PRICES = "Lemonade: 2 coins\nIced tea: 3 coins\n";
 
@@ -98,19 +98,6 @@ export const level: Level = {
       ),
     },
   ],
-  hintContext: [
-    "Revert level. origin/main was 'Paint the sign', 'Add the price list' (prices.txt: 2 coins and 3 coins).",
-    `In the scene Blaze committed '${BLAZE}' (prices.txt says FREE) and pushed it to origin main (a normal fast-forward push).`,
-    `Then Tidy pulled and pushed '${TIDY}' (tipjar.txt) on top. origin/main: ... -> '${BLAZE}' -> '${TIDY}'.`,
-    "The player's local main is still at 'Add the price list', two commits behind origin.",
-    "The point: the bad commit is shared and someone built on it, so the fix must add a commit, not rewrite history.",
-    "Intended fix: git pull (fast-forward), git revert HEAD~1 (or git revert with Blaze's commit id from git log), then git push.",
-    "git revert makes a new commit that undoes the change; the game has no editor, so it commits with git's default message.",
-    "Editing prices.txt back by hand and committing also passes the goals.",
-    "Goals: origin's prices.txt is back to coins; Blaze's original commit and Tidy's commit are still on origin's main.",
-    "Steer away from git reset plus git push --force: that removes Blaze's and Tidy's commits from origin.",
-    "Good first nudges: git pull to see what everyone else sees; git log --oneline to find the bad commit; git show to check it.",
-  ].join("\n"),
   suggestions: ["git status", "git pull", "git log --oneline", "git show HEAD~1", "git diff HEAD~2 HEAD", "git push"],
   outro: [
     say("tidy", "Prices are back, the tip jar is still there, and history tells the truth.", "celebrate"),

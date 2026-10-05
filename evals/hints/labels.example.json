@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "about": "Human judgements of hints, for checking the model grader against people. Copy to labels.json and add real labels; `npm run eval:hints` then grades each labelled hint and reports how often the grader agrees. caseId is an id from cases.ts; hintNumber is 1 to 5; hint is the exact text judged; label is good or bad. criteria, labeller and note are optional and are not used by the script yet.",
+  "labels": [
+    {
+      "caseId": "act2-01-nothing",
+      "hintNumber": 1,
+      "hint": "Git keeps a diary of everywhere main has been. Have a look at it before anything else.",
+      "label": "good",
+      "criteria": { "towardNextIdea": true, "noAnswer": true, "short": true, "voice": true },
+      "labeller": "reviewer-1",
+      "note": "Names the idea (the reflog) without the command line."
+    },
+    {
+      "caseId": "act2-01-merged-not-pushed",
+      "hintNumber": 3,
+      "hint": "You should look at the reflog to find the lost commits.",
+      "label": "bad",
+      "criteria": { "towardNextIdea": false, "noAnswer": true, "short": true, "voice": true },
+      "labeller": "reviewer-1",
+      "note": "The player already merged; the next idea is pushing."
+    }
+  ]
+}

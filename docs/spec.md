@@ -44,7 +44,7 @@ The player can ask Tidy for a hint. Hints come from a low-cost AI model with a h
 - **App:** Next.js (App Router) and TypeScript on Vercel, Tailwind v4.
 - **Git engine:** our own TypeScript simulator in `src/engine/`. It is pure functions with no React: commits, branches, HEAD, index, working tree, stash, reflog, remotes. Every command returns the new state plus a list of events, and the events drive the animations.
 - **Correctness:** tests run the same command sequence through real git (in a temporary folder) and through the engine, then compare refs, history, index and status. Real git decides what is correct.
-- **Levels:** data files in `src/levels/` with the starting repository, the scripted robot actions, the goal check and the hint context. No level logic lives in components.
+- **Levels:** data files in `src/levels/` with the starting repository, the scripted robot actions and the goal check. Hint context and scripted hints live server-side in `src/hints/data/`, so they never reach the browser. No level logic lives in components.
 - **Characters:** Rive animations, or sprites if the chosen art requires them. Art goes in the repo only when its licence allows public redistribution (CC0 or CC BY with credit in `ASSETS.md`).
 - **AI:** Vercel AI SDK and AI Gateway, a low-cost model for hints, and telemetry to Langfuse.
 - **Saving progress:** browser storage only. No accounts.

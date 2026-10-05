@@ -132,7 +132,6 @@ function testLevel(check: Level["goals"][number]["check"]): Level {
     setup: [write("player", "a.txt", "one\n"), git("player", "add", "a.txt"), git("player", "commit", "-m", "First")],
     intro: [say("tidy", "Go on.")],
     goals: [{ id: "flag", description: "The test says so", check }],
-    hintContext: "Test only.",
     suggestions: ["git status"],
     outro: [say("tidy", "Done.")],
   };

@@ -58,13 +58,6 @@ export const level: Level = {
       check: workingTreeClean("player"),
     },
   ],
-  hintContext: [
-    "Teaching level for status, add and commit. The repository has one commit on main ('Start the shopping list').",
-    "list.txt in the player's working tree is modified (a line 'batteries for Tidy' was added) and not staged.",
-    "The player must stage list.txt and then commit it with any message.",
-    "Intended path: look with git status, stage with git add, then git commit with a message flag. The message is free.",
-    "Common mistakes: running commit before add (git says there is nothing staged), or forgetting the message flag.",
-  ].join("\n"),
   suggestions: ["git status", "git add list.txt", 'git commit -m "Add batteries"', "git log"],
   outro: [
     say("tidy", "Saved! That commit is a snapshot we can always come back to.", "celebrate"),

@@ -61,15 +61,6 @@ export const level: Level = {
       check: allOf(currentBranchIs("player", "main"), workingTreeClean("player")),
     },
   ],
-  hintContext: [
-    "Teaching level for merge. main has one commit ('Open the robot cafe').",
-    "Tidy made two branches from that commit: 'menu' (commit 'Write the menu', adds menu.txt) and",
-    "'colors' (commit 'Pick the colors', adds colors.txt). Tidy's worktree has 'colors' checked out. The files do not overlap, so no conflicts.",
-    "Intended path: the player stays on main and runs git merge menu (fast-forward), then git merge colors (a real merge commit).",
-    "Either order works: whichever branch is merged second needs a merge commit.",
-    "Goal: both commits reachable from main, a merge commit on main, the player on main with a clean tree.",
-    "The game's merge uses git's default merge message, so no editor or -m flag is needed.",
-  ].join("\n"),
   suggestions: ["git status", "git branch", "git log --oneline --all", "git merge menu", "git merge colors"],
   outro: [
     say("tidy", "Both lines came home.", "celebrate"),

@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { getLevel } from "@/levels";
-import { initLevelModel, levelReducer, shownBubble, type LevelAction, type LevelModel, type PointStep } from "./game";
+import { MAX_HINTS_PER_RUN } from "@/hints/types";
+import {
+  canAskHint,
+  hintBubble,
+  hintsLeft,
+  initLevelModel,
+  levelReducer,
+  nextHintKey,
+  shownBubble,
+  type LevelAction,
+  type LevelModel,
+  type PointStep,
+} from "./game";
 
 const blazeLevel = getLevel("act2-01")!;
 const firstSave = getLevel("act1-01")!;
@@ -166,5 +178,76 @@ describe("the screen tour", () => {
     const m = levelReducer(levelReducer(playing(), { type: "tour", steps }), { type: "restart", level: firstSave });
     expect(m.tour).toBeNull();
     expect(m.game.phase).toBe("brief");
+  });
+});
+
+describe("Tidy's hints", () => {
+  const inPlay = () => runScene(play(initLevelModel(firstSave), { type: "begin" }));
+
+  it("can be asked for only during the player turn", () => {
+    const brief = initLevelModel(firstSave);
+    expect(canAskHint(brief)).toBe(false);
+    expect(levelReducer(brief, { type: "hint-ask" })).toBe(brief);
+    const m = inPlay();
+    expect(m.game.phase).toBe("play");
+    expect(canAskHint(m)).toBe(true);
+  });
+
+  it("thinks, then shows the answer for its own request as Tidy's line", () => {
+    let m = inPlay();
+    const key = nextHintKey(m);
+    m = levelReducer(m, { type: "hint-ask" });
+    expect(m.hintsUsed).toBe(1);
+    expect(hintBubble(m)).toMatchObject({ actor: "tidy", mood: "thinking" });
+    // A second ask while thinking does nothing.
+    expect(levelReducer(m, { type: "hint-ask" })).toBe(m);
+    // An answer for another request is dropped.
+    expect(levelReducer(m, { type: "hint-answer", key: "other", text: "x" })).toBe(m);
+    m = levelReducer(m, { type: "hint-answer", key, text: "Look at git status." });
+    expect(hintBubble(m)).toMatchObject({ actor: "tidy", text: "Look at git status." });
+    // The scene line is unaffected: hints sit beside the player turn.
+    expect(shownBubble(m)).toBeNull();
+    expect(levelReducer(m, { type: "hint-dismiss" }).hint).toBeNull();
+  });
+
+  it("keeps the hint up while the player types", () => {
+    let m = inPlay();
+    const key = nextHintKey(m);
+    m = play(m, { type: "hint-ask" }, { type: "hint-answer", key, text: "Stage it first." }, { type: "command", line: "git status" });
+    expect(m.hint).toMatchObject({ status: "shown" });
+    expect(m.game.commands).toBe(1);
+  });
+
+  it(`allows ${MAX_HINTS_PER_RUN} per run, refunds failed requests, and restart starts a new run`, () => {
+    let m = inPlay();
+    for (let i = 0; i < MAX_HINTS_PER_RUN; i++) {
+      const key = nextHintKey(m);
+      m = play(m, { type: "hint-ask" }, { type: "hint-answer", key, text: `hint ${i}` });
+    }
+    expect(hintsLeft(m)).toBe(0);
+    expect(canAskHint(m)).toBe(false);
+    expect(levelReducer(m, { type: "hint-ask" })).toBe(m);
+
+    let r = runScene(play(m, { type: "restart", level: firstSave }, { type: "begin" }));
+    expect(hintsLeft(r)).toBe(MAX_HINTS_PER_RUN);
+    const key = nextHintKey(r);
+    r = play(r, { type: "hint-ask" }, { type: "hint-answer", key, text: "offline", refund: true });
+    expect(hintsLeft(r)).toBe(MAX_HINTS_PER_RUN);
+  });
+
+  it("an answer that arrives after a restart is dropped", () => {
+    let m = inPlay();
+    const key = nextHintKey(m);
+    m = play(m, { type: "hint-ask" }, { type: "restart", level: firstSave });
+    expect(levelReducer(m, { type: "hint-answer", key, text: "late" })).toBe(m);
+  });
+
+  it("the screen tour puts the hint away", () => {
+    const steps = firstSave.intro.filter((s): s is PointStep => s.kind === "point");
+    let m = inPlay();
+    const key = nextHintKey(m);
+    m = play(m, { type: "hint-ask" }, { type: "hint-answer", key, text: "A hint." }, { type: "tour", steps });
+    expect(m.hint).toBeNull();
+    expect(canAskHint(m)).toBe(false);
   });
 });

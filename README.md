@@ -39,6 +39,7 @@ Then open http://localhost:3000.
 | `npm run typecheck` | TypeScript check |
 | `npm run lint` | ESLint |
 | `npm run sprites` | Rebuilds the web sprite sheets from the source art |
+| `npm run eval:hints` | Live hint evals: asks the real hint model through the AI Gateway for every stuck case and grades the answers. Needs `AI_GATEWAY_API_KEY` (or `VERCEL_OIDC_TOKEN`), skips cleanly without; results go to `evals/hints/results/` |
 
 ## Project documents
 
