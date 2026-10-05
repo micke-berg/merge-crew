@@ -82,12 +82,3 @@ Every pull request runs:
 - a check that blocks a private word list from code, commits and pull request text
 
 `main` deploys to Vercel automatically.
-
-## Working method
-
-The project is built by parallel AI coding agents directed by the maintainer:
-- `docs/spec.md` defines version 1.
-- `src/engine/types.ts` is the contract between the parts.
-- Each agent owns specific folders.
-- `docs/decisions.md` records why things are the way they are.
-- `docs/workflow-notes.md` records what was learned about working this way.

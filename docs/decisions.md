@@ -4,7 +4,7 @@ Newest first. Each entry: date, what was decided, why.
 
 ## 2026-10-05 — Story and first run: Café Cog
 
-- **The crew's world is a small robot café, Café Cog.** The crew builds and runs the café's website (menu, prices, opening hours, the sign); the player is their new lead and keeps the crew's work safe and shipped. Why: after playing, the maintainer had no idea who they were or why they were there, and scenes opened mid-conversation about things never shown. The existing level content (lemonade, prices, sign, iced tea, tip jar) already fit a café.
+- **The crew's world is a small robot café, Café Cog.** The crew builds and runs the café's website (menu, prices, opening hours, the sign); the player is their new lead and keeps the crew's work safe and shipped. Why: playtesting showed players had no idea who they were or why they were there, and scenes opened mid-conversation about things never shown. The existing level content (lemonade, prices, sign, iced tea, tip jar) already fit a café.
 - **A short opening story, shown once.** Six lines and a café front with the crew, on the first visit (start screen or a level opened directly), remembered in browser storage, skippable, and replayable from the start screen. The start screen carries a one-sentence version.
 - **Story and instructions are separate.** Each level has a mission card in plain words (what's going on, your job, what you'll practise) on the brief. A "Your job" bar sits directly above the terminal at every width and shows the first unmet goal. Scenes were cut to at most five lines, start from what is on screen, and name each file they mention. In Act 1, every teaching line Tidy says is word for word the goal the job bar shows.
 - **Contract change (additive, in `src/engine/types.ts`):** `Level.mission?: { situation; job; practise }`, and `files?: Path[]` on the `say` script step. While a line with `files` shows, the files panel highlights those files and the line shows them as chips that open the file. A level test plays each intro and checks every named file exists in the player's working files at that line.
@@ -18,7 +18,7 @@ Newest first. Each entry: date, what was decided, why.
 
 ## 2026-10-05 — Robot gibberish voices
 
-- **Robots speak in cartoon gibberish beeps, plus simple event sounds.** Maintainer's request after playing. Generated in the browser (no audio files, no cost), muted until the first interaction, with a mute button. Music and recorded speech stay out of v1.
+- **Robots speak in cartoon gibberish beeps, plus simple event sounds.** Requested after playtesting. Generated in the browser (no audio files, no cost), muted until the first interaction, with a mute button. Music and recorded speech stay out of v1.
 
 ## 2026-10-05 — Engine: refused commands change nothing
 
@@ -36,7 +36,7 @@ Newest first. Each entry: date, what was decided, why.
 ## 2026-10-05 — Spec approved, art route changed
 
 - **Spec approved by the maintainer as written.**
-- **Not the Rive robot.** It did not appeal. Art comes from an external AI art tool working from `docs/art-brief.md`, which fixes the game's technical needs and leaves the style open. Free toy-like characters with many poses (Kenney) are the reference for charm. Game code uses placeholder shapes until the art is chosen.
+- **Not the Rive robot.** It did not appeal. Art comes from an external AI art tool working from a written brief that fixes the game's technical needs and leaves the style open. Free toy-like characters with many poses (Kenney) are the reference for charm. Game code uses placeholder shapes until the art is chosen.
 
 ## 2026-10-05 — Project start
 

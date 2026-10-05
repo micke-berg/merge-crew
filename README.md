@@ -43,8 +43,6 @@ Then open http://localhost:3000.
 ## Project documents
 
 - [docs/spec.md](docs/spec.md): what version 1 contains, and what it leaves out.
-- [docs/state.md](docs/state.md): where the work stands.
-- [docs/workflow-notes.md](docs/workflow-notes.md): lessons from building this with parallel AI coding agents.
 
 ## Licence
 
