@@ -15,14 +15,14 @@ A free browser game that teaches git. The player leads a crew of robot coding ag
 ## Read first, every session
 
 1. `docs/spec.md` defines what v1 is. If a task is not covered by the spec, stop and ask. Do not build it.
-2. `docs/state.md` describes where the work stands right now and what is next.
+2. `docs/architecture.md` explains how the parts fit together.
 3. `docs/decisions.md` records why things are the way they are.
 
 ## Scope rules
 
-- Work only on the task you were given. A new idea goes as one line in `docs/ideas.md`. It does not go into code, a refactor, or a "while I was here" change.
+- Work only on the task you were given. Report new ideas instead of building them; they do not go into code, a refactor, or a "while I was here" change.
 - If the spec looks wrong, say so in your report. Do not quietly change direction.
-- Each task ends with an updated `docs/state.md`.
+- Status, plans and handover notes are not kept in this repository. Report them to whoever gave you the task.
 
 ## Public repository rules
 
@@ -47,7 +47,3 @@ When several agents work at once, each owns specific folders, named in its task.
 
 - Scratch files go in a folder you create with a unique name, and you delete exactly that path. Never delete with wildcards in shared places such as the system temp folder.
 - Stop only processes you started, by their process id (`kill <pid>`) or with the tool that started them. Never use `pkill -f`, `killall` or any name or pattern match. A name pattern matches far more than intended: "cat" also matches "Application".
-
-## Workflow notes
-
-When you notice something about the way of working that helped or hurt (a handoff that failed, an instruction that was misread, a check that caught a mistake), add a dated line to `docs/workflow-notes.md`. Write it as an engineering lesson for strangers: no people, no machines.

@@ -14,7 +14,7 @@ The approved Pocket Machines direction, delivered as transparent PNG sprite shee
 - preview.html: a local interactive comparison with state buttons, pause, individual-frame inspection, mirroring, warm/dark/transparency backgrounds, a 64 px map view and approximately 300 px desktop portraits. It works by opening the file beside its sprites directory; no remote libraries or services are required.
 - crew.png: a transparent crew lineup.
 - pose-review.png: one representative frame from all nine states per character. Rows: Tidy, Blaze, Drift, Hoarder. Columns: idle, move, hop, talk, happy, scared, guilty, thinking, signature.
-- `art/pocket-machines/` (repository root, not served by the game): prompts.md and source-boards/, the original generation prompts and the twelve generated multi-row source boards, preserved for revisions. Use sprites/ for game integration.
+- `art/pocket-machines/` (repository root, not served by the game): source-boards/, the twelve generated multi-row source boards, preserved for revisions. Use sprites/ for game integration.
 - verification.json and browser-verification.json: the completed export and browser checks.
 
 ## Placement and scale
@@ -87,7 +87,7 @@ The game uses web-optimised copies built by `npm run sprites` (`scripts/build-sp
 
 ## Tool, rights and attribution
 
-Artwork was generated with **OpenAI's built-in image-generation tool in Codex**. The tool did not expose the exact underlying model version. Inputs were docs/art-brief.md and the original Pocket Machines concept lineup. Character edits and poses were generated with the same tool. PNG slicing, resizing and equal-frame assembly used the local Sharp library; no third-party character art was supplied.
+Artwork was generated with **OpenAI's built-in image-generation tool in Codex**. The tool did not expose the exact underlying model version. Inputs were a written character brief and the original Pocket Machines concept lineup. Character edits and poses were generated with the same tool. PNG slicing, resizing and equal-frame assembly used the local Sharp library; no third-party character art was supplied.
 
 OpenAI's individual-use terms assign its rights in output to the user, to the extent permitted by applicable law. Those terms support your use and distribution of these images in a free game and public repository, subject to the terms and respecting third-party rights. Output may not be unique; the terms do not guarantee copyright protection or exclusivity. Tool usage terms are distinct from the asset license you choose for your repository. The PNG artwork is released under CC0 1.0 Universal. See LICENSE-art.md and the repository ASSETS.md for the licence and attribution notice.
 

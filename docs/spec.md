@@ -1,6 +1,6 @@
 # Merge Crew — v1 spec
 
-Status: approved by the maintainer on 2026-10-05. Anything not written here is not in v1. New ideas go to `docs/ideas.md`, never into code.
+Status: approved by the maintainer on 2026-10-05. Anything not written here is not in v1. New ideas are not built until the spec changes.
 
 ## The game in one paragraph
 
