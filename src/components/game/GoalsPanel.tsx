@@ -8,7 +8,7 @@ type Props = { goals: Goal[]; done: boolean[] };
 export function GoalsPanel({ goals, done }: Props) {
   const count = done.filter(Boolean).length;
   return (
-    <section aria-labelledby="goals-title" className="rounded-3xl border border-line bg-panel p-4">
+    <section data-tour="goals" aria-labelledby="goals-title" className="rounded-3xl border border-line bg-panel p-4">
       <div className="flex items-center justify-between">
         <h2 id="goals-title" className="text-sm font-bold">Goals</h2>
         <span className="rounded-full bg-chip px-2 py-0.5 font-mono text-[11px] font-semibold text-soft">

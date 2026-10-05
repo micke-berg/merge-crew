@@ -16,6 +16,7 @@ export function JobBar({ goals, done, won }: Props) {
   const goal = allDone ? null : goals[current];
   return (
     <section
+      data-tour="jobbar"
       aria-label="Your job"
       className={`flex items-center gap-3 rounded-2xl border-2 px-3 py-2 transition-colors duration-300 md:px-4 ${
         allDone ? "border-success bg-success-soft" : "border-ink bg-card"

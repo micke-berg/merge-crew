@@ -6,7 +6,7 @@ import {
   historyAtLeast,
   workingTreeClean,
 } from "./goals";
-import { git, say, write } from "./script";
+import { git, point, say, write } from "./script";
 
 const LIST_BEFORE = "milk\n";
 const LIST_AFTER = "milk\nbatteries for Tidy\n";
@@ -31,9 +31,16 @@ export const level: Level = {
     write("player", "list.txt", LIST_AFTER),
   ],
   intro: [
-    say("tidy", "Hi, lead! I'm Tidy. This project holds Café Cog's files, like list.txt. Git keeps every version we save.", "talking", ["list.txt"]),
-    say("tidy", "I added a line to our shopping list, list.txt. Batteries. Purely for the café, of course.", "happy", ["list.txt"]),
-    say("tidy", "The file has changed, but git hasn't saved it yet. A save in git is called a commit.", "talking", ["list.txt"]),
+    say("tidy", "Hi, lead! I'm Tidy. A quick look around first.", "happy"),
+    // The screen tour. The "?" button in the level header replays these point steps from any level.
+    point("tidy", "map", "This is the café's history. Every dot is a saved version, a commit.", {
+      focus: { commits: ["Start the shopping list"] },
+    }),
+    point("tidy", "map", "This is main, the version the website is built from. Every new save makes its line longer.", { focus: { branches: ["main"] } }),
+    point("tidy", "files", "These are the café's files as they are right now."),
+    point("tidy", "jobbar", "Your job right now is always written here."),
+    point("tidy", "terminal", "Type git commands here. The buttons fill in a command; Enter runs it."),
+    say("tidy", "Now, I added batteries to our shopping list, list.txt. Purely for the café. Git hasn't saved that yet.", "happy", ["list.txt"]),
     say("tidy", 'Save it in two steps: git add list.txt, then git commit -m "Add batteries".', "talking", ["list.txt"]),
   ],
   goals: [

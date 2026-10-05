@@ -6,7 +6,7 @@ import {
   remoteBranchContains,
   allOf,
 } from "./goals";
-import { git, mood, pause, say, write } from "./script";
+import { git, mood, pause, point, say, write } from "./script";
 
 const TIDY_1 = "Add the price list";
 const TIDY_2 = "Add iced tea to the prices";
@@ -97,6 +97,10 @@ export const level: Level = {
     pause(400),
     mood("tidy", "scared"),
     say("tidy", "My price list is gone. From origin and from your files. Blaze!", "scared"),
+    point("tidy", "map", "These grey dots are commits no branch reaches. Lost, but not gone.", {
+      mood: "thinking",
+      focus: { lost: true },
+    }),
     say("tidy", "Git's reflog remembers where main has been. Lead, bring my price list back, without forcing anything.", "thinking"),
   ],
   goals: [

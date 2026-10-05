@@ -20,11 +20,11 @@ export function levelSheets(level: Pick<Level, "crew" | "intro" | "outro">): She
   for (const r of crew) for (const s of ["idle", "move", "hop"] as const) add("map", r, s);
   const steps: ScriptStep[] = [...level.intro, ...level.outro];
   for (const step of steps) {
-    if (step.kind !== "say" && step.kind !== "mood") continue;
+    if (step.kind !== "say" && step.kind !== "mood" && step.kind !== "point") continue;
     if (!isSpriteRobot(step.actor)) continue;
     const state = moodState(step.actor, step.mood ?? "talking");
     add("map", step.actor, state);
-    if (step.kind === "say") add("portrait", step.actor, state);
+    if (step.kind === "say" || step.kind === "point") add("portrait", step.actor, state);
   }
   // The win panel: everyone celebrates.
   for (const r of crew) {

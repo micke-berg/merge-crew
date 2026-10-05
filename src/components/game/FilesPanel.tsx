@@ -60,7 +60,7 @@ export function FilesPanel({ repo, where, onOpen, highlight }: Props) {
   working.sort((a, b) => Number(conflicted.has(b.path)) - Number(conflicted.has(a.path)));
 
   return (
-    <section aria-labelledby="files-title" className="flex min-h-0 flex-col rounded-3xl border border-line bg-panel p-4">
+    <section data-tour="files" aria-labelledby="files-title" className="flex min-h-0 flex-col rounded-3xl border border-line bg-panel p-4">
       <div className="flex items-center justify-between gap-2">
         <h2 id="files-title" className="text-sm font-bold">Files</h2>
         <span className="truncate font-mono text-[11px] text-muted">{wt.path} · {where}</span>

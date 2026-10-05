@@ -66,9 +66,15 @@ function Line({ bubble, awaitingClick, onNext, reduce, onOpenFile }: Omit<Props,
     return () => window.clearInterval(t);
   }, [done, full.length]);
 
+  // A line that has moved on stays mounted while it fades out; it must not move the scene on twice.
+  const gone = useRef(false);
   const press = () => {
+    if (gone.current) return;
     if (!done) setShown(full.length);
-    else if (awaitingClick) onNext();
+    else if (awaitingClick) {
+      gone.current = true;
+      onNext();
+    }
   };
   const onAdvanceKey = useEffectEvent(press);
 

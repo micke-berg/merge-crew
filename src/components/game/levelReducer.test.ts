@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getLevel } from "@/levels";
-import { initLevelModel, levelReducer, type LevelAction, type LevelModel } from "./game";
+import { initLevelModel, levelReducer, shownBubble, type LevelAction, type LevelModel, type PointStep } from "./game";
 
 const blazeLevel = getLevel("act2-01")!;
 const firstSave = getLevel("act1-01")!;
@@ -124,5 +124,47 @@ describe("level reducer", () => {
 
     m = runScene(m);
     expect(m.game.phase).toBe("won");
+  });
+});
+
+describe("the screen tour", () => {
+  const steps = firstSave.intro.filter((s): s is PointStep => s.kind === "point");
+  const playing = () => play(initLevelModel(firstSave), { type: "begin" }, { type: "skip" });
+
+  it("the first level carries the tour: map, main, files, job bar, command box", () => {
+    expect(steps.map((s) => s.target)).toEqual(["map", "map", "files", "jobbar", "terminal"]);
+  });
+
+  it("only starts during the player turn", () => {
+    const brief = initLevelModel(firstSave);
+    expect(levelReducer(brief, { type: "tour", steps })).toBe(brief);
+    const m = levelReducer(playing(), { type: "tour", steps });
+    expect(m.tour).toEqual({ steps, at: 0 });
+    expect(shownBubble(m)?.point?.target).toBe("map");
+  });
+
+  it("continue walks the tour and leaves the game untouched", () => {
+    const start = playing();
+    let m = levelReducer(start, { type: "tour", steps });
+    for (let i = 1; i < steps.length; i++) {
+      m = levelReducer(m, { type: "continue" });
+      expect(m.tour?.at).toBe(i);
+    }
+    m = levelReducer(m, { type: "continue" });
+    expect(m.tour).toBeNull();
+    expect(m.game).toBe(start.game);
+    expect(shownBubble(m)).toBeNull();
+  });
+
+  it("commands wait while the tour shows, and skip ends it", () => {
+    const m = levelReducer(playing(), { type: "tour", steps });
+    expect(levelReducer(m, { type: "command", line: "git status" })).toBe(m);
+    expect(levelReducer(m, { type: "skip" }).tour).toBeNull();
+  });
+
+  it("restart ends the tour", () => {
+    const m = levelReducer(levelReducer(playing(), { type: "tour", steps }), { type: "restart", level: firstSave });
+    expect(m.tour).toBeNull();
+    expect(m.game.phase).toBe("brief");
   });
 });

@@ -19,6 +19,8 @@ type Props = {
   ref?: React.Ref<TerminalHandle>;
   /** Shown instead of the input and suggestions while a scene plays (the crew's dialogue). */
   scene?: ReactNode;
+  /** Keep the (disabled) input and suggestions on screen above the scene, for a tour line about them. */
+  showControls?: boolean;
 };
 
 function promptName(actor: string) {
@@ -26,7 +28,7 @@ function promptName(actor: string) {
 }
 
 /** The command box: scrollback, a real input with history, and suggestion buttons. */
-export function Terminal({ log, active, where, path, suggestions, onRun, ref, scene }: Props) {
+export function Terminal({ log, active, where, path, suggestions, onRun, ref, scene, showControls = false }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [value, setValue] = useState("");
@@ -96,6 +98,7 @@ export function Terminal({ log, active, where, path, suggestions, onRun, ref, sc
 
   return (
     <section
+      data-tour="terminal"
       aria-label="Command box"
       className={`flex min-h-0 flex-1 flex-col rounded-3xl bg-ink p-2.5 text-paper shadow-[0_10px_30px_-12px_rgba(20,20,40,0.6)] transition-shadow duration-300 ${
         active ? "ring-2 ring-term-prompt/70 ring-offset-2 ring-offset-desk" : ""
@@ -146,9 +149,7 @@ export function Terminal({ log, active, where, path, suggestions, onRun, ref, sc
         })}
       </div>
 
-      {scene ? (
-        <div className="mt-1.5">{scene}</div>
-      ) : (
+      {(!scene || showControls) && (
         <>
           <form
             onSubmit={(e) => {
@@ -179,7 +180,7 @@ export function Terminal({ log, active, where, path, suggestions, onRun, ref, sc
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck={false}
-              placeholder={active ? "git status" : "watch the crew…"}
+              placeholder={active || showControls ? "git status" : "watch the crew…"}
               className="min-w-0 flex-1 bg-transparent text-paper caret-term-prompt outline-none placeholder:text-term-muted disabled:cursor-not-allowed"
             />
             <kbd
@@ -193,7 +194,7 @@ export function Terminal({ log, active, where, path, suggestions, onRun, ref, sc
           </form>
 
           {suggestions.length > 0 && (
-            <div className="mt-2 flex flex-wrap items-center gap-1.5 px-1" aria-label="Suggested commands">
+            <div data-tour="suggestions" className="mt-2 flex flex-wrap items-center gap-1.5 px-1" aria-label="Suggested commands">
               <span className="mr-1 text-[11px] font-semibold tracking-wide text-term-muted uppercase">Try</span>
               {suggestions.map((s) => (
                 <button
@@ -201,7 +202,7 @@ export function Terminal({ log, active, where, path, suggestions, onRun, ref, sc
                   type="button"
                   disabled={!active}
                   onClick={() => fill(s)}
-                  className="rounded-full border border-term-edge px-3 py-1 font-mono text-[12px] text-term-key transition-colors hover:border-term-prompt hover:text-paper focus-visible:border-term-prompt focus-visible:ring-2 focus-visible:ring-term-prompt/50 focus-visible:outline-none disabled:opacity-40 disabled:hover:border-term-edge"
+                  className={`rounded-full border border-term-edge px-3 py-1 font-mono text-[12px] text-term-key transition-colors hover:border-term-prompt hover:text-paper focus-visible:border-term-prompt focus-visible:ring-2 focus-visible:ring-term-prompt/50 focus-visible:outline-none disabled:hover:border-term-edge ${showControls ? "" : "disabled:opacity-40"}`}
                 >
                   {s}
                 </button>
@@ -210,6 +211,7 @@ export function Terminal({ log, active, where, path, suggestions, onRun, ref, sc
           )}
         </>
       )}
+      {scene && <div className="mt-1.5">{scene}</div>}
     </section>
   );
 }
