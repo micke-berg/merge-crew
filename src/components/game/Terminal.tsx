@@ -194,15 +194,20 @@ export function Terminal({ log, active, where, path, suggestions, onRun, ref, sc
           </form>
 
           {suggestions.length > 0 && (
-            <div data-tour="suggestions" className="mt-2 flex flex-wrap items-center gap-1.5 px-1" aria-label="Suggested commands">
-              <span className="mr-1 text-[11px] font-semibold tracking-wide text-term-muted uppercase">Try</span>
+            // On phones the buttons stay in one row that scrolls sideways, so they never spill out of the box.
+            <div
+              data-tour="suggestions"
+              className="mt-2 flex items-center gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] sm:flex-wrap sm:overflow-visible sm:pb-0"
+              aria-label="Suggested commands"
+            >
+              <span className="mr-1 shrink-0 text-[11px] font-semibold tracking-wide text-term-muted uppercase">Try</span>
               {suggestions.map((s) => (
                 <button
                   key={s}
                   type="button"
                   disabled={!active}
                   onClick={() => fill(s)}
-                  className={`rounded-full border border-term-edge px-3 py-1 font-mono text-[12px] text-term-key transition-colors hover:border-term-prompt hover:text-paper focus-visible:border-term-prompt focus-visible:ring-2 focus-visible:ring-term-prompt/50 focus-visible:outline-none disabled:hover:border-term-edge ${showControls ? "" : "disabled:opacity-40"}`}
+                  className={`shrink-0 rounded-full border border-term-edge px-3 py-1 font-mono whitespace-nowrap text-[12px] text-term-key transition-colors hover:border-term-prompt hover:text-paper focus-visible:border-term-prompt focus-visible:ring-2 focus-visible:ring-term-prompt/50 focus-visible:outline-none disabled:hover:border-term-edge ${showControls ? "" : "disabled:opacity-40"}`}
                 >
                   {s}
                 </button>

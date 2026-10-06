@@ -18,7 +18,7 @@ export function JobBar({ goals, done, won }: Props) {
     <section
       data-tour="jobbar"
       aria-label="Your job"
-      className={`flex items-center gap-3 rounded-2xl border-2 px-3 py-2 transition-colors duration-300 md:px-4 ${
+      className={`flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border-2 px-3 py-2 transition-colors duration-300 sm:flex-nowrap md:px-4 ${
         allDone ? "border-success bg-success-soft" : "border-ink bg-card"
       }`}
     >
@@ -29,7 +29,8 @@ export function JobBar({ goals, done, won }: Props) {
       >
         Your job
       </span>
-      <div className="relative min-w-0 flex-1 overflow-hidden" aria-live="polite">
+      {/* On phones the label and dots share the top line and the task gets the full width below. */}
+      <div className="relative order-3 min-w-0 basis-full overflow-hidden sm:order-none sm:flex-1 sm:basis-auto" aria-live="polite">
         <AnimatePresence mode="wait" initial={false}>
           <motion.p
             key={goal?.id ?? "done"}
@@ -44,7 +45,7 @@ export function JobBar({ goals, done, won }: Props) {
         </AnimatePresence>
       </div>
       {goals.length > 1 && (
-        <ol className="flex shrink-0 items-center gap-1" aria-label={`${done.filter(Boolean).length} of ${goals.length} done`}>
+        <ol className="ml-auto flex shrink-0 items-center gap-1 sm:ml-0" aria-label={`${done.filter(Boolean).length} of ${goals.length} done`}>
           {goals.map((g, i) => (
             <li
               key={g.id}

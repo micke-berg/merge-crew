@@ -37,7 +37,7 @@ export function AskTidyButton({ left, playing, thinking, onAsk }: Props) {
       aria-label={none ? "No hints left" : `Ask Tidy for a hint, ${left} left`}
       aria-describedby={none ? "ask-tidy-reason" : undefined}
       title={reason}
-      className="group flex shrink-0 items-center gap-2 rounded-2xl border-2 px-3 py-2 text-[14px] font-bold transition-[transform,box-shadow,opacity] duration-150 hover:-translate-y-px hover:shadow-[0_6px_16px_-8px_rgba(11,107,88,0.6)] focus-visible:ring-4 focus-visible:ring-focus/40 focus-visible:outline-none active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+      className="group flex shrink-0 items-center justify-center gap-2 rounded-2xl border-2 px-3 py-2 text-[14px] font-bold transition-[transform,box-shadow,opacity] duration-150 hover:-translate-y-px hover:shadow-[0_6px_16px_-8px_rgba(11,107,88,0.6)] focus-visible:ring-4 focus-visible:ring-focus/40 focus-visible:outline-none active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0 disabled:hover:shadow-none"
       style={{ borderColor: tidy.line, backgroundColor: tidy.tint, color: tidy.deep }}
     >
       <Bulb thinking={thinking} />
