@@ -63,7 +63,9 @@ export type FallbackReason =
   | "leak-solution"
   | "leak-force"
   /** The hint opens with the same sentence as a hint the player already got in this run. */
-  | "repeats-previous";
+  | "repeats-previous"
+  /** The model ran out of output tokens, so its answer stops mid-sentence. */
+  | "cut-off";
 
 export type HintResponse = {
   text: string;

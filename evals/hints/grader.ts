@@ -2,6 +2,7 @@
 // against human labels (see labels.example.json for the format to do that with).
 
 import { generateText, type LanguageModel } from "ai";
+import { FIRST_COMMAND_HINT } from "@/hints/leak";
 
 /** A stronger model than the hint model, through the AI Gateway. */
 /**
@@ -21,6 +22,17 @@ export const CRITERIA = {
 } as const;
 
 export type Criterion = keyof typeof CRITERIA;
+
+/** The hint ladder, as the hint model is told it (src/hints/prompt.ts), for judging noAnswer by hint number. */
+export const LADDER_RULE =
+  "The hint ladder: hints 1 and 2 must not name any git command. From hint 3 on, a hint may and should name the one git command to reach for next (for example \"git cherry-pick\" or \"git push\"); naming that command is not giving the answer away. Only the solution's arguments after it (a branch name, commit, file name, or stash or reflog position) or a full command line that finishes a step are off limits.";
+
+/** noAnswer for this hint number: the ladder decides whether naming a command is allowed. */
+export function noAnswerRule(hintNumber: number): string {
+  return hintNumber >= FIRST_COMMAND_HINT
+    ? `${CRITERIA.noAnswer} This is hint ${hintNumber}, so naming the git command itself passes; only its arguments from the solution, or a full command line, fail.`
+    : `${CRITERIA.noAnswer} This is hint ${hintNumber}, so naming any git command at all fails.`;
+}
 /** `pass` holds the criteria that applied: moreSpecificThanPrevious only when there were previous hints. */
 export type Grade = { pass: Partial<Record<Criterion, boolean>>; notes: string; overall: boolean };
 
@@ -33,6 +45,8 @@ export type GraderInput = {
   situation: string;
   expect: string;
   hint: string;
+  /** Which hint of the run this is (1 for the first): sets what noAnswer allows (LADDER_RULE). */
+  hintNumber: number;
   /** Hints already shown in this run, oldest first. When present, moreSpecificThanPrevious is graded too. */
   previousHints?: readonly string[];
 };
@@ -62,10 +76,12 @@ export function graderPrompt(input: GraderInput): string {
     `<a_good_hint_points_toward>${input.expect}</a_good_hint_points_toward>`,
     ...previous,
     "",
-    `<hint>${input.hint}</hint>`,
+    `<hint number="${input.hintNumber}">${input.hint}</hint>`,
+    "",
+    LADDER_RULE,
     "",
     "Judge the hint on each criterion, pass or fail:",
-    ...keys.map((k) => `- ${k}: ${CRITERIA[k]}`),
+    ...keys.map((k) => `- ${k}: ${k === "noAnswer" ? noAnswerRule(input.hintNumber) : CRITERIA[k]}`),
     "",
     `Answer with JSON only, no other text: {${keys.map((k) => `"${k}": true|false`).join(", ")}, "notes": "one sentence"}`,
   ].join("\n");
