@@ -11,8 +11,9 @@ import { replyModel } from "@/hints/test-helpers";
 import { MAX_RECENT_COMMANDS } from "@/hints/types";
 import { parseHintRequest } from "@/hints/validate";
 import { recentCommands } from "@/components/game/hintRequest";
-import { CASES } from "./cases";
-import { BASE_CRITERIA, grade, parseGrade } from "./grader";
+import { namedCommands } from "@/hints/leak";
+import { CASES, expectedCommands, namesExpectedCommand } from "./cases";
+import { BASE_CRITERIA, LADDER_RULE, grade, graderPrompt, parseGrade } from "./grader";
 import { caseRequest, playCase } from "./materialise";
 
 const goalCount = (id: string) => hintLevel(id)?.level.goals.length;
@@ -117,13 +118,13 @@ describe("model grader (offline parts)", () => {
   it("grades moreSpecificThanPrevious only when there were previous hints", async () => {
     const reply = '{"towardNextIdea": true, "noAnswer": true, "short": true, "voice": true, "moreSpecificThanPrevious": false, "notes": "repeats"}';
     const first = replyModel(reply);
-    const g1 = await grade({ context: "ctx", goal: "goal", situation: "sit", expect: "push", hint: "Share it." }, first);
+    const g1 = await grade({ context: "ctx", goal: "goal", situation: "sit", expect: "push", hint: "Share it.", hintNumber: 1 }, first);
     expect(g1.overall).toBe(true);
     expect(g1.pass.moreSpecificThanPrevious).toBeUndefined();
     expect(JSON.stringify(first.doGenerateCalls[0].prompt)).not.toContain("moreSpecificThanPrevious");
 
     const later = replyModel(reply);
-    const g2 = await grade({ context: "ctx", goal: "goal", situation: "sit", expect: "push", hint: "Share it.", previousHints: ["Share it."] }, later);
+    const g2 = await grade({ context: "ctx", goal: "goal", situation: "sit", expect: "push", hint: "Share it.", hintNumber: 2, previousHints: ["Share it."] }, later);
     expect(g2.pass.moreSpecificThanPrevious).toBe(false);
     expect(g2.overall).toBe(false);
     const sent = JSON.stringify(later.doGenerateCalls[0].prompt);
@@ -133,11 +134,37 @@ describe("model grader (offline parts)", () => {
 
   it("grades with the rubric through a (mock) model", async () => {
     const model = replyModel('{"towardNextIdea": true, "noAnswer": true, "short": true, "voice": true, "notes": "fine"}');
-    const g = await grade({ context: "ctx", goal: "goal", situation: "sit", expect: "push", hint: "Time to share it." }, model);
+    const g = await grade({ context: "ctx", goal: "goal", situation: "sit", expect: "push", hint: "Time to share it.", hintNumber: 1 }, model);
     expect(g.overall).toBe(true);
     const sent = JSON.stringify(model.doGenerateCalls[0].prompt);
     for (const k of BASE_CRITERIA) expect(sent).toContain(k);
     expect(sent).toContain("Time to share it.");
+  });
+
+  it("states the hint ladder and judges noAnswer by hint number", async () => {
+    const reply = '{"towardNextIdea": true, "noAnswer": true, "short": true, "voice": true, "notes": "ok"}';
+    const base = { context: "ctx", goal: "goal", situation: "sit", expect: "push" };
+    const early = replyModel(reply);
+    await grade({ ...base, hint: "Time to share it.", hintNumber: 2 }, early);
+    const earlySent = JSON.stringify(early.doGenerateCalls[0].prompt);
+    expect(earlySent).toContain(JSON.stringify(LADDER_RULE).slice(1, -1));
+    expect(earlySent).toContain("This is hint 2, so naming any git command at all fails.");
+    expect(earlySent).not.toContain("naming the git command itself passes");
+
+    const late = replyModel(reply);
+    const g = await grade({ ...base, hint: "git push can share it.", hintNumber: 3 }, late);
+    expect(g.overall).toBe(true);
+    const lateSent = JSON.stringify(late.doGenerateCalls[0].prompt);
+    expect(lateSent).toContain("This is hint 3, so naming the git command itself passes");
+    expect(lateSent).not.toContain("naming any git command at all fails");
+    expect(lateSent).toContain('<hint number=\\"3\\">git push can share it.</hint>');
+  });
+
+  it("keeps every criterion other than noAnswer the same at every hint number", () => {
+    const base = { context: "ctx", goal: "goal", situation: "sit", expect: "push", hint: "h", previousHints: ["p"] };
+    const lines = (n: number) => graderPrompt({ ...base, hintNumber: n }).split("\n").filter((l) => l.startsWith("- ") && !l.startsWith("- noAnswer"));
+    expect(lines(1)).toEqual(lines(3));
+    expect(lines(3)).toHaveLength(4);
   });
 
   it("labels.example.json uses known cases and the documented fields", () => {
@@ -149,5 +176,47 @@ describe("model grader (offline parts)", () => {
       expect(["good", "bad"]).toContain(l.label);
       expect(l.hint.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("expected command for hint 3", () => {
+  it("reads the git commands a hint names", () => {
+    expect(namedCommands("I think git cherry-pick can copy just that one fix.")).toEqual(["cherry-pick"]);
+    expect(namedCommands("Try `git stash list`, then git stash branch.")).toEqual(["stash list", "stash branch"]);
+    expect(namedCommands("Git keeps a diary. I can help you copy one commit.")).toEqual([]);
+    expect(namedCommands("git stash to the rescue")).toEqual(["stash"]);
+  });
+
+  it("matches the case's expected command, and only that", () => {
+    const picked = CASES.find((c) => c.id === "act2-05-picked")!;
+    expect(namesExpectedCommand(namedCommands("Now git push will share the fix."), picked)).toBe(true);
+    expect(namesExpectedCommand(namedCommands("I can help you copy just one commit."), picked)).toBe(false);
+    expect(namesExpectedCommand(namedCommands("git cherry-pick copies one commit."), picked)).toBe(false);
+    const stash = CASES.find((c) => c.id === "act2-03-nothing")!;
+    expect(namesExpectedCommand(["stash list"], stash)).toBe(true);
+    expect(namesExpectedCommand(["stash pop"], stash)).toBe(false);
+    expect(namesExpectedCommand(["stash list"], { expectedCommand: "stash" })).toBe(true);
+    expect(namesExpectedCommand(["push"], {})).toBeUndefined();
+  });
+
+  it("every expected command is a step of the level's documented solution, or a named way back to it", () => {
+    // Recovering from a wrong turn takes a step the clean solution never needs.
+    const wayBack: Record<string, string> = {
+      "act1-03-switched-away": "switch", // back to main
+      "act2-05-merged-all": "reset", // undo the local merge
+    };
+    for (const c of CASES) {
+      const steps = hintLevel(c.levelId)!.solution.map((argv) => {
+        const [, sub, second] = argv;
+        return ["stash", "remote", "worktree"].includes(sub) && second ? `${sub} ${second}` : sub;
+      });
+      for (const e of expectedCommands(c)) {
+        if (wayBack[c.id] === e) continue;
+        // branch is the other way to make the new branch that switch -c makes in act1-02.
+        if (c.levelId === "act1-02" && e === "branch") continue;
+        expect(steps, `${c.id}: ${e}`).toContain(e);
+      }
+    }
+    expect(CASES.filter((c) => expectedCommands(c).length).length).toBeGreaterThanOrEqual(20);
   });
 });

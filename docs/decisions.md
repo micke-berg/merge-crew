@@ -2,6 +2,16 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-10-06 — Hint models chosen by evals, one per hint number
+
+Supersedes the model and leak-check lines of the 2026-10-05 entry below.
+
+- **Hints 1 and 2: `google/gemini-2.5-flash-lite`. Hint 3 and later: `google/gemini-2.5-flash` with thinking off.** Chosen by `npm run eval:hints` on 27 stuck cases. Against Claude Haiku 4.5, Flash-Lite gave the answer away less often in early hints and costs about a tenth. For hint 3, which has to name the right command for the player's situation, Flash named the right command in 17 of 24 cases (Flash-Lite 10, Haiku 19, Sonnet 5 21) at about a third of Haiku's cost and with the lowest latency. Haiku is the Gateway fallback for hint 3. Gemini's thinking is off for hint calls, because it used up the 120-token answer budget and left fragments.
+- **The leak check depends on the hint number.** Hints 1 and 2 may not name any git command; later hints may name the command but not the solution's arguments; a force push is rejected at any hint. Suggestion buttons no longer make a command acceptable. A hint that repeats the opening of an earlier hint, or that stopped at the output limit, is replaced by a scripted hint.
+- **The browser sends the hints already shown in the run**, so each hint can go one step further.
+- **Tracing uses Langfuse's own AI SDK 7 integration** (`@langfuse/vercel-ai-sdk`) instead of a hand-written one, with stable span names, a session per level run and an environment per deployment.
+- **The eval grader judges "gives the answer away" per hint number**, following the same ladder. Scores from before 2026-10-06 are not comparable on that criterion. The grader is not yet checked against human labels.
+
 ## 2026-10-05 — AI hints from Tidy
 
 - **"Ask Tidy" gives a hint from a low-cost model, with scripted hints as the safety net.** The model is `anthropic/claude-haiku-4.5` through the Vercel AI Gateway, with `google/gemini-2.5-flash-lite` as the Gateway's fallback model, at most 120 output tokens and a 6 second timeout. Every level has three scripted hints, gentle to specific. They are used when the model is switched off (`HINTS_AI=off`), has no credentials, fails, times out, or gives a hint the checks reject. The response says which source was used and why, so traces and evals can tell them apart.

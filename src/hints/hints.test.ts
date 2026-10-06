@@ -4,7 +4,19 @@ import { hintLevel, hintLevelIds } from "./data";
 import { MAX_HINT_CHARS, MAX_HINT_SENTENCES, checkLeak, cleanHint, countSentences, normalise, vetHint } from "./leak";
 import { buildHintPrompt, type PromptInput } from "./prompt";
 import { RateLimiter, clientKey } from "./rateLimit";
-import { aiAvailability, getHint, scriptedHint, servedModel } from "./server";
+import {
+  FALLBACK_MODELS,
+  HINT_MODEL,
+  LAST_HINT_FROM,
+  LAST_HINT_MODEL,
+  aiAvailability,
+  fallbackModelsFor,
+  gatewayCost,
+  getHint,
+  modelForHint,
+  scriptedHint,
+  servedModel,
+} from "./server";
 import { recordSafetyCheck, stableSpanName, tracingEnabled, tracingEnvironment } from "./telemetry";
 import { failingModel, hangingModel, replyModel } from "./test-helpers";
 import { LIMITS, MAX_HINTS_PER_RUN, MAX_PREVIOUS_HINTS, type HintRequest } from "./types";
@@ -311,6 +323,12 @@ describe("getHint", () => {
     expect(model.doGenerateCalls[0].maxOutputTokens).toBe(120);
   });
 
+  it("never shows an answer that stopped at the output limit", async () => {
+    const out = await getHint(request(), blaze, { model: replyModel("I see you want those commits back. Git can create a new commit that undoes", "length"), env: {} });
+    expect(out.source).toBe("scripted");
+    expect(out.reason).toBe("cut-off");
+  });
+
   it("sends the previous hints to the model and vets by hint number", async () => {
     const model = replyModel("Try git reflog to see where main was.");
     const previousHints = [blaze.scripted[0], blaze.scripted[1]];
@@ -392,6 +410,68 @@ describe("getHint", () => {
       blaze.scripted[2],
       blaze.scripted[2],
     ]);
+  });
+});
+
+describe("model per hint number", () => {
+  it("uses HINT_MODEL for hints 1 and 2 and LAST_HINT_MODEL from hint 3 on", () => {
+    expect(LAST_HINT_FROM).toBe(3);
+    expect(LAST_HINT_MODEL).not.toBe(HINT_MODEL);
+    expect(fallbackModelsFor(LAST_HINT_MODEL)).toEqual(["anthropic/claude-haiku-4.5"]);
+    expect([1, 2, 3, 4, 5].map(modelForHint)).toEqual([HINT_MODEL, HINT_MODEL, LAST_HINT_MODEL, LAST_HINT_MODEL, LAST_HINT_MODEL]);
+  });
+
+  it("asks the hint-number's model, and the eval overrides only their own hints", async () => {
+    for (const n of [1, 2, 3, 4]) {
+      const early = replyModel("Have a look at where main has been.");
+      const late = replyModel("I think git reflog shows where main has been.");
+      const out = await getHint(request({ hintNumber: n }), blaze, { hintModel: early, lastHintModel: late, env: {} });
+      expect(early.doGenerateCalls).toHaveLength(n < 3 ? 1 : 0);
+      expect(late.doGenerateCalls).toHaveLength(n < 3 ? 0 : 1);
+      expect(out.source).toBe("ai");
+    }
+    // `model` stands in for every hint.
+    const all = replyModel("Have a look at where main has been.");
+    await getHint(request({ hintNumber: 3 }), blaze, { model: all, lastHintModel: replyModel("unused"), env: {} });
+    expect(all.doGenerateCalls).toHaveLength(1);
+  });
+
+  it("never lists a hint's own model as its fallback", () => {
+    for (const primary of [HINT_MODEL, LAST_HINT_MODEL, ...FALLBACK_MODELS, "google/gemini-2.5-flash", "anthropic/claude-sonnet-5"]) {
+      const fallbacks = fallbackModelsFor(primary);
+      expect(fallbacks).not.toContain(primary);
+      expect(fallbacks.length).toBeGreaterThan(0);
+      expect(new Set(fallbacks).size).toBe(fallbacks.length);
+    }
+    expect(fallbackModelsFor(HINT_MODEL)).toEqual(FALLBACK_MODELS.filter((m) => m !== HINT_MODEL));
+    // A primary that is the only fallback falls back to the other hint models instead.
+    if (FALLBACK_MODELS.length === 1) {
+      const [only] = FALLBACK_MODELS;
+      expect(fallbackModelsFor(only)).toEqual([...new Set([HINT_MODEL, LAST_HINT_MODEL])].filter((m) => m !== only));
+    }
+  });
+
+  it("sends each hint the fallback list for its own model", async () => {
+    for (const n of [1, 3]) {
+      const model = replyModel("Have a look at where main has been.");
+      await getHint(request({ hintNumber: n }), blaze, n < 3 ? { hintModel: model, env: {} } : { lastHintModel: model, env: {} });
+      const options = model.doGenerateCalls[0].providerOptions as { gateway: { models: string[]; tags: string[] }; google: unknown };
+      expect(options.gateway.models).toEqual(fallbackModelsFor("mock-hint"));
+      expect(options.gateway.tags).toEqual(["merge-crew-hint", "act2-01"]);
+      // Gemini's thinking would spend the output budget before the hint.
+      expect(options.google).toEqual({ thinkingConfig: { thinkingBudget: 0 } });
+    }
+  });
+
+  it("records usage, and the Gateway's cost when it reports one", async () => {
+    const out = await getHint(request(), blaze, { model: replyModel("Have a look at where main has been."), env: {} });
+    expect(out.usage).toEqual({ inputTokens: 100, outputTokens: 20 });
+    expect(out.model).toBe("mock-hint");
+    expect(out.costUsd).toBeUndefined();
+    expect(gatewayCost({ gateway: { cost: "0.0000018" } })).toBeCloseTo(0.0000018);
+    expect(gatewayCost({ gateway: { cost: 0.002 } })).toBe(0.002);
+    expect(gatewayCost({ gateway: { cost: "n/a" } })).toBeUndefined();
+    expect(gatewayCost(undefined)).toBeUndefined();
   });
 });
 

@@ -4,21 +4,35 @@
 import "server-only";
 import { generateText, type LanguageModel, type TelemetryOptions } from "ai";
 import type { HintLevel } from "./data";
-import { vetHint } from "./leak";
+import { FIRST_COMMAND_HINT, vetHint, type HintVerdict } from "./leak";
 import { recordSafetyCheck } from "./telemetry";
 import { buildHintPrompt } from "./prompt";
 import type { FallbackReason, HintRequest, HintResponse } from "./types";
 
 /**
- * The hint model, as a plain AI Gateway model string. Chosen by `npm run eval:hints` on 2026-10-05:
- * against Claude Haiku 4.5 on the same 27 cases, Gemini 2.5 Flash-Lite gave away the answer less often
- * (0 of 53 graded answers vs 5 of 54), was rejected as too long less often (4 vs 9), was faster and
- * costs about a tenth. Measure any change the same way.
+ * The model for hints 1 and 2, as a plain AI Gateway model string. Chosen by `npm run eval:hints` on
+ * 2026-10-05: against Claude Haiku 4.5 on the same 27 cases, Gemini 2.5 Flash-Lite gave away the
+ * answer less often (0 of 53 graded answers vs 5 of 54), was rejected as too long less often (4 vs 9),
+ * was faster and costs about a tenth. Measure any change the same way.
  */
 export const HINT_MODEL = "google/gemini-2.5-flash-lite";
 /**
- * Models the Gateway tries if the hint model fails. Claude Haiku 4.5 names commands more readily, so
- * it is only a backup; the code check still applies to its answers. Each needs paid Gateway credits.
+ * The model from hint 3 on, where the hint names the git command for the player's situation.
+ * `npm run eval:hints` on 2026-10-06, hint 3 of 27 cases, hints 1-2 on HINT_MODEL, ladder-aware grader,
+ * right command = the case's expectedCommand (24 cases):
+ *   gemini-2.5-flash-lite: right 10/23, shown AI 22/27, grader 85%, 0 leaks, median 534 ms, $0.00010
+ *   gemini-2.5-flash (no thinking): right 17/24, shown AI 25/27, grader 100%, 0 leaks, median 739 ms, $0.00032
+ *   claude-haiku-4.5: right 19/24, shown AI 26/27, grader 89%, 1 leak, median 985 ms, $0.00112
+ *   claude-sonnet-5: right 21/24, shown AI 26/27, grader 100%, 0 leaks, median 1383 ms, $0.00286
+ * Cost is the Gateway's per hint. Measure any change the same way (HINT_EVAL_LAST_MODEL).
+ */
+export const LAST_HINT_MODEL = "google/gemini-2.5-flash";
+/** The first hint that uses LAST_HINT_MODEL: the first one allowed to name a git command. */
+export const LAST_HINT_FROM = FIRST_COMMAND_HINT;
+/**
+ * Models the Gateway tries if a hint's own model fails, in order. A hint never lists its own model
+ * as its fallback (see fallbackModelsFor). Each needs paid Gateway credits; the code check still
+ * applies to their answers.
  */
 export const FALLBACK_MODELS: readonly string[] = ["anthropic/claude-haiku-4.5"];
 export const MAX_OUTPUT_TOKENS = 120;
@@ -57,25 +71,65 @@ export function servedModel(providerMetadata: unknown): string | undefined {
   return typeof routing?.canonicalSlug === "string" ? routing.canonicalSlug : undefined;
 }
 
+/** The Gateway model string for hint `hintNumber` of a run. */
+export function modelForHint(hintNumber: number): string {
+  return hintNumber >= LAST_HINT_FROM ? LAST_HINT_MODEL : HINT_MODEL;
+}
+
+/**
+ * The Gateway fallback list for a hint whose model is `primary`: FALLBACK_MODELS without the primary.
+ * If that leaves nothing (the primary is the only fallback), the other hint model stands in, so a
+ * failing model always has somewhere to go.
+ */
+export function fallbackModelsFor(primary: string): string[] {
+  const rest = FALLBACK_MODELS.filter((m) => m !== primary);
+  if (rest.length) return [...new Set(rest)];
+  return [HINT_MODEL, LAST_HINT_MODEL].filter((m, i, all) => m !== primary && all.indexOf(m) === i);
+}
+
+function modelId(model: LanguageModel): string {
+  return typeof model === "string" ? model : model.modelId;
+}
+
+/** Spend reported by the Gateway for this call, in US dollars, when it says. */
+export function gatewayCost(providerMetadata: unknown): number | undefined {
+  const cost = (providerMetadata as { gateway?: { cost?: unknown } } | undefined)?.gateway?.cost;
+  const n = typeof cost === "string" ? Number(cost) : typeof cost === "number" ? cost : NaN;
+  return Number.isFinite(n) ? n : undefined;
+}
+
 export type HintDeps = {
   env?: Env;
   /** The request carried Vercel's OIDC header. */
   requestHasOidc?: boolean;
-  /** A model to use instead of the Gateway string (tests and evals pass a mock). */
+  /** A model for every hint instead of the Gateway strings (tests pass a mock). */
   model?: LanguageModel;
+  /** Instead of HINT_MODEL for hints 1 and 2 (evals compare models with it). */
+  hintModel?: LanguageModel;
+  /** Instead of LAST_HINT_MODEL from hint 3 on (evals compare models with it). */
+  lastHintModel?: LanguageModel;
   /** AI SDK telemetry settings for the model call. Defaults to off. */
   telemetry?: TelemetryOptions;
   timeoutMs?: number;
 };
 
-/** What happened, for tracing: the response plus the raw model text when there was one. */
-export type HintOutcome = HintResponse & { raw?: string; model?: string };
+/**
+ * What happened, for tracing and evals: the response plus the raw model text when there was one, the
+ * model that answered, its token usage and the Gateway's cost for the call when reported.
+ */
+export type HintOutcome = HintResponse & {
+  raw?: string;
+  model?: string;
+  usage?: { inputTokens?: number; outputTokens?: number };
+  costUsd?: number;
+};
 
 export async function getHint(request: HintRequest, data: HintLevel, deps: HintDeps = {}): Promise<HintOutcome> {
   const env = deps.env ?? process.env;
   const available = aiAvailability(env, deps.requestHasOidc ?? false);
+  const injected = deps.model ?? (request.hintNumber >= LAST_HINT_FROM ? deps.lastHintModel : deps.hintModel);
   // An injected model needs no Gateway credentials, but HINTS_AI=off still wins.
-  if (!available.ok && !(deps.model && available.reason === "no-credentials")) {
+  if (!available.ok && !(injected && available.reason === "no-credentials")) {
     return scripted(data, request.hintNumber, available.reason);
   }
 
@@ -96,11 +150,17 @@ export async function getHint(request: HintRequest, data: HintLevel, deps: HintD
     controller.abort();
   }, deps.timeoutMs ?? HINT_TIMEOUT_MS);
 
+  const primary: LanguageModel = injected ?? modelForHint(request.hintNumber);
+
   let raw: string;
+
+  let finishReason: string | undefined;
   let model: string | undefined;
+  let usage: HintOutcome["usage"];
+  let costUsd: number | undefined;
   try {
     const result = await generateText({
-      model: deps.model ?? HINT_MODEL,
+      model: primary,
       instructions,
       prompt,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
@@ -108,20 +168,31 @@ export async function getHint(request: HintRequest, data: HintLevel, deps: HintD
       // The Gateway's model fallback is the retry; a second attempt would only make the player wait.
       maxRetries: 0,
       abortSignal: controller.signal,
-      providerOptions: { gateway: { models: [...FALLBACK_MODELS], tags: ["merge-crew-hint", request.levelId] } },
+      providerOptions: {
+        gateway: { models: fallbackModelsFor(modelId(primary)), tags: ["merge-crew-hint", request.levelId] },
+        // No thinking: it would spend the 120 output tokens before the hint (Gemini 2.5 Flash returned
+        // cut-off fragments in the evals). Other providers ignore this key.
+        google: { thinkingConfig: { thinkingBudget: 0 } },
+      },
       runtimeContext: { levelId: request.levelId, hintNumber: request.hintNumber },
       telemetry: deps.telemetry ?? { isEnabled: false },
     });
     raw = result.text;
+    finishReason = result.finishReason;
     model = servedModel(result.providerMetadata) ?? result.response?.modelId;
+    usage = { inputTokens: result.usage?.inputTokens, outputTokens: result.usage?.outputTokens };
+    costUsd = gatewayCost(result.providerMetadata);
   } catch {
     return scripted(data, request.hintNumber, timedOut ? "timeout" : "model-error");
   } finally {
     clearTimeout(timer);
   }
 
-  const verdict = vetHint(raw, data.solution, request.hintNumber, request.previousHints ?? []);
+  // An answer that hit the output limit stops mid-sentence ("…a new commit that undoes"); never show it.
+  const verdict: HintVerdict =
+    finishReason === "length" ? { ok: false, reason: "cut-off" } : vetHint(raw, data.solution, request.hintNumber, request.previousHints ?? []);
   recordSafetyCheck(raw, verdict);
-  if (!verdict.ok) return { ...scripted(data, request.hintNumber, verdict.reason), raw, model };
-  return { text: verdict.text, source: "ai", raw, model };
+  const call = { raw, model, usage, ...(costUsd === undefined ? {} : { costUsd }) };
+  if (!verdict.ok) return { ...scripted(data, request.hintNumber, verdict.reason), ...call };
+  return { text: verdict.text, source: "ai", ...call };
 }

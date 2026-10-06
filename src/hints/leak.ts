@@ -62,7 +62,22 @@ const SUBCOMMANDS = [
   "push", "rebase", "reflog", "remote", "reset", "restore", "revert", "rm", "shortlog", "show", "stash", "status",
   "submodule", "switch", "tag", "worktree",
 ];
-const GIT_COMMAND = new RegExp(`\\bgit (?:${SUBCOMMANDS.map((c) => c.replace("-", "\\-")).join("|")})(?![\\w-])`);
+const SUBCOMMAND_ALTERNATIVES = SUBCOMMANDS.map((c) => c.replace("-", "\\-")).join("|");
+const GIT_COMMAND = new RegExp(`\\bgit (?:${SUBCOMMAND_ALTERNATIVES})(?![\\w-])`);
+/** Second words of the two-word commands (`git stash list`); any other word after `git stash` is prose. */
+const SECOND_WORDS = new Set(["add", "apply", "branch", "clear", "drop", "list", "pop", "prune", "push", "remove", "rename", "save", "show"]);
+/** Every `git <subcommand>` with the word after it, for namedCommands. */
+const GIT_COMMANDS_WITH_NEXT = new RegExp(`\\bgit (${SUBCOMMAND_ALTERNATIVES})(?![\\w-])(?: ([a-z][a-z-]*))?`, "g");
+
+/**
+ * The git commands a hint names, as subcommand keys in order: "cherry-pick", "push", or two words for
+ * stash, remote and worktree ("stash list"; a bare "stash" when no second word follows).
+ */
+export function namedCommands(hint: string): string[] {
+  return [...normalise(hint).matchAll(GIT_COMMANDS_WITH_NEXT)].map(([, sub, second]) =>
+    TWO_WORD.has(sub) && second && SECOND_WORDS.has(second) ? `${sub} ${second}` : sub,
+  );
+}
 
 /** Hints from this number on may name a git command; earlier ones must stay with ideas and places. */
 export const FIRST_COMMAND_HINT = 3;
@@ -135,7 +150,7 @@ export type HintVerdict =
   | { ok: true; text: string }
   | {
       ok: false;
-      reason: Extract<FallbackReason, "empty" | "too-long" | "leak-command" | "leak-solution" | "leak-force" | "repeats-previous">;
+      reason: Extract<FallbackReason, "empty" | "too-long" | "leak-command" | "leak-solution" | "leak-force" | "repeats-previous" | "cut-off">;
     };
 
 /** A sentence reduced to its words, for comparing hints: case, punctuation and spacing ignored. */
