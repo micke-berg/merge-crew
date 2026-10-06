@@ -203,8 +203,9 @@ export function LevelGame({ level }: { level: Level }) {
           </div>
 
           {/* command box */}
-          <div className="flex h-[372px] flex-col gap-2 md:col-span-2 lg:col-span-1 lg:h-auto lg:min-h-0">
-            <div className="flex items-stretch gap-2">
+          <div className="flex h-[440px] flex-col gap-2 sm:h-[372px] md:col-span-2 lg:col-span-1 lg:h-auto lg:min-h-0">
+            {/* Phones stack the task above the hint button; wider screens put them side by side. */}
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
               <div className="min-w-0 flex-1">
                 <JobBar goals={level.goals} done={game.goals} won={game.phase === "outro" || game.phase === "won"} />
               </div>
