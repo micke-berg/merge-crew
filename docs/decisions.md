@@ -2,6 +2,13 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-10-11 — Two basic practice levels open Act 1's practice group
+
+- **Added `act1-11` "Look before you save" and `act1-12` "Undo an edit", placed first in the practice group.** The most basic everyday tools come before the ones Act 2 relies on. `act1-11` practises `git diff`, `git add` and `git commit` with two changed files where only one change is wanted. `act1-12` practises `git restore <file>`, where the good edit in another file must survive.
+- **Both are ordinary practice levels:** one new idea, no crisis, only Tidy, one goal each, and both name `act2-04` ("Undo, politely") in `usedIn`. `git show` is a suggestion button in `act1-11`, not a goal.
+- **`git restore --staged` is left out of `act1-12`.** Unstaging is a second idea, and the level is about one.
+- **Only `order` changed on the existing practice levels** (`act1-05` to `act1-10` are now 7 to 12, same sequence). Ids, saved progress and hint data are unaffected.
+
 ## 2026-10-11 — Practice levels in Act 1, and Act 2 ordered by difficulty
 
 - **Each tool Act 2 relies on gets a short practice level in Act 1** (act1-05 to act1-10): stash, cherry-pick, revert, reset, reflog and a first merge conflict. Playtesting showed that Act 2 asked the player to use tools they had never practised, each one cold, inside a crisis. A practice level has one new idea, no crisis and only Tidy, and ends when the player has used the tool once.

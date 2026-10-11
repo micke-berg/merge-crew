@@ -29,7 +29,7 @@ const MENU_WITH_FIZZ = "Lemonade\nIced tea\nLemon-lavender fizz\n";
 export const level: Level = {
   id: "act1-09",
   act: 1,
-  order: 9,
+  order: 11,
   title: "The diary",
   brief: "A branch was deleted too soon and its only save is not on any branch now. Git remembers where it was.",
   mission: {

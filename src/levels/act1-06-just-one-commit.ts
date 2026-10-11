@@ -32,7 +32,7 @@ const SIGN_WITH_HOURS = "LEMONADE\nOpen 9 to 5\n";
 export const level: Level = {
   id: "act1-06",
   act: 1,
-  order: 6,
+  order: 8,
   title: "Just one commit",
   brief: "Tidy's branch has one useful commit and one unfinished one. Copy only the useful one onto main.",
   mission: {

@@ -26,7 +26,7 @@ const PRICES = "Lemonade: 2 coins\n";
 export const level: Level = {
   id: "act1-07",
   act: 1,
-  order: 7,
+  order: 9,
   title: "Take one back",
   brief: "A save two steps back put a typo on the sign. Cancel just that save with a new one, and keep everything after it.",
   mission: {
