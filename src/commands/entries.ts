@@ -210,5 +210,7 @@ export const entries: CommandEntry[] = [
     when: "To tidy your own branch before sharing it, or to catch it up with main.",
     risk: "It rewrites commits. Do not rebase saves that other people already have.",
     examples: ["git rebase main"],
+    practice: "act1-13",
+    usedIn: "act2-02",
   },
 ];

@@ -88,6 +88,11 @@ export const CASES: StuckCase[] = [
   { id: "act1-12-stashed", levelId: "act1-12", kind: "wrong-thing", commands: ["git stash"], expect: "The stash took both edits off the files, including the good one; bring them back first, then put back only sign.txt.", expectedCommand: "stash pop" },
   { id: "act1-12-looked-at-diff", levelId: "act1-12", kind: "one-step-away", commands: ["git diff"], expect: "The diff shows the loud edit is in sign.txt; put that one file back to its last saved version.", expectedCommand: "restore" },
 
+  // act1-13: rebase
+  { id: "act1-13-nothing", levelId: "act1-13", kind: "nothing-useful", commands: ["git status"], expect: "The menu branch is one save behind main; replay its save on top of main so the history stays one straight line.", expectedCommand: "rebase" },
+  { id: "act1-13-merged", levelId: "act1-13", kind: "wrong-thing", commands: ["git merge main"], expect: "The merge added an extra joining commit, so the history is not a straight line; undo it and rebase instead.", expectedCommand: "reset" },
+  { id: "act1-13-looked-at-log", levelId: "act1-13", kind: "one-step-away", commands: ["git log --oneline --all"], expect: "Main has a commit the menu branch lacks; replay the branch on top of main.", expectedCommand: "rebase" },
+
   // act2-01: reflog recovery
   { id: "act2-01-nothing", levelId: "act2-01", kind: "nothing-useful", commands: ["git status", "git log --oneline"], expect: "The lost commits are not in the log of any branch; the reflog remembers where main was.", expectedCommand: "reflog" },
   { id: "act2-01-wrong-branch", levelId: "act2-01", kind: "wrong-thing", commands: ["git pull", "git switch tidy"], expect: "Tidy's branch was reset too; look in the reflog for the commit before the reset.", expectedCommand: "reflog" },
