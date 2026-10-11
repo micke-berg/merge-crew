@@ -54,6 +54,11 @@ export const CASES: StuckCase[] = [
   { id: "act1-05-switch-refused", levelId: "act1-05", kind: "wrong-thing", commands: ["git switch prices"], expect: "Git refused the switch to protect the unsaved edit; put the edit aside with the stash first.", expectedCommand: "stash" },
   { id: "act1-05-back-on-main", levelId: "act1-05", kind: "one-step-away", commands: ["git stash", "git switch prices", "git switch main"], expect: "Back on main with the edit still on the shelf; take it off the stash again.", expectedCommand: "stash pop" },
 
+  // act1-06: cherry-pick
+  { id: "act1-06-nothing", levelId: "act1-06", kind: "nothing-useful", commands: ["git status"], expect: "Only one commit on Tidy's branch is wanted; copy just that commit onto main instead of merging the branch.", expectedCommand: "cherry-pick" },
+  { id: "act1-06-merged-all", levelId: "act1-06", kind: "wrong-thing", commands: ["git merge ideas"], expect: "The merge brought the unfinished cups onto main too; undo the merge and copy only the opening hours commit.", expectedCommand: "reset" },
+  { id: "act1-06-looked-at-log", levelId: "act1-06", kind: "one-step-away", commands: ["git log --oneline ideas"], expect: "The opening hours commit is the newest on the branch; copy it onto main.", expectedCommand: "cherry-pick" },
+
   // act2-01: reflog recovery
   { id: "act2-01-nothing", levelId: "act2-01", kind: "nothing-useful", commands: ["git status", "git log --oneline"], expect: "The lost commits are not in the log of any branch; the reflog remembers where main was.", expectedCommand: "reflog" },
   { id: "act2-01-wrong-branch", levelId: "act2-01", kind: "wrong-thing", commands: ["git pull", "git switch tidy"], expect: "Tidy's branch was reset too; look in the reflog for the commit before the reset.", expectedCommand: "reflog" },
