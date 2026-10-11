@@ -9,6 +9,12 @@ import { useProgress } from "./progress";
 
 type Group = { key: string; title: string; levels: Level[] };
 
+/** The command a practice level is about: its first practised command that is not just looking at the log. */
+function toolOf(level: Level): string | undefined {
+  const practised = level.mission?.practise ?? [];
+  return practised.find((c) => !c.startsWith("git log")) ?? practised[0];
+}
+
 /** The levels in the order the start page shows them: each act, with practice levels under their own heading. */
 function groups(): Group[] {
   const out: Group[] = [];
@@ -99,8 +105,8 @@ export function LevelPicker({ level }: { level: Level }) {
                         </span>
                         <span className="min-w-0">
                           <span className="block truncate">{l.title}</span>
-                          {l.usedIn && l.mission?.practise[0] && (
-                            <span className="block truncate font-mono text-[11px] leading-tight font-medium text-muted">{l.mission.practise[0]}</span>
+                          {l.usedIn && toolOf(l) && (
+                            <span className="block truncate font-mono text-[11px] leading-tight font-medium text-muted">{toolOf(l)}</span>
                           )}
                         </span>
                         {complete && <span className="sr-only">(completed)</span>}
