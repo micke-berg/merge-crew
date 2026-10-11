@@ -2,6 +2,14 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-10-11 — Practice levels in Act 1, and Act 2 ordered by difficulty
+
+- **Each tool Act 2 relies on gets a short practice level in Act 1** (act1-05 to act1-10): stash, cherry-pick, revert, reset, reflog and a first merge conflict. Playtesting showed that Act 2 asked the player to use tools they had never practised, each one cold, inside a crisis. A practice level has one new idea, no crisis and only Tidy, and ends when the player has used the tool once.
+- **A practice level names the Act 2 level that uses the tool (`Level.usedIn`).** The win card offers it as "Try it for real", and the start page groups practice levels under their own heading. Nothing is locked: every level builds its own repository from nothing, so a player can move between acts freely.
+- **Practice levels have one goal where a second goal would already be true at the start.** A step that shows as done before the player does anything does not help them. The same reason removed a pre-done goal from act1-03.
+- **Act 2 is ordered easiest first, the conflict last:** stash, cherry-pick, revert, reflog, conflict. Only each level's `order` changed, so level ids, saved progress and hint data are unaffected.
+- **The stash's own commits are never drawn or reported as lost.** After a pop or a drop they are bookkeeping, not history, and the game gives no way to bring a dropped stash back. If a dropped stash becomes recoverable (as `git stash apply <id>` is in git), it should be shown as lost again.
+
 ## 2026-10-06 — Hint models chosen by evals, one per hint number
 
 Supersedes the model and leak-check lines of the 2026-10-05 entry below.

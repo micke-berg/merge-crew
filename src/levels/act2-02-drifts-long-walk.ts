@@ -51,7 +51,7 @@ export const DRIFT_LINE = "Every cup comes with a cloud";
 export const level: Level = {
   id: "act2-02",
   act: 2,
-  order: 2,
+  order: 5,
   title: "Drift's long walk",
   brief:
     "Drift started a branch long ago and never looked back at main. Now it wants in, and main has moved on. Bring Drift's work home and settle the conflict fairly.",

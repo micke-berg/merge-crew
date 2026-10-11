@@ -35,7 +35,7 @@ const GOOD_PRICES = "Lemonade: 2 coins\nIced tea: 3 coins\n";
 export const level: Level = {
   id: "act2-04",
   act: 2,
-  order: 4,
+  order: 3,
   title: "Undo, politely",
   brief:
     "Blaze shipped a change to main that makes everything free, and Tidy has already built on top of it. Undo Blaze's change without rewriting the history everyone shares.",
