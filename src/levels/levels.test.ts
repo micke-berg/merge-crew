@@ -310,6 +310,28 @@ describe("levels through the engine", () => {
     expect(failed).toEqual(["history-kept", "tip-jar-kept"]);
   });
 
+  it("act1-05: git refuses to switch while the edit is in the way", () => {
+    const level = getLevel("act1-05")!;
+    const start = runSteps(engine.createRepo(), [...level.setup, ...level.intro]);
+    const refused = engine.run(start, { actor: "player", argv: ["git", "switch", "prices"] });
+    expect(refused.ok).toBe(false);
+  });
+
+  it("act1-05: dropping the stash throws the edit away and does not win", () => {
+    const failed = failedGoals("act1-05", [
+      git("player", "stash"),
+      git("player", "switch", "prices"),
+      git("player", "switch", "main"),
+      git("player", "stash", "drop"),
+    ]);
+    expect(failed).toEqual(["edit-back"]);
+  });
+
+  it("act1-05: popping the stash without visiting prices keeps the visit goal open", () => {
+    const failed = failedGoals("act1-05", [git("player", "stash"), git("player", "stash", "pop")]);
+    expect(failed).toEqual(["visit-prices", "edit-back"]);
+  });
+
   it("act2-05: merging Drift's whole branch does not win", () => {
     const failed = failedGoals("act2-05", [git("player", "merge", "drift"), git("player", "push")]);
     expect(failed).toEqual(["only-the-fix"]);
