@@ -9,6 +9,12 @@ import { useProgress } from "./progress";
 
 type Group = { key: string; title: string; levels: Level[] };
 
+/** The command a practice level is about: its first practised command that is not just looking at the log. */
+function toolOf(level: Level): string | undefined {
+  const practised = level.mission?.practise ?? [];
+  return practised.find((c) => !c.startsWith("git log")) ?? practised[0];
+}
+
 /** The levels in the order the start page shows them: each act, with practice levels under their own heading. */
 function groups(): Group[] {
   const out: Group[] = [];
@@ -97,7 +103,12 @@ export function LevelPicker({ level }: { level: Level }) {
                             l.order
                           )}
                         </span>
-                        <span className="min-w-0 truncate">{l.title}</span>
+                        <span className="min-w-0">
+                          <span className="block truncate">{l.title}</span>
+                          {l.usedIn && toolOf(l) && (
+                            <span className="block truncate font-mono text-[11px] leading-tight font-medium text-muted">{toolOf(l)}</span>
+                          )}
+                        </span>
                         {complete && <span className="sr-only">(completed)</span>}
                       </Link>
                     </li>
@@ -106,6 +117,15 @@ export function LevelPicker({ level }: { level: Level }) {
               </ul>
             </div>
           ))}
+          <div className="mt-2 border-t border-line-soft pt-2">
+            <Link
+              href="/commands"
+              className="flex items-center justify-between rounded-xl px-2 py-1.5 text-[14px] font-semibold text-soft transition-colors hover:bg-wash hover:text-ink focus-visible:bg-wash focus-visible:outline-none"
+            >
+              All commands
+              <span aria-hidden>→</span>
+            </Link>
+          </div>
         </nav>
       )}
     </div>

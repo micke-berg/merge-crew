@@ -67,6 +67,14 @@ The map draws history like a metro map in four steps:
 
 Steps 1 to 3 are pure and unit tested, as are the helpers for tags (`tags.ts`), robot placement (`placement.ts`) and movement timing (`motion.ts`). The map asks the engine's `queries` which commits are reachable or lost, so the map and the goals always agree. Next to the drawing, a list of commits is kept for screen readers. A development-only viewer for map scenes is at `/dev/map`.
 
+## Commands reference (`/commands`)
+
+A static page that explains the commands the game teaches in plain language, readable without playing.
+
+- **The text is data in `src/commands/entries.ts`.** One entry per command or idea: an anchor slug, the command, a plain title, what it does, when to use it, what can go wrong, and one to three example lines. An entry may name a `practice` level and the Act 2 level that uses the tool for real (`usedIn`). The page turns those into "Practise it" and "Use it for real" buttons.
+- **`src/app/commands/page.tsx` and `src/components/commands` only render it.** Each entry has an anchor, so `/commands#stash` opens at that entry. The start page footer and the level picker link to the page.
+- **Tests keep the links honest** (`src/commands/entries.test.ts`): every linked level exists, slugs are unique, and every level that has `usedIn` set is the practice level of some entry. A new practice level therefore needs an entry.
+
 ## Shared helpers (`src/lib`)
 
 - `palette.ts`: every colour in the game, defined once. The root layout writes the colours as CSS variables, Tailwind maps them to classes such as `bg-ink` and `text-muted`, and the SVG map reads the same constants. A test checks the contrast of every text and background pair.
