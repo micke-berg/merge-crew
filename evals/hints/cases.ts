@@ -74,6 +74,10 @@ export const CASES: StuckCase[] = [
   { id: "act1-09-log-all", levelId: "act1-09", kind: "wrong-thing", commands: ["git log --oneline --all"], expect: "The deleted branch's save is on no branch so log does not list it; the reflog is your own diary of past positions.", expectedCommand: "reflog" },
   { id: "act1-09-found-it", levelId: "act1-09", kind: "one-step-away", commands: ["git reflog"], expect: "The fizz save is in the reflog; put a branch back on it.", expectedCommand: "branch" },
 
+  // act1-10: merge conflict
+  { id: "act1-10-nothing", levelId: "act1-10", kind: "nothing-useful", commands: ["git status"], expect: "Tidy's slogan branch has to be merged into main; git will stop on a conflict that you then settle.", expectedCommand: "merge" },
+  { id: "act1-10-commit-too-soon", levelId: "act1-10", kind: "wrong-thing", commands: ["git merge slogan", "git commit"], expect: "Git refused to commit because the conflict in sign.txt is not settled; fix the file, then add it.", expectedCommand: "add" },
+
   // act2-01: reflog recovery
   { id: "act2-01-nothing", levelId: "act2-01", kind: "nothing-useful", commands: ["git status", "git log --oneline"], expect: "The lost commits are not in the log of any branch; the reflog remembers where main was.", expectedCommand: "reflog" },
   { id: "act2-01-wrong-branch", levelId: "act2-01", kind: "wrong-thing", commands: ["git pull", "git switch tidy"], expect: "Tidy's branch was reset too; look in the reflog for the commit before the reset.", expectedCommand: "reflog" },

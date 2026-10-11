@@ -229,3 +229,9 @@ export const someBranchHasCommitMessage =
   (message: string): Check =>
   (state, queries) =>
     Object.values(state.branches).some((tip) => queries.history(state, tip).some((c) => c.message === message));
+
+/** The actor is in the middle of a merge that stopped on a conflict. */
+export const mergeInProgress =
+  (actor: ActorId): Check =>
+  (state) =>
+    state.worktrees[actor]?.inProgress?.kind === "merge";
