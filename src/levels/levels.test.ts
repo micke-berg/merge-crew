@@ -349,6 +349,16 @@ describe("levels through the engine", () => {
     expect(failedGoals("act1-06", [])).toEqual(["just-the-hours"]);
   });
 
+  it("act1-07: reverting the latest commit cancels the wrong save and does not win", () => {
+    const failed = failedGoals("act1-07", [git("player", "revert", "HEAD")]);
+    expect(failed).toEqual(["undo-sign"]);
+  });
+
+  it("act1-07: a hard reset erases the price list and the history and does not win", () => {
+    const failed = failedGoals("act1-07", [git("player", "reset", "--hard", "HEAD~2")]);
+    expect(failed).toEqual(["undo-sign"]);
+  });
+
   it("act2-05: merging Drift's whole branch does not win", () => {
     const failed = failedGoals("act2-05", [git("player", "merge", "drift"), git("player", "push")]);
     expect(failed).toEqual(["only-the-fix"]);

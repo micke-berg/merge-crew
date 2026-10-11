@@ -59,6 +59,11 @@ export const CASES: StuckCase[] = [
   { id: "act1-06-merged-all", levelId: "act1-06", kind: "wrong-thing", commands: ["git merge ideas"], expect: "The merge brought the unfinished cups onto main too; undo the merge and copy only the opening hours commit.", expectedCommand: "reset" },
   { id: "act1-06-looked-at-log", levelId: "act1-06", kind: "one-step-away", commands: ["git log --oneline ideas"], expect: "The opening hours commit is the newest on the branch; copy it onto main.", expectedCommand: "cherry-pick" },
 
+  // act1-07: revert
+  { id: "act1-07-nothing", levelId: "act1-07", kind: "nothing-useful", commands: ["git status"], expect: "The sign typo is two saves back and the price list on top must stay; cancel that one save with a new commit.", expectedCommand: "revert" },
+  { id: "act1-07-reverted-latest", levelId: "act1-07", kind: "wrong-thing", commands: ["git revert HEAD"], expect: "That cancelled the price list, not the sign change; the sign save is one further back, so revert that one.", expectedCommand: "revert" },
+  { id: "act1-07-looked-at-log", levelId: "act1-07", kind: "one-step-away", commands: ["git log --oneline"], expect: "The sign change is the second commit from the top; cancel it with a revert.", expectedCommand: "revert" },
+
   // act2-01: reflog recovery
   { id: "act2-01-nothing", levelId: "act2-01", kind: "nothing-useful", commands: ["git status", "git log --oneline"], expect: "The lost commits are not in the log of any branch; the reflog remembers where main was.", expectedCommand: "reflog" },
   { id: "act2-01-wrong-branch", levelId: "act2-01", kind: "wrong-thing", commands: ["git pull", "git switch tidy"], expect: "Tidy's branch was reset too; look in the reflog for the commit before the reset.", expectedCommand: "reflog" },
