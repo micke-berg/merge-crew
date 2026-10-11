@@ -386,6 +386,37 @@ describe("levels through the engine", () => {
     expect(failed).toEqual(["fizz-back"]);
   });
 
+  it("act1-10: the merge stops on a conflict in sign.txt and git refuses to commit it", () => {
+    const level = getLevel("act1-10")!;
+    const start = runSteps(engine.createRepo(), [...level.setup, ...level.intro]);
+    const merged = engine.run(start, { actor: "player", argv: ["git", "merge", "slogan"] });
+    expect(merged.ok).toBe(true);
+    expect(merged.events.some((e) => e.type === "conflict")).toBe(true);
+    const committed = engine.run(merged.state, { actor: "player", argv: ["git", "commit"] });
+    expect(committed.ok).toBe(false);
+  });
+
+  it("act1-10: only the first step is done after the merge, and a one-sided fix does not win", () => {
+    const afterMerge = failedGoals("act1-10", [git("player", "merge", "slogan")]);
+    expect(afterMerge).toEqual(["both-lines-kept"]);
+    const oneSided = failedGoals("act1-10", [
+      git("player", "merge", "slogan"),
+      write("player", "sign.txt", "LEMONADE\nOpen 9 to 5\n"),
+      git("player", "add", "sign.txt"),
+      git("player", "commit"),
+    ]);
+    expect(oneSided).toEqual(["both-lines-kept"]);
+  });
+
+  it("act1-10: committing the conflict markers does not win", () => {
+    const failed = failedGoals("act1-10", [
+      git("player", "merge", "slogan"),
+      git("player", "add", "sign.txt"),
+      git("player", "commit"),
+    ]);
+    expect(failed).toEqual(["both-lines-kept"]);
+  });
+
   it("act2-05: merging Drift's whole branch does not win", () => {
     const failed = failedGoals("act2-05", [git("player", "merge", "drift"), git("player", "push")]);
     expect(failed).toEqual(["only-the-fix"]);
