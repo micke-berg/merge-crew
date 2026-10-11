@@ -7,8 +7,9 @@ type Props = { goals: Goal[]; done: boolean[]; won: boolean };
 
 /**
  * The player's current task, always right above the terminal: the first goal that is not met yet,
- * one dot per goal. The goals panel keeps the full list; this bar is what keeps the task in view
- * at every window width.
+ * a step count and one dot per goal. It is the only place the level's goals are shown while playing
+ * (the brief card lists them all before the level starts), so the task stays in view at every
+ * window width.
  */
 export function JobBar({ goals, done, won }: Props) {
   const current = goals.findIndex((_, i) => !done[i]);
@@ -29,6 +30,11 @@ export function JobBar({ goals, done, won }: Props) {
       >
         Your job
       </span>
+      {goals.length > 1 && !allDone && (
+        <span className="shrink-0 text-[12px] font-semibold text-soft">
+          Step {current + 1} of {goals.length}
+        </span>
+      )}
       {/* On phones the label and dots share the top line and the task gets the full width below. */}
       <div className="relative order-3 min-w-0 basis-full overflow-hidden sm:order-none sm:flex-1 sm:basis-auto" aria-live="polite">
         <AnimatePresence mode="wait" initial={false}>
