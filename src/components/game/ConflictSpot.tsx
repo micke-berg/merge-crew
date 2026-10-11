@@ -21,16 +21,18 @@ export function ConflictSpot({
   region,
   total,
   source,
+  branch,
   choice,
   onChoose,
 }: {
   region: ConflictRegion;
   total: number;
   source: ConflictSource;
+  branch?: string | null;
   choice: Choice | undefined;
   onChoose: (c: Choice) => void;
 }) {
-  const labels = sideLabels(source, region.oursLabel, region.theirsLabel);
+  const labels = sideLabels(source, region.oursLabel, region.theirsLabel, branch);
   const status =
     choice === "ours" ? "Keeping yours" : choice === "theirs" ? "Keeping theirs" : choice === "both" ? "Keeping both" : "Not picked yet";
   const titleId = `spot-${region.index}`;

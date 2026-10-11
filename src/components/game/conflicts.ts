@@ -209,8 +209,11 @@ export type SideLabels = { ours: string; theirs: string };
  * Plain names for the two sides of a region. In a rebase HEAD is the branch you are rebasing onto
  * and the incoming side is your own commit, which is the reverse of what most people expect.
  */
-export function sideLabels(source: ConflictSource, oursLabel: string, theirsLabel: string): SideLabels {
-  const ours = oursLabel || "HEAD";
+export function sideLabels(source: ConflictSource, oursLabel: string, theirsLabel: string, branch?: string | null): SideLabels {
+  // "HEAD" is git's word for the branch you are on. Beginners know the branch by its name, so the
+  // name is shown. In a rebase HEAD is the base being rebased onto, which is not the player's branch.
+  const named = branch && (source === "merge" || source === "cherry-pick" || source === "revert") ? branch : null;
+  const ours = !oursLabel || oursLabel === "HEAD" ? (named ?? "HEAD") : oursLabel;
   const theirs = theirsLabel || "incoming";
   switch (source) {
     case "rebase":

@@ -24,11 +24,13 @@ type Props = {
   content: string | undefined;
   entry: ConflictEntry | undefined;
   source: ConflictSource;
+  /** The branch the player is on, so "HEAD" can be shown by its name. */
+  branch?: string | null;
   onSave: (content: string) => void;
   onClose: () => void;
 };
 
-export function ConflictEditor({ path, content, entry, source, onSave, onClose }: Props) {
+export function ConflictEditor({ path, content, entry, source, branch, onSave, onClose }: Props) {
   const original = content ?? "";
   const segments = useMemo(() => parseConflicts(original), [original]);
   const regions = conflictRegions(segments);
@@ -43,7 +45,7 @@ export function ConflictEditor({ path, content, entry, source, onSave, onClose }
   // Text typed by hand cannot be mapped back onto the spots, so the pick view stays closed after that.
   const handEdited = mode === "text" && text !== picked;
   const open = regions.filter((r) => !choices[r.index]).length;
-  const labels = regions[0] ? sideLabels(source, regions[0].oursLabel, regions[0].theirsLabel) : sideLabels(source, "", "");
+  const labels = regions[0] ? sideLabels(source, regions[0].oursLabel, regions[0].theirsLabel, branch) : sideLabels(source, "", "", branch);
 
   const toText = () => {
     setText(picked);
@@ -122,6 +124,7 @@ export function ConflictEditor({ path, content, entry, source, onSave, onClose }
                 region={r}
                 total={regions.length}
                 source={source}
+                branch={branch}
                 choice={choices[r.index]}
                 onChoose={(c) => choose(r.index, c)}
               />
@@ -150,6 +153,11 @@ export function ConflictEditor({ path, content, entry, source, onSave, onClose }
             <h3 className="text-[12px] font-bold tracking-[0.1em] text-muted uppercase">The file after saving</h3>
             {mode === "pick" && <ConflictLegend ours={labels.ours} theirs={labels.theirs} />}
           </div>
+          {mode === "pick" && branch && (source === "merge" || source === "cherry-pick" || source === "revert") && (
+            <p className="mt-1.5 text-[12px] text-muted">
+              In the file, <code className="rounded bg-wash px-1 font-mono">HEAD</code> is your side: the branch you are on, {branch}.
+            </p>
+          )}
           <ConflictPreview segments={segments} choices={choices} text={mode === "text" ? text : null} />
         </div>
       </div>

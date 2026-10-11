@@ -125,6 +125,11 @@ describe("plain words", () => {
 
   it("names the sides, and swaps the meaning for a rebase", () => {
     expect(sideLabels("merge", "HEAD", "feature")).toEqual({ ours: "Your side (HEAD)", theirs: "Their side (feature)" });
+    // With the branch name known, HEAD is shown as that name for a merge, cherry-pick and revert.
+    expect(sideLabels("merge", "HEAD", "feature", "main")).toEqual({ ours: "Your side (main)", theirs: "Their side (feature)" });
+    expect(sideLabels("cherry-pick", "HEAD", "1a2b3c4 (Fix)", "main").ours).toBe("Your side (main)");
+    // In a rebase, HEAD is the base and not the player's branch, so it keeps git's word.
+    expect(sideLabels("rebase", "HEAD", "1a2b3c4 (Fix)", "main").ours).toBe("The new base (HEAD)");
     expect(sideLabels("rebase", "HEAD", "1a2b3c4 (Fix)").theirs).toBe("Your commit being replayed (1a2b3c4 (Fix))");
     expect(sideLabels("stash", "Updated upstream", "Stashed changes").theirs).toBe("Your stash (Stashed changes)");
   });
