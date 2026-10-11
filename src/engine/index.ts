@@ -117,7 +117,16 @@ function derivedEvents(before: RepoState, after: RepoState, ctx: Ctx): EngineEve
   }
   const lostBefore = new Set(queries.lost(before));
   const lostAfter = queries.lost(after);
-  const newlyLost = lostAfter.filter((o) => !lostBefore.has(o) && has(before.commits, o));
+  // A stash entry that was applied (pop, apply-and-drop, branch) was restored, not lost: its stash,
+  // index and untracked-files commits are bookkeeping, so they are not reported as lost. A dropped
+  // or cleared entry threw its work away, and is still reported.
+  const restored = new Set<string>();
+  for (const e of ctx.events) {
+    if (e.type !== "stash-removed" || !e.applied) continue;
+    restored.add(e.oid);
+    for (const p of after.commits[e.oid]?.parents.slice(1) ?? []) restored.add(p);
+  }
+  const newlyLost = lostAfter.filter((o) => !lostBefore.has(o) && has(before.commits, o) && !restored.has(o));
   const lostAfterSet = new Set(lostAfter);
   const recovered = [...lostBefore].filter((o) => !lostAfterSet.has(o));
   if (newlyLost.length) events.push({ type: "commits-lost", oids: newlyLost });

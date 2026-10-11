@@ -131,9 +131,28 @@ function stashBase(state: RepoState, entry: RepoState["stash"][number]): Oid {
 }
 
 /**
+ * The commits git makes to hold a stash entry: the stash commit, its index commit and, with -u, its
+ * untracked-files commit. Recognised by their shape (the engine writes them in stash.ts), so they are
+ * found whether or not the entry is still in the stash list.
+ */
+function stashBookkeeping(state: RepoState): Set<Oid> {
+  const found = new Set<Oid>();
+  for (const c of Object.values(state.commits)) {
+    const index = c.parents.length >= 2 ? state.commits[c.parents[1]] : undefined;
+    if (!index || !index.message.startsWith("index on ") || index.parents.length !== 1 || index.parents[0] !== c.parents[0]) continue;
+    found.add(c.oid);
+    found.add(index.oid);
+    const untracked = c.parents[2] ? state.commits[c.parents[2]] : undefined;
+    if (untracked && untracked.parents.length === 0 && untracked.message.startsWith("untracked files on ")) found.add(untracked.oid);
+  }
+  return found;
+}
+
+/**
  * Which commits the map leaves out. The engine decides what is reachable and what is lost; the map
- * only adds that the stash's own bookkeeping commits are not history worth drawing. The stash's
- * base line is real history, so it stays.
+ * only adds that the stash's own bookkeeping commits are not history worth drawing, whether the
+ * entry is still in the stash or was popped or dropped. The stash's base line is real history, so
+ * it stays.
  */
 export function reachability(state: RepoState): Reachability {
   const reachable = queries.reachable(state);
@@ -142,7 +161,11 @@ export function reachability(state: RepoState): Reachability {
     stash: state.stash.map((entry) => ({ ...entry, oid: stashBase(state, entry) })),
   });
   const hidden = new Set([...reachable].filter((oid) => !withoutStashCommits.has(oid)));
-  return { lost: new Set(queries.lost(state)), hidden };
+  const lost = new Set(queries.lost(state));
+  for (const oid of stashBookkeeping(state)) {
+    if (lost.delete(oid)) hidden.add(oid);
+  }
+  return { lost, hidden };
 }
 
 function headOf(state: RepoState, actor: ActorId): Oid | null {

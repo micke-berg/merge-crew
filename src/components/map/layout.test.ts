@@ -145,6 +145,24 @@ describe("layoutRepo", () => {
     expect(kinds).toEqual(new Set(["main", "remote", "detached", "stash", "ghost"]));
   });
 
+  it("does not draw the bookkeeping commits of a popped or dropped stash as lost", () => {
+    const b = new RepoBuilder()
+      .commit("a", { message: "a" })
+      .commit("gone", { parents: ["a"], message: "really lost" })
+      // What git leaves behind after a stash entry is popped or dropped: the index commit and the
+      // stash commit, with nothing pointing at them any more.
+      .commit("idx", { parents: ["a"], message: "index on main: 1234567 a" })
+      .commit("st", { parents: ["a", "idx"], message: "WIP on main: 1234567 a" })
+      .branch("main", "a");
+    const state = b.build();
+    const r = reachability(state);
+    expect([...r.lost]).toEqual([b.oid("gone")]);
+    expect(new Set(r.hidden)).toEqual(new Set([b.oid("idx"), b.oid("st")]));
+    const layout = layoutRepo(state);
+    expect(layout.stops.filter((s) => s.lost).map((s) => s.oid)).toEqual([b.oid("gone")]);
+    expect(layout.stops.find((s) => s.oid === b.oid("st"))).toBeUndefined();
+  });
+
   it("stacks robots that share a stop into slots", () => {
     const layout = layoutRepo(busy.state);
     const onMain = layout.heads.filter((h) => h.branch === "main");
