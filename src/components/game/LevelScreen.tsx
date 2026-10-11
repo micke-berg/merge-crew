@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "motion/react";
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { queries } from "@/engine";
@@ -68,6 +69,17 @@ export function LevelGame({ level }: { level: Level }) {
   const where = branch ?? (head?.kind === "detached" ? `detached ${head.oid.slice(0, 7)}` : (head?.name ?? "main"));
   const index = levels.findIndex((l) => l.id === level.id);
   const next = levels[index + 1] ?? null;
+  // A practice level points at the later level that uses its tool for real.
+  const tryIt = (level.usedIn ? getLevel(level.usedIn) : undefined) ?? null;
+  const router = useRouter();
+  // The brief card stays mounted for a moment while it fades out. Its "back" must not fire from
+  // an Esc that arrives after the level has started, so it reads the phase through a ref.
+  const phaseRef = useRef(game.phase);
+  useEffect(() => {
+    phaseRef.current = game.phase;
+  }, [game.phase]);
+  // The win card can be closed to look at the finished map; the header then offers the way on.
+  const [winClosed, setWinClosed] = useState(false);
 
   // Esc skips the rest of a scene, ends the tour, or puts Tidy's hint away.
   const skip = useEffectEvent(() => (talking ? g.skip() : g.dismissHint()));
@@ -140,10 +152,19 @@ export function LevelGame({ level }: { level: Level }) {
             <TourButton disabled={!playing || touring || SCREEN_TOUR.length === 0} onClick={() => g.tour(SCREEN_TOUR)} />
             <MuteButton />
             <PhaseChip phase={game.phase} />
+            {game.phase === "won" && winClosed && (
+              <Link
+                href={tryIt ? `/level/${tryIt.id}` : next ? `/level/${next.id}` : "/"}
+                className="inline-flex items-center rounded-full bg-ink px-3.5 py-1.5 text-sm font-bold text-paper transition-transform hover:-translate-y-px focus-visible:ring-4 focus-visible:ring-focus/40 focus-visible:outline-none"
+              >
+                {tryIt ? "Try it for real" : next ? "Next level" : "All levels"}
+              </Link>
+            )}
             <button
               type="button"
               onClick={() => {
                 setOpen(null);
+                setWinClosed(false);
                 g.restart();
               }}
               className="inline-flex items-center gap-1.5 rounded-full border border-line-button px-3.5 py-1.5 text-sm font-semibold text-soft transition-colors hover:bg-sunk hover:text-ink focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none"
@@ -249,9 +270,25 @@ export function LevelGame({ level }: { level: Level }) {
           {game.phase === "brief" && !premiseSeen && (
             <PremiseCard key="premise" onDone={() => markPremiseSeen()} doneLabel="On to the first job" />
           )}
-          {game.phase === "brief" && premiseSeen && <BriefCard key="brief" level={level} onStart={g.begin} />}
-          {game.phase === "won" && (
-            <WinCard key="won" level={level} commands={game.commands} next={next} onReplay={g.restart} />
+          {game.phase === "brief" && premiseSeen && (
+            <BriefCard key="brief" level={level} onStart={g.begin} onBack={() => {
+                if (phaseRef.current === "brief") router.push("/");
+              }}
+            />
+          )}
+          {game.phase === "won" && !winClosed && (
+            <WinCard
+              key="won"
+              level={level}
+              commands={game.commands}
+              next={next}
+              tryIt={tryIt}
+              onReplay={() => {
+                setWinClosed(false);
+                g.restart();
+              }}
+              onClose={() => setWinClosed(true)}
+            />
           )}
           {open && openConflict && player && (
             <ConflictEditor

@@ -11,7 +11,7 @@ export const hints: LevelHints = {
     "'colors' (commit 'Pick the colors', adds colors.txt). Tidy's worktree has 'colors' checked out. The files do not overlap, so no conflicts.",
     "Intended path: the player stays on main and runs git merge menu (fast-forward), then git merge colors (a real merge commit).",
     "Either order works: whichever branch is merged second needs a merge commit.",
-    "Goal: both commits reachable from main, a merge commit on main, the player on main with a clean tree.",
+    "Goal: both commits reachable from main, a merge commit on main, both merged from main.",
     "The game's merge uses git's default merge message, so no editor or -m flag is needed.",
   ].join("\n"),
   /** Used when the model is off, fails, or its hint is rejected. Gentle first, then more specific. */

@@ -275,6 +275,12 @@ export type Level = {
    * the goals. `practise` lists the commands the level teaches, e.g. ["git add", "git commit"].
    */
   mission?: { situation: string; job: string; practise: string[] };
+  /**
+   * For a practice level: the id of a later level that uses the same tool for real. The win card
+   * offers it as a "Try it for real" button, and the start page groups practice levels under their
+   * own heading.
+   */
+  usedIn?: string;
   crew: RobotId[];
   /** Runs instantly from createRepo() to build the starting repository. */
   setup: ScriptStep[];

@@ -41,6 +41,7 @@ export const level: Level = {
     job: "Copy just the opening hours onto main, and leave the cups behind. A merge would bring both. You will use this again in Act 2, when Drift's branch hides one good fix among half-finished work.",
     practise: ["git log --oneline ideas", "git cherry-pick"],
   },
+  usedIn: "act2-05",
   crew: ["tidy"],
   setup: [
     write("player", "sign.txt", SIGN),
