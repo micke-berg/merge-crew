@@ -97,7 +97,12 @@ export function LevelPicker({ level }: { level: Level }) {
                             l.order
                           )}
                         </span>
-                        <span className="min-w-0 truncate">{l.title}</span>
+                        <span className="min-w-0">
+                          <span className="block truncate">{l.title}</span>
+                          {l.usedIn && l.mission?.practise[0] && (
+                            <span className="block truncate font-mono text-[11px] leading-tight font-medium text-muted">{l.mission.practise[0]}</span>
+                          )}
+                        </span>
                         {complete && <span className="sr-only">(completed)</span>}
                       </Link>
                     </li>
@@ -106,6 +111,15 @@ export function LevelPicker({ level }: { level: Level }) {
               </ul>
             </div>
           ))}
+          <div className="mt-2 border-t border-line-soft pt-2">
+            <Link
+              href="/commands"
+              className="flex items-center justify-between rounded-xl px-2 py-1.5 text-[14px] font-semibold text-soft transition-colors hover:bg-wash hover:text-ink focus-visible:bg-wash focus-visible:outline-none"
+            >
+              All commands
+              <span aria-hidden>→</span>
+            </Link>
+          </div>
         </nav>
       )}
     </div>
