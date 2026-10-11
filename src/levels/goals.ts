@@ -235,3 +235,20 @@ export const mergeInProgress =
   (actor: ActorId): Check =>
   (state) =>
     state.worktrees[actor]?.inProgress?.kind === "merge";
+
+/**
+ * The branch's history is exactly these commit messages, newest first, and has no merge commit.
+ * Use it for "a straight line" goals, where a rebase wins and a merge does not.
+ */
+export const branchIsStraightLine =
+  (name: string, messagesNewestFirst: string[]): Check =>
+  (state, queries) => {
+    const tip = state.branches[name];
+    if (!tip) return false;
+    const history = queries.history(state, tip);
+    return (
+      history.length === messagesNewestFirst.length &&
+      history.every((c, i) => c.message === messagesNewestFirst[i]) &&
+      history.every((c) => c.parents.length <= 1)
+    );
+  };

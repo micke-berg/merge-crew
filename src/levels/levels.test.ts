@@ -500,6 +500,15 @@ describe("levels through the engine", () => {
     expect(failedGoals("act1-12", [git("player", "restore", "menu.txt")])).toEqual(["sign-back"]);
   });
 
+  it("act1-13: the menu branch starts one save behind main and is not a straight line yet", () => {
+    expect(failedGoals("act1-13", [])).toEqual(["straight-line"]);
+  });
+
+  it("act1-13: merging main in adds a merge commit and does not win", () => {
+    const failed = failedGoals("act1-13", [git("player", "merge", "main")]);
+    expect(failed).toEqual(["straight-line"]);
+  });
+
   it("act2-05: merging Drift's whole branch does not win", () => {
     const failed = failedGoals("act2-05", [git("player", "merge", "drift"), git("player", "push")]);
     expect(failed).toEqual(["only-the-fix"]);
