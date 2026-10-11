@@ -201,3 +201,25 @@ export const anyOf =
   (...checks: Check[]): Check =>
   (state, queries) =>
     checks.some((c) => c(state, queries));
+
+// ---------------------------------------------------------------------------
+// Checks added for the practice levels (stash).
+// ---------------------------------------------------------------------------
+
+/** The actor has switched to this branch at some point, according to their HEAD reflog. */
+export const hasVisitedBranch =
+  (actor: ActorId, name: string): Check =>
+  (state) =>
+    (state.worktrees[actor]?.headReflog ?? []).some((e) => {
+      const m = /^checkout: moving from \S+ to (\S+)$/.exec(e.message);
+      return m !== null && m[1] === name;
+    });
+
+/** The stash has no entries. */
+export const stashIsEmpty = (): Check => (state) => state.stash.length === 0;
+
+/** The actor's working copy of this file has exactly this content. */
+export const workingFileEquals =
+  (actor: ActorId, path: Path, content: string): Check =>
+  (state) =>
+    state.worktrees[actor]?.workingTree[path] === content;

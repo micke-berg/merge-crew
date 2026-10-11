@@ -23,9 +23,9 @@ You are the lead developer of a small crew of robot coding agents. They all work
 | Drift | Dreamy, wanders off | Never pulls or rebases, so its branch diverges far from `main` |
 | Hoarder | Anxious, keeps everything | Never commits. Huge uncommitted changes, forgotten stashes |
 
-## Structure: 3 acts, about 12 levels
+## Structure: 3 acts, about 16 levels
 
-- **Act 1, learn (about 4 levels).** Tidy teaches commit, branch, switch and merge. The player does every command.
+- **Act 1, learn.** Tidy teaches commit, branch, switch, merge, push and pull. After those come short practice levels, one tool each, with no crisis and no push or pull: stash, reset, cherry-pick, revert, reflog and resolving a conflict. Each practice level names the Act 2 level that uses the tool. The player does every command.
 - **Act 2, fix (about 5 levels).** Each level opens with a short scripted scene where one robot breaks something. The player fixes it. Example: Blaze force-pushes, two commits on `main` disappear, and the player recovers them with the reflog. One robot, one mistake, one fix per level.
 - **Act 3, lead (about 3 levels).** All robots work at once, following a script, and problems pop up as robot messages. The player chooses what to fix first. Before each shift the player picks rule cards ("no force-push to main", "commit before switching branch"), and a good rule blocks the mistake on screen.
 
@@ -55,7 +55,7 @@ The player can ask Tidy for a hint. Hints come from a low-cost AI model with a h
 
 ## Finished means
 
-- About 12 levels across the 3 acts, playable start to end at a public URL.
+- About 16 levels across the 3 acts, playable start to end at a public URL.
 - At least 4 animated robot characters.
 - Hints with evals and tracing in place.
 - The engine comparison tests are green in CI.

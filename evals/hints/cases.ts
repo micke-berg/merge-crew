@@ -49,6 +49,11 @@ export const CASES: StuckCase[] = [
   { id: "act1-04-push-rejected", levelId: "act1-04", kind: "wrong-thing", commands: ["git add sign.txt", 'git commit -m "Saturdays"', "git push"], expect: "The push was rejected because origin has a commit you lack: pull, then push again.", expectedCommand: "pull" },
   { id: "act1-04-ready-to-push", levelId: "act1-04", kind: "one-step-away", commands: ["git pull", "git add sign.txt", 'git commit -m "Saturdays"'], expect: "Everything is committed and you are ahead of origin; push.", expectedCommand: "push" },
 
+  // act1-05: stash
+  { id: "act1-05-nothing", levelId: "act1-05", kind: "nothing-useful", commands: ["git status"], expect: "The edit in menu.txt is not saved and would be overwritten by the other branch; put it on the stash shelf before switching.", expectedCommand: "stash" },
+  { id: "act1-05-switch-refused", levelId: "act1-05", kind: "wrong-thing", commands: ["git switch prices"], expect: "Git refused the switch to protect the unsaved edit; put the edit aside with the stash first.", expectedCommand: "stash" },
+  { id: "act1-05-back-on-main", levelId: "act1-05", kind: "one-step-away", commands: ["git stash", "git switch prices", "git switch main"], expect: "Back on main with the edit still on the shelf; take it off the stash again.", expectedCommand: "stash pop" },
+
   // act2-01: reflog recovery
   { id: "act2-01-nothing", levelId: "act2-01", kind: "nothing-useful", commands: ["git status", "git log --oneline"], expect: "The lost commits are not in the log of any branch; the reflog remembers where main was.", expectedCommand: "reflog" },
   { id: "act2-01-wrong-branch", levelId: "act2-01", kind: "wrong-thing", commands: ["git pull", "git switch tidy"], expect: "Tidy's branch was reset too; look in the reflog for the commit before the reset.", expectedCommand: "reflog" },

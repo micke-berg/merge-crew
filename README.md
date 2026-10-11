@@ -6,7 +6,7 @@ A free browser game that teaches git. You lead a crew of small robot coding agen
 
 ## What you learn
 
-- **Act 1 (learn):** commit, branch, switch and merge, taught by Tidy.
+- **Act 1 (learn):** commit, branch, switch, merge, push and pull, then short practice levels for the tools Act 2 relies on (starting with the stash), taught by Tidy.
 - **Act 2 (fix):** recover commits lost to a force-push with the reflog, bring a diverged branch home and resolve the conflict, find a forgotten stash, undo a pushed change with revert, and cherry-pick one fix.
 - **Act 3 (lead), in progress:** all robots work at once, and you set the rules that prevent the mistakes.
 
