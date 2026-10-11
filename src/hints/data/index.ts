@@ -12,6 +12,7 @@ import { hints as act1_03 } from "./act1-03-bringing-it-home";
 import { hints as act1_04 } from "./act1-04-the-shared-copy";
 import { hints as act1_05 } from "./act1-05-the-side-shelf";
 import { hints as act1_06 } from "./act1-06-just-one-commit";
+import { hints as act1_07 } from "./act1-07-take-one-back";
 import { hints as act2_01 } from "./act2-01-blaze-was-in-a-hurry";
 import { hints as act2_02 } from "./act2-02-drifts-long-walk";
 import { hints as act2_03 } from "./act2-03-hoarders-secret-pile";
@@ -28,6 +29,7 @@ const HINTS: Readonly<Record<string, LevelHints>> = {
   "act1-04": act1_04,
   "act1-05": act1_05,
   "act1-06": act1_06,
+  "act1-07": act1_07,
   "act2-01": act2_01,
   "act2-02": act2_02,
   "act2-03": act2_03,
