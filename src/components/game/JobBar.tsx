@@ -66,7 +66,8 @@ export function JobBar({ goals, done, won }: Props) {
                   )}
                 </span>
                 <span
-                  className={`min-w-0 flex-1 leading-snug transition-colors duration-300 ${
+                  // relative: the hidden "(done)" text is absolutely positioned and must be clipped with the line.
+                  className={`relative min-w-0 flex-1 leading-snug transition-colors duration-300 ${
                     ok
                       ? "truncate text-[13px] text-soft"
                       : isCurrent

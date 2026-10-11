@@ -76,7 +76,10 @@ export function ConflictEditor({ path, content, entry, source, onSave, onClose }
     <Modal label={`Fix the conflict in ${path}`} onClose={onClose} className="max-w-5xl p-5 md:p-7">
       {/* header */}
       <div className="flex items-start gap-3.5">
-        <RobotPortrait actor="tidy" size={52} still className="hidden shrink-0 sm:block" />
+        {/* A wrapper, because the portrait sets its own display and would ignore "hidden" on itself. */}
+        <span className="hidden shrink-0 sm:block">
+          <RobotPortrait actor="tidy" size={52} still />
+        </span>
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-bold tracking-[0.12em] text-warn uppercase">Fix a conflict</p>
           <h2 className="mt-0.5 truncate font-mono text-xl font-bold">{path}</h2>
@@ -89,7 +92,7 @@ export function ConflictEditor({ path, content, entry, source, onSave, onClose }
           </p>
         </div>
         <button type="button" onClick={onClose} className={`${secondary} shrink-0`} aria-label="Close without saving">
-          Close <kbd className="ml-2 rounded border border-line px-1 text-[10px]">Esc</kbd>
+          Close <kbd className="ml-2 hidden rounded border border-line px-1 text-[10px] sm:inline">Esc</kbd>
         </button>
       </div>
 
