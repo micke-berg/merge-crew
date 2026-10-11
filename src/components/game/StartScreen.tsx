@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { levels } from "@/levels";
 import { actorColor } from "@/lib/palette";
 import { Logo } from "./Logo";
@@ -127,7 +127,17 @@ export function StartScreen() {
                         const complete = done.includes(l.id);
                         const current = l.id === firstOpen.id;
                         return (
-                          <li key={l.id} className="relative">
+                          <Fragment key={l.id}>
+                            {l.usedIn && !list[i - 1]?.usedIn && (
+                              <li className="relative py-2 pl-[47px]">
+                                <span className="absolute top-0 left-[15px] h-full w-[5px] bg-trunk" aria-hidden />
+                                <p className="text-[12px] font-bold tracking-[0.12em] text-muted uppercase">Practice tools</p>
+                                <p className="text-[13px] leading-snug text-soft">
+                                  One tool at a time, with no crisis. You use each one for real in Act 2.
+                                </p>
+                              </li>
+                            )}
+                          <li className="relative">
                             {/* the act's metro line, from this stop to the next */}
                             {i < list.length - 1 && (
                               <span className="absolute top-[26px] left-[15px] h-full w-[5px] bg-trunk" aria-hidden />
@@ -158,6 +168,7 @@ export function StartScreen() {
                               </span>
                             </Link>
                           </li>
+                          </Fragment>
                         );
                       })}
                     </ol>
