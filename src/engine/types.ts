@@ -253,7 +253,7 @@ export type ScriptStep =
     };
 
 /** Screen regions a guided-tour step can point at. */
-export type ScreenTarget = "map" | "jobbar" | "terminal" | "suggestions" | "goals" | "files";
+export type ScreenTarget = "map" | "jobbar" | "terminal" | "suggestions" | "files";
 
 export type Goal = {
   id: string;

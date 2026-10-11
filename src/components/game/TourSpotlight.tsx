@@ -22,7 +22,6 @@ export const TARGET_NAMES: Record<ScreenTarget, string> = {
   jobbar: "the Your job bar",
   terminal: "the command box",
   suggestions: "the suggested commands",
-  goals: "the goals",
   files: "the files panel",
 };
 

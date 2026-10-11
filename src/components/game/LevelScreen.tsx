@@ -12,7 +12,6 @@ import { levelSheets } from "@/components/robots/preload";
 import { preloadSheets } from "@/components/robots/Sprite";
 import { DialogueBox } from "./DialogueBox";
 import { FilesPanel, type OpenFile } from "./FilesPanel";
-import { GoalsPanel } from "./GoalsPanel";
 import { AskTidyButton } from "./AskTidyButton";
 import { JobBar } from "./JobBar";
 import { PremiseCard } from "./Premise";
@@ -191,9 +190,8 @@ export function LevelGame({ level }: { level: Level }) {
             </AnimatePresence>
           </section>
 
-          {/* side column: goals and files */}
-          <div className="flex min-h-0 flex-col gap-3 md:order-last md:col-span-2 md:grid md:grid-cols-2 lg:order-none lg:col-span-1 lg:row-span-2 lg:flex">
-            <GoalsPanel goals={level.goals} done={game.goals} />
+          {/* side column: files. The goal lives in one place only, the "Your job" bar above the terminal. */}
+          <div className="flex min-h-0 flex-col gap-3 md:order-last md:col-span-2 lg:order-none lg:col-span-1 lg:row-span-2">
             <FilesPanel
               repo={game.repo}
               where={where}
