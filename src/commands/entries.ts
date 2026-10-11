@@ -177,6 +177,8 @@ export const entries: CommandEntry[] = [
     when: "Before you add or commit, to check that you are saving what you meant to.",
     risk: "By default it leaves out changes you have already added. Use --staged to see those.",
     examples: ["git diff", "git diff --staged"],
+    practice: "act1-11",
+    usedIn: "act2-04",
   },
   {
     slug: "show",
@@ -186,6 +188,8 @@ export const entries: CommandEntry[] = [
     when: "When the log gives you a line and you want to know what that save really did.",
     risk: "With no argument it shows the latest commit, which may not be the one you were thinking of.",
     examples: ["git show", "git show 3f9c1ab"],
+    practice: "act1-11",
+    usedIn: "act2-04",
   },
   {
     slug: "restore",
@@ -195,6 +199,8 @@ export const entries: CommandEntry[] = [
     when: "When an edit went nowhere and you want the file as it was, or you added a file by mistake.",
     risk: "Restoring a file's contents throws away the edit for good. Git has no copy of unsaved work.",
     examples: ["git restore notes.txt", "git restore --staged notes.txt"],
+    practice: "act1-12",
+    usedIn: "act2-04",
   },
   {
     slug: "rebase",
