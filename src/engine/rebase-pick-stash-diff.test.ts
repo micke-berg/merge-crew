@@ -387,6 +387,23 @@ describe("git stash", () => {
     expect(r.wt().index).toEqual({ "a.txt": "1\n", "n.txt": "new\n" });
   });
 
+  it("a pop or a drop reports no lost commits: a stash's own commits are bookkeeping", () => {
+    const popRepo = new Repo();
+    popRepo.commitFile("a.txt", "1\n", "Base");
+    popRepo.write("a.txt", "2\n");
+    popRepo.git("stash");
+    const popped = popRepo.git("stash pop");
+    expect(popped.events.some((e) => e.type === "commits-lost")).toBe(false);
+
+    const dropRepo = new Repo();
+    dropRepo.commitFile("a.txt", "1\n", "Base");
+    dropRepo.write("a.txt", "2\n");
+    dropRepo.git("stash");
+    const dropped = dropRepo.git("stash drop");
+    expect(dropped.events.some((e) => e.type === "commits-lost")).toBe(false);
+    expect(dropped.events).toContainEqual(expect.objectContaining({ type: "stash-removed", applied: false }));
+  });
+
   it("a conflicting pop keeps the entry and marks the conflict with git's labels", () => {
     const r = new Repo();
     r.commitFile("a.txt", "1\n2\n3\n", "Base");

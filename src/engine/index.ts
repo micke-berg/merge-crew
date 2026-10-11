@@ -117,7 +117,17 @@ function derivedEvents(before: RepoState, after: RepoState, ctx: Ctx): EngineEve
   }
   const lostBefore = new Set(queries.lost(before));
   const lostAfter = queries.lost(after);
-  const newlyLost = lostAfter.filter((o) => !lostBefore.has(o) && has(before.commits, o));
+  // A stash entry that left the stash list (pop, branch, drop or clear) has stash, index and
+  // untracked-files commits that are bookkeeping, not history. They are not reported as lost: after a
+  // pop the work was restored, and after a drop the game gives the player no way to bring it back,
+  // so the map (which hides them too) and the lost cue stay in agreement.
+  const restored = new Set<string>();
+  for (const e of ctx.events) {
+    if (e.type !== "stash-removed") continue;
+    restored.add(e.oid);
+    for (const p of after.commits[e.oid]?.parents.slice(1) ?? []) restored.add(p);
+  }
+  const newlyLost = lostAfter.filter((o) => !lostBefore.has(o) && has(before.commits, o) && !restored.has(o));
   const lostAfterSet = new Set(lostAfter);
   const recovered = [...lostBefore].filter((o) => !lostAfterSet.has(o));
   if (newlyLost.length) events.push({ type: "commits-lost", oids: newlyLost });
