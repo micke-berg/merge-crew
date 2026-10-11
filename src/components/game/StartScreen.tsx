@@ -181,6 +181,15 @@ export function StartScreen() {
           <footer className="mt-10 flex flex-col items-center gap-1.5 text-center text-[13px] text-muted">
             <p>Free, in the browser, no account. Progress stays on this device.</p>
             <p>
+              <Link
+                href="/commands"
+                className="font-semibold underline decoration-line-strong underline-offset-2 hover:text-ink focus-visible:rounded focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none"
+              >
+                Commands
+              </Link>
+              {" "}reference, in plain words
+            </p>
+            <p>
               <a
                 href={ASSETS_URL}
                 className="underline decoration-line-strong underline-offset-2 hover:text-ink focus-visible:rounded focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none"
