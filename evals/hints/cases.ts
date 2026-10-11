@@ -83,6 +83,11 @@ export const CASES: StuckCase[] = [
   { id: "act1-11-commit-unstaged", levelId: "act1-11", kind: "wrong-thing", commands: ["git diff", 'git commit -m "Save"'], expect: "Nothing is staged, so there is nothing to save; stage just the file with the good change first.", expectedCommand: "add" },
   { id: "act1-11-staged-sign", levelId: "act1-11", kind: "one-step-away", commands: ["git diff", "git add sign.txt"], expect: "Only sign.txt is staged and the test line in menu.txt is left out; commit what is staged.", expectedCommand: "commit" },
 
+  // act1-12: restore
+  { id: "act1-12-nothing", levelId: "act1-12", kind: "nothing-useful", commands: ["git status"], expect: "The edit in sign.txt is unwanted and the one in menu.txt is good; put just sign.txt back to its last saved version.", expectedCommand: "restore" },
+  { id: "act1-12-stashed", levelId: "act1-12", kind: "wrong-thing", commands: ["git stash"], expect: "The stash took both edits off the files, including the good one; bring them back first, then put back only sign.txt.", expectedCommand: "stash pop" },
+  { id: "act1-12-looked-at-diff", levelId: "act1-12", kind: "one-step-away", commands: ["git diff"], expect: "The diff shows the loud edit is in sign.txt; put that one file back to its last saved version.", expectedCommand: "restore" },
+
   // act2-01: reflog recovery
   { id: "act2-01-nothing", levelId: "act2-01", kind: "nothing-useful", commands: ["git status", "git log --oneline"], expect: "The lost commits are not in the log of any branch; the reflog remembers where main was.", expectedCommand: "reflog" },
   { id: "act2-01-wrong-branch", levelId: "act2-01", kind: "wrong-thing", commands: ["git pull", "git switch tidy"], expect: "Tidy's branch was reset too; look in the reflog for the commit before the reset.", expectedCommand: "reflog" },

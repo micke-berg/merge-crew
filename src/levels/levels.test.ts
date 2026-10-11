@@ -473,6 +473,33 @@ describe("levels through the engine", () => {
     expect(shown.output.map((l) => l.text).join("\n")).toContain("+Open 9 to 5");
   });
 
+  it("act1-12: nothing is done at the start, and looking with git diff does not win", () => {
+    expect(failedGoals("act1-12", [])).toEqual(["sign-back"]);
+    expect(failedGoals("act1-12", [git("player", "diff")])).toEqual(["sign-back"]);
+  });
+
+  it("act1-12: restoring just sign.txt keeps the menu edit and wins, and so does checkout --", () => {
+    expect(failedGoals("act1-12", [git("player", "restore", "sign.txt")])).toEqual([]);
+    expect(failedGoals("act1-12", [git("player", "checkout", "--", "sign.txt")])).toEqual([]);
+  });
+
+  it("act1-12: restoring everything throws the good edit away and does not win", () => {
+    expect(failedGoals("act1-12", [git("player", "restore", ".")])).toEqual(["sign-back"]);
+  });
+
+  it("act1-12: a hard reset throws the good edit away and does not win", () => {
+    expect(failedGoals("act1-12", [git("player", "reset", "--hard")])).toEqual(["sign-back"]);
+  });
+
+  it("act1-12: stashing takes both edits off the files and does not win, popping brings them back", () => {
+    expect(failedGoals("act1-12", [git("player", "stash")])).toEqual(["sign-back"]);
+    expect(failedGoals("act1-12", [git("player", "stash"), git("player", "stash", "pop")])).toEqual(["sign-back"]);
+  });
+
+  it("act1-12: restoring the menu instead keeps the unwanted sign edit and does not win", () => {
+    expect(failedGoals("act1-12", [git("player", "restore", "menu.txt")])).toEqual(["sign-back"]);
+  });
+
   it("act2-05: merging Drift's whole branch does not win", () => {
     const failed = failedGoals("act2-05", [git("player", "merge", "drift"), git("player", "push")]);
     expect(failed).toEqual(["only-the-fix"]);
