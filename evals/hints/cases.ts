@@ -69,6 +69,11 @@ export const CASES: StuckCase[] = [
   { id: "act1-08-hard-reset", levelId: "act1-08", kind: "wrong-thing", commands: ["git reset --hard HEAD~1"], expect: "The hard reset threw the fizz line away; the reflog still remembers the save, so look there to get it back.", expectedCommand: "reflog" },
   { id: "act1-08-looked-at-log", levelId: "act1-08", kind: "one-step-away", commands: ["git log --oneline"], expect: "The fizz save is the latest one; move the branch back one save, keeping the changes.", expectedCommand: "reset" },
 
+  // act1-09: reflog
+  { id: "act1-09-nothing", levelId: "act1-09", kind: "nothing-useful", commands: ["git status"], expect: "The fizz save is on no branch, but the reflog remembers where it was; look there and put a branch back on it.", expectedCommand: "reflog" },
+  { id: "act1-09-log-all", levelId: "act1-09", kind: "wrong-thing", commands: ["git log --oneline --all"], expect: "The deleted branch's save is on no branch so log does not list it; the reflog is your own diary of past positions.", expectedCommand: "reflog" },
+  { id: "act1-09-found-it", levelId: "act1-09", kind: "one-step-away", commands: ["git reflog"], expect: "The fizz save is in the reflog; put a branch back on it.", expectedCommand: "branch" },
+
   // act2-01: reflog recovery
   { id: "act2-01-nothing", levelId: "act2-01", kind: "nothing-useful", commands: ["git status", "git log --oneline"], expect: "The lost commits are not in the log of any branch; the reflog remembers where main was.", expectedCommand: "reflog" },
   { id: "act2-01-wrong-branch", levelId: "act2-01", kind: "wrong-thing", commands: ["git pull", "git switch tidy"], expect: "Tidy's branch was reset too; look in the reflog for the commit before the reset.", expectedCommand: "reflog" },

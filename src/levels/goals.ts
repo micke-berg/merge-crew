@@ -223,3 +223,9 @@ export const workingFileEquals =
   (actor: ActorId, path: Path, content: string): Check =>
   (state) =>
     state.worktrees[actor]?.workingTree[path] === content;
+
+/** Some local branch has a commit with this message in its history. */
+export const someBranchHasCommitMessage =
+  (message: string): Check =>
+  (state, queries) =>
+    Object.values(state.branches).some((tip) => queries.history(state, tip).some((c) => c.message === message));
