@@ -64,6 +64,11 @@ export const CASES: StuckCase[] = [
   { id: "act1-07-reverted-latest", levelId: "act1-07", kind: "wrong-thing", commands: ["git revert HEAD"], expect: "That cancelled the price list, not the sign change; the sign save is one further back, so revert that one.", expectedCommand: "revert" },
   { id: "act1-07-looked-at-log", levelId: "act1-07", kind: "one-step-away", commands: ["git log --oneline"], expect: "The sign change is the second commit from the top; cancel it with a revert.", expectedCommand: "revert" },
 
+  // act1-08: reset
+  { id: "act1-08-nothing", levelId: "act1-08", kind: "nothing-useful", commands: ["git status"], expect: "The last save was made too soon and has not been pushed; move the branch back one save and keep the changes in the files.", expectedCommand: "reset" },
+  { id: "act1-08-hard-reset", levelId: "act1-08", kind: "wrong-thing", commands: ["git reset --hard HEAD~1"], expect: "The hard reset threw the fizz line away; the reflog still remembers the save, so look there to get it back.", expectedCommand: "reflog" },
+  { id: "act1-08-looked-at-log", levelId: "act1-08", kind: "one-step-away", commands: ["git log --oneline"], expect: "The fizz save is the latest one; move the branch back one save, keeping the changes.", expectedCommand: "reset" },
+
   // act2-01: reflog recovery
   { id: "act2-01-nothing", levelId: "act2-01", kind: "nothing-useful", commands: ["git status", "git log --oneline"], expect: "The lost commits are not in the log of any branch; the reflog remembers where main was.", expectedCommand: "reflog" },
   { id: "act2-01-wrong-branch", levelId: "act2-01", kind: "wrong-thing", commands: ["git pull", "git switch tidy"], expect: "Tidy's branch was reset too; look in the reflog for the commit before the reset.", expectedCommand: "reflog" },
