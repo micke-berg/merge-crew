@@ -359,6 +359,21 @@ describe("levels through the engine", () => {
     expect(failed).toEqual(["undo-sign"]);
   });
 
+  it("act1-08: a mixed reset also wins, the change stays in the file unstaged", () => {
+    const failed = failedGoals("act1-08", [git("player", "reset", "HEAD~1")]);
+    expect(failed).toEqual([]);
+  });
+
+  it("act1-08: a hard reset throws the fizz line away and does not win", () => {
+    const failed = failedGoals("act1-08", [git("player", "reset", "--hard", "HEAD~1")]);
+    expect(failed).toEqual(["save-taken-back"]);
+  });
+
+  it("act1-08: a revert adds a commit instead of taking the save back and does not win", () => {
+    const failed = failedGoals("act1-08", [git("player", "revert", "HEAD")]);
+    expect(failed).toEqual(["save-taken-back"]);
+  });
+
   it("act2-05: merging Drift's whole branch does not win", () => {
     const failed = failedGoals("act2-05", [git("player", "merge", "drift"), git("player", "push")]);
     expect(failed).toEqual(["only-the-fix"]);

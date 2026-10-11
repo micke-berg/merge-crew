@@ -204,6 +204,7 @@ describe("expected command for hint 3", () => {
     const wayBack: Record<string, string> = {
       "act1-03-switched-away": "switch", // back to main
       "act1-06-merged-all": "reset", // undo the local merge
+      "act1-08-hard-reset": "reflog", // find the save again
       "act2-05-merged-all": "reset", // undo the local merge
     };
     for (const c of CASES) {
