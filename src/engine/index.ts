@@ -6,6 +6,7 @@ import { queries } from "./query";
 import { branch } from "./commands/branch";
 import { checkout, restore, switchCommand } from "./commands/checkout";
 import { commit } from "./commands/commit";
+import { blame } from "./commands/blame";
 import { diff, show } from "./commands/diff";
 import { add, rm } from "./commands/files";
 import { log, reflog } from "./commands/log";
@@ -59,6 +60,7 @@ const COMMANDS = new Map<string, Command>(Object.entries({
   stash,
   diff,
   show,
+  blame,
 }));
 
 /** Read-only shell commands for looking at files. */

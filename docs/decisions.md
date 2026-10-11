@@ -2,6 +2,13 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-10-11 — `git blame` in the engine, and a level for it
+
+- **`git blame <file>` (and `git blame <rev> <file>`) is in the engine.** A line is blamed on the commit that introduced it: starting from the commit, a line unchanged in a parent is handed to the first parent that has it, and a line no parent has stays with the commit. This is git's own rule, in parent order, using the same line diff as `git diff`.
+- **Checked against real git on its attribution,** in `tests/oracle/blame.test.ts`: five histories (edits over several commits, inserted and removed lines, a clean merge, a conflict settled by hand, a line removed and added back) must blame every line on the same commit as `git blame --line-porcelain`.
+- **Known differences from git:** no rename or copy detection, no `-L`, `-w` or `-C`, no dates (the game has none), and the output is `<id> (<author> <line>) <text>`.
+- **A practice level uses it** (act1-14, "Who changed this line?"): several robots have saved into one file, a price became free, and the player finds which save did it with `blame` and undoes only that one with `revert`. `git bisect` is not in the engine; it would need a bisect state in the repository model and its own comparison tests.
+
 ## 2026-10-11 — Two basic practice levels open Act 1's practice group
 
 - **Added `act1-11` "Look before you save" and `act1-12` "Undo an edit", placed first in the practice group.** The most basic everyday tools come before the ones Act 2 relies on. `act1-11` practises `git diff`, `git add` and `git commit` with two changed files where only one change is wanted. `act1-12` practises `git restore <file>`, where the good edit in another file must survive.

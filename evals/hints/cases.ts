@@ -93,6 +93,11 @@ export const CASES: StuckCase[] = [
   { id: "act1-13-merged", levelId: "act1-13", kind: "wrong-thing", commands: ["git merge main"], expect: "The merge added an extra joining commit, so the history is not a straight line; undo it and rebase instead.", expectedCommand: "reset" },
   { id: "act1-13-looked-at-log", levelId: "act1-13", kind: "one-step-away", commands: ["git log --oneline --all"], expect: "Main has a commit the menu branch lacks; replay the branch on top of main.", expectedCommand: "rebase" },
 
+  // act1-14: blame
+  { id: "act1-14-nothing", levelId: "act1-14", kind: "nothing-useful", commands: ["git status"], expect: "Several saves touched prices.txt; find which one changed the lemonade line, line by line, then cancel just that save.", expectedCommand: "blame" },
+  { id: "act1-14-reverted-latest", levelId: "act1-14", kind: "wrong-thing", commands: ["git revert HEAD"], expect: "That cancelled the latest save, not the one that made the lemonade free; see which save changed the lemonade line.", expectedCommand: "blame" },
+  { id: "act1-14-looked-at-blame", levelId: "act1-14", kind: "one-step-away", commands: ["git blame prices.txt"], expect: "Blame names the save that changed the lemonade line; cancel just that save.", expectedCommand: "revert" },
+
   // act2-01: reflog recovery
   { id: "act2-01-nothing", levelId: "act2-01", kind: "nothing-useful", commands: ["git status", "git log --oneline"], expect: "The lost commits are not in the log of any branch; the reflog remembers where main was.", expectedCommand: "reflog" },
   { id: "act2-01-wrong-branch", levelId: "act2-01", kind: "wrong-thing", commands: ["git pull", "git switch tidy"], expect: "Tidy's branch was reset too; look in the reflog for the commit before the reset.", expectedCommand: "reflog" },
