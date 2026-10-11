@@ -205,6 +205,7 @@ describe("expected command for hint 3", () => {
       "act1-03-switched-away": "switch", // back to main
       "act1-06-merged-all": "reset", // undo the local merge
       "act1-08-hard-reset": "reflog", // find the save again
+      "act1-12-stashed": "stash pop", // bring both edits back
       "act2-05-merged-all": "reset", // undo the local merge
     };
     for (const c of CASES) {

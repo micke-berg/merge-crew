@@ -27,7 +27,7 @@ const MENU_WITH_PRICES = "Lemonade 20 kr\nIced tea 25 kr\n";
 export const level: Level = {
   id: "act1-05",
   act: 1,
-  order: 5,
+  order: 7,
   title: "The side shelf",
   brief: "Your edit is not ready to be saved, but you have to look at another branch. Put it aside, look, and bring it back.",
   mission: {

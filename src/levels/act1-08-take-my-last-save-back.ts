@@ -25,7 +25,7 @@ const MENU_WITH_FIZZ = "Lemonade\nIced tea\nLemon-lavender fizz\n";
 export const level: Level = {
   id: "act1-08",
   act: 1,
-  order: 8,
+  order: 10,
   title: "Take my last save back",
   brief: "You saved too soon. Take the save back, but keep the change in your files so you can finish it.",
   mission: {

@@ -36,7 +36,7 @@ const DRINKS_LINE = "Cold drinks only";
 export const level: Level = {
   id: "act1-10",
   act: 1,
-  order: 10,
+  order: 12,
   title: "Two edits, one line",
   brief: "You and Tidy both added a line to the sign. Merge Tidy's branch, settle the clash and keep both lines.",
   mission: {
