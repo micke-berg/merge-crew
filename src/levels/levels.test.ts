@@ -332,6 +332,15 @@ describe("levels through the engine", () => {
     expect(failed).toEqual(["visit-prices", "edit-back"]);
   });
 
+  it("act1-06: merging Tidy's whole branch brings the cups along and does not win", () => {
+    const failed = failedGoals("act1-06", [git("player", "merge", "ideas")]);
+    expect(failed).toEqual(["just-the-hours"]);
+  });
+
+  it("act1-06: nothing is done at the start", () => {
+    expect(failedGoals("act1-06", [])).toEqual(["just-the-hours"]);
+  });
+
   it("act2-05: merging Drift's whole branch does not win", () => {
     const failed = failedGoals("act2-05", [git("player", "merge", "drift"), git("player", "push")]);
     expect(failed).toEqual(["only-the-fix"]);

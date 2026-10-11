@@ -203,6 +203,7 @@ describe("expected command for hint 3", () => {
     // Recovering from a wrong turn takes a step the clean solution never needs.
     const wayBack: Record<string, string> = {
       "act1-03-switched-away": "switch", // back to main
+      "act1-06-merged-all": "reset", // undo the local merge
       "act2-05-merged-all": "reset", // undo the local merge
     };
     for (const c of CASES) {
