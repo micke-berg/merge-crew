@@ -49,7 +49,7 @@ export const BLAZE = "Make the sign LOUDER";
 export const level: Level = {
   id: "act2-01",
   act: 2,
-  order: 1,
+  order: 4,
   title: "Blaze was in a hurry",
   brief:
     "Blaze pushed to main with --force. Tidy's work has vanished from origin and from your checkout. Find it and bring it back without rewriting anything.",

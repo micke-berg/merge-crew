@@ -47,7 +47,7 @@ const DOODLE_NOTES = "Ideas:\nPaint the stand blue? Or not. Or yes?\n";
 export const level: Level = {
   id: "act2-03",
   act: 2,
-  order: 3,
+  order: 1,
   title: "Hoarder's secret pile",
   brief:
     "Hoarder never commits. Weeks ago it tucked a secret recipe into the stash and forgot which pile it was in. Find it and save it properly in a commit.",

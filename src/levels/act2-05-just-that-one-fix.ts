@@ -44,7 +44,7 @@ const FIXED = "Table legs: 4 long\n";
 export const level: Level = {
   id: "act2-05",
   act: 2,
-  order: 5,
+  order: 2,
   title: "Just that one fix",
   brief:
     "The café's table wobbles. Drift fixed it ages ago, on a branch full of other half-finished dreams. Bring over the fix, and only the fix.",
