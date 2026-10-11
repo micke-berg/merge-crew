@@ -417,6 +417,62 @@ describe("levels through the engine", () => {
     expect(failed).toEqual(["both-lines-kept"]);
   });
 
+  it("act1-11: nothing is done at the start, and git diff alone does not win", () => {
+    expect(failedGoals("act1-11", [])).toEqual(["only-the-good-edit"]);
+    expect(failedGoals("act1-11", [git("player", "diff")])).toEqual(["only-the-good-edit"]);
+  });
+
+  it("act1-11: both edits are unsaved and nothing is staged after setup", () => {
+    const level = getLevel("act1-11")!;
+    const state = runSteps(engine.createRepo(), [...level.setup, ...level.intro]);
+    const status = queries.status(state, "player");
+    expect(status.staged).toEqual([]);
+    expect(status.unstaged.map((u) => u.path).sort()).toEqual(["menu.txt", "sign.txt"]);
+  });
+
+  it("act1-11: saving everything with add . takes the test line along and does not win", () => {
+    const failed = failedGoals("act1-11", [git("player", "add", "."), git("player", "commit", "-m", "Save my day")]);
+    expect(failed).toEqual(["only-the-good-edit"]);
+  });
+
+  it("act1-11: commit -a takes the test line along and does not win", () => {
+    const failed = failedGoals("act1-11", [git("player", "commit", "-am", "Save my day")]);
+    expect(failed).toEqual(["only-the-good-edit"]);
+  });
+
+  it("act1-11: throwing the test line away instead of leaving it unsaved does not win", () => {
+    const failed = failedGoals("act1-11", [
+      git("player", "restore", "menu.txt"),
+      git("player", "add", "sign.txt"),
+      git("player", "commit", "-m", "Add opening hours"),
+    ]);
+    expect(failed).toEqual(["only-the-good-edit"]);
+  });
+
+  it("act1-11: staging both and taking the menu back out before committing also wins", () => {
+    const failed = failedGoals("act1-11", [
+      git("player", "add", "."),
+      git("player", "restore", "--staged", "menu.txt"),
+      git("player", "commit", "-m", "Add opening hours"),
+    ]);
+    expect(failed).toEqual([]);
+  });
+
+  it("act1-11: committing before staging anything is refused", () => {
+    const level = getLevel("act1-11")!;
+    const start = runSteps(engine.createRepo(), [...level.setup, ...level.intro]);
+    const refused = engine.run(start, { actor: "player", argv: ["git", "commit", "-m", "Save"] });
+    expect(refused.ok).toBe(false);
+  });
+
+  it("act1-11: git show prints the saved commit's change after the win", () => {
+    const level = getLevel("act1-11")!;
+    const state = runSteps(engine.createRepo(), [...level.setup, ...level.intro, ...solutions["act1-11"]]);
+    const shown = engine.run(state, { actor: "player", argv: ["git", "show"] });
+    expect(shown.ok).toBe(true);
+    expect(shown.output.map((l) => l.text).join("\n")).toContain("+Open 9 to 5");
+  });
+
   it("act2-05: merging Drift's whole branch does not win", () => {
     const failed = failedGoals("act2-05", [git("player", "merge", "drift"), git("player", "push")]);
     expect(failed).toEqual(["only-the-fix"]);
