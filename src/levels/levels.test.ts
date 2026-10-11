@@ -374,6 +374,18 @@ describe("levels through the engine", () => {
     expect(failed).toEqual(["save-taken-back"]);
   });
 
+  it("act1-09: the fizz save starts out on no branch", () => {
+    expect(failedGoals("act1-09", [])).toEqual(["fizz-back"]);
+  });
+
+  it("act1-09: cherry-picking the save leaves the original lost and does not win", () => {
+    const level = getLevel("act1-09")!;
+    const state = runSteps(engine.createRepo(), [...level.setup, ...level.intro]);
+    const fizz = Object.values(state.commits).find((c) => c.message === "Add the fizz drink")!;
+    const failed = failedGoals("act1-09", [git("player", "cherry-pick", fizz.oid.slice(0, 7))]);
+    expect(failed).toEqual(["fizz-back"]);
+  });
+
   it("act2-05: merging Drift's whole branch does not win", () => {
     const failed = failedGoals("act2-05", [git("player", "merge", "drift"), git("player", "push")]);
     expect(failed).toEqual(["only-the-fix"]);
