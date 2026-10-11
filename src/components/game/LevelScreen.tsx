@@ -15,12 +15,13 @@ import { DialogueBox } from "./DialogueBox";
 import { FilesPanel, type OpenFile } from "./FilesPanel";
 import { AskTidyButton } from "./AskTidyButton";
 import { JobBar } from "./JobBar";
+import { LevelPicker } from "./LevelPicker";
 import { PremiseCard } from "./Premise";
 import { markPremiseSeen, usePremiseSeen } from "./premiseStorage";
 import { Logo } from "./Logo";
 import { ConflictEditor } from "./ConflictEditor";
 import { conflictSource } from "./conflicts";
-import { BriefCard, FileViewer, WinCard, levelLabel } from "./Overlays";
+import { BriefCard, FileViewer, WinCard } from "./Overlays";
 import { Terminal, type TerminalHandle } from "./Terminal";
 import { TARGET_NAMES, TourSpotlight } from "./TourSpotlight";
 import type { PointStep } from "./game";
@@ -132,7 +133,7 @@ export function LevelGame({ level }: { level: Level }) {
     <MotionConfig reducedMotion="user">
       <div className="flex min-h-dvh flex-col bg-desk font-sans text-ink lg:h-dvh">
         {/* top bar */}
-        <header className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pt-3.5 pb-3 md:px-6">
+        <header className="relative flex flex-wrap items-center gap-x-4 gap-y-2 px-4 pt-3.5 pb-3 md:px-6">
           <Link
             href="/"
             className="group flex items-center gap-2 rounded-full pr-2 font-extrabold tracking-tight focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none"
@@ -143,9 +144,7 @@ export function LevelGame({ level }: { level: Level }) {
           </Link>
           <span className="h-5 w-px bg-divider" aria-hidden />
           <div className="flex min-w-0 items-baseline gap-2.5">
-            <span className="shrink-0 rounded-full bg-ink px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-paper">
-              {levelLabel(level)}
-            </span>
+            <LevelPicker level={level} />
             <h1 className="truncate text-[17px] font-bold tracking-tight">{level.title}</h1>
           </div>
           <div className="ml-auto flex items-center gap-2">
@@ -297,6 +296,7 @@ export function LevelGame({ level }: { level: Level }) {
               content={openContent}
               entry={openConflict}
               source={conflictSource(player)}
+              branch={branch}
               onSave={(content) => saveFile(open.path, content)}
               onClose={closeFile}
             />
