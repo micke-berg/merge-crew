@@ -32,6 +32,10 @@ const ACT_BLURBS: Record<number, string> = {
   3: "Everyone works at once. You set the rules.",
 };
 
+/** The two sections of an act that has practice levels. */
+const BASICS_SECTION = { title: "The basics", text: "Save, branch, merge and share. Tidy walks you through each one." };
+const TOOLS_SECTION = { title: "Handy tools", text: "One tool per level, calm and quick. Each one comes back in Act 2." };
+
 export function StartScreen() {
   const done = useProgress();
   const playRef = useRef<HTMLAnchorElement>(null);
@@ -112,6 +116,7 @@ export function StartScreen() {
           <section aria-label="Levels" className="mt-12 grid gap-5 md:grid-cols-3">
             {acts.map((act) => {
               const list = levels.filter((l) => l.act === act);
+              const hasTools = list.some((l) => l.usedIn);
               return (
                 <div key={act} className="rounded-3xl border border-line bg-panel p-5 shadow-[0_1px_0_white_inset,0_10px_30px_-18px_rgba(74,58,32,0.35)]">
                   <p className="text-[12px] font-bold tracking-[0.12em] text-muted uppercase">Act {act}</p>
@@ -124,17 +129,18 @@ export function StartScreen() {
                   ) : (
                     <ol className="relative mt-4">
                       {list.map((l, i) => {
+                        // An act with practice levels shows two sections: the basics, then the single tools.
+                        const section =
+                          hasTools && (i === 0 || (l.usedIn && !list[i - 1]?.usedIn)) ? (l.usedIn ? TOOLS_SECTION : BASICS_SECTION) : null;
                         const complete = done.includes(l.id);
                         const current = l.id === firstOpen.id;
                         return (
                           <Fragment key={l.id}>
-                            {l.usedIn && !list[i - 1]?.usedIn && (
-                              <li className="relative py-2 pl-[47px]">
-                                <span className="absolute top-0 left-[15px] h-full w-[5px] bg-trunk" aria-hidden />
-                                <p className="text-[12px] font-bold tracking-[0.12em] text-muted uppercase">Practice tools</p>
-                                <p className="text-[13px] leading-snug text-soft">
-                                  One tool at a time, with no crisis. You use each one for real in Act 2.
-                                </p>
+                            {section && (
+                              <li className={`relative pl-[47px] ${i === 0 ? "pb-1" : "py-2"}`}>
+                                {i > 0 && <span className="absolute top-0 left-[15px] h-full w-[5px] bg-trunk" aria-hidden />}
+                                <p className="text-[12px] font-bold tracking-[0.12em] text-muted uppercase">{section.title}</p>
+                                <p className="text-[13px] leading-snug text-soft">{section.text}</p>
                               </li>
                             )}
                           <li className="relative">

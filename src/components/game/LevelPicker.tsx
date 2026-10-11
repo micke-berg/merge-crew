@@ -23,8 +23,9 @@ function groups(): Group[] {
     if (inAct.length === 0) continue;
     const basics = inAct.filter((l) => !l.usedIn);
     const practice = inAct.filter((l) => l.usedIn);
-    if (basics.length) out.push({ key: `a${act}`, title: `Act ${act} · ${ACT_NAMES[act]}`, levels: basics });
-    if (practice.length) out.push({ key: `p${act}`, title: "Practice tools", levels: practice });
+    const split = practice.length > 0;
+    if (basics.length) out.push({ key: `a${act}`, title: `Act ${act} · ${split ? "The basics" : ACT_NAMES[act]}`, levels: basics });
+    if (practice.length) out.push({ key: `p${act}`, title: `Act ${act} · Handy tools`, levels: practice });
   }
   return out;
 }
