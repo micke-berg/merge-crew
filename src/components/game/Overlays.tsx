@@ -189,6 +189,13 @@ function MissionCard({ mission }: { mission: NonNullable<Level["mission"]> }) {
   );
 }
 
+/** What the "next" button calls the level after this one: practice or a level, and which act if it changes. */
+export function nextLabel(level: Level, next: Level): string {
+  const kind = next.usedIn ? "practice" : "level";
+  const act = next.act !== level.act ? ` (Act ${next.act})` : "";
+  return `Next ${kind}: ${next.title}${act}`;
+}
+
 /** The win card. The X and Esc close it, so the player can look at the finished map. */
 export function WinCard({
   level,
@@ -237,12 +244,12 @@ export function WinCard({
               {arrow}
             </Link>
             {next && next.id !== tryIt.id && (
-              <Link href={`/level/${next.id}`} className={secondary}>Next level: {next.title}</Link>
+              <Link href={`/level/${next.id}`} className={secondary}>{nextLabel(level, next)}</Link>
             )}
           </>
         ) : next ? (
           <Link href={`/level/${next.id}`} data-autofocus className={`${primary} w-full sm:w-auto`}>
-            Next level: {next.title}
+            {nextLabel(level, next)}
             {arrow}
           </Link>
         ) : (
