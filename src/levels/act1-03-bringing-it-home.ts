@@ -3,9 +3,7 @@ import {
   allOf,
   branch,
   commitWithMessageReachableFrom,
-  currentBranchIs,
   hasMergeCommit,
-  workingTreeClean,
 } from "./goals";
 import { git, point, say, write } from "./script";
 
@@ -54,11 +52,6 @@ export const level: Level = {
         commitWithMessageReachableFrom(branch("main"), "Pick the colors"),
         hasMergeCommit(branch("main")),
       ),
-    },
-    {
-      id: "clean",
-      description: "Stay on main with nothing unsaved",
-      check: allOf(currentBranchIs("player", "main"), workingTreeClean("player")),
     },
   ],
   suggestions: ["git status", "git branch", "git log --oneline --all", "git merge menu", "git merge colors"],

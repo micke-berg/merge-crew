@@ -54,6 +54,14 @@ describe("level data", () => {
     expect(keys).toEqual([...keys].sort((a, b) => a - b));
   });
 
+  it("points every practice level at a real, later level that uses the tool", () => {
+    for (const level of levels.filter((l) => l.usedIn)) {
+      const target = getLevel(level.usedIn!);
+      expect(target, `${level.id} usedIn ${level.usedIn}`).toBeDefined();
+      expect(levels.indexOf(target!), `${level.id} comes before ${level.usedIn}`).toBeGreaterThan(levels.indexOf(level));
+    }
+  });
+
   it("finds levels by id", () => {
     expect(getLevel("act2-01")?.title).toBe("Blaze was in a hurry");
     expect(getLevel("nope")).toBeUndefined();

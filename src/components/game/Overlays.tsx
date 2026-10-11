@@ -20,12 +20,15 @@ export function Modal({
   children,
   label,
   onClose,
+  closeOnBackdrop = true,
   wide = false,
   className,
 }: {
   children: ReactNode;
   label: string;
   onClose?: () => void;
+  /** Whether a click outside the card calls onClose. Esc always does. */
+  closeOnBackdrop?: boolean;
   wide?: boolean;
   /** Replaces the card's width and padding classes, for bigger panels such as the conflict editor. */
   className?: string;
@@ -74,7 +77,7 @@ export function Modal({
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose?.();
+        if (closeOnBackdrop && e.target === e.currentTarget) onClose?.();
       }}
     >
       <motion.div
@@ -99,10 +102,29 @@ export const primary =
 export const secondary =
   "inline-flex items-center justify-center rounded-full border border-line-strong px-4 py-2.5 text-sm font-semibold text-soft transition-colors hover:bg-sunk hover:text-ink focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none";
 
-export function BriefCard({ level, onStart }: { level: Level; onStart: () => void }) {
+/** The X in a card's corner. */
+function CloseButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <Modal label={`${level.title}: level brief`} wide>
-      <p className="text-[12px] font-bold tracking-[0.12em] text-muted uppercase">
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="absolute top-4 right-4 grid h-9 w-9 place-items-center rounded-full border border-line-strong text-soft transition-colors hover:bg-sunk hover:text-ink focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none"
+    >
+      <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden>
+        <path d="M3 3l8 8M11 3l-8 8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      </svg>
+    </button>
+  );
+}
+
+/** The level's brief. The X and Esc go back to the level list, Start begins the level. */
+export function BriefCard({ level, onStart, onBack }: { level: Level; onStart: () => void; onBack: () => void }) {
+  return (
+    <Modal label={`${level.title}: level brief`} wide onClose={onBack} closeOnBackdrop={false}>
+      <CloseButton label="Back to all levels" onClick={onBack} />
+      <p className="pr-10 text-[12px] font-bold tracking-[0.12em] text-muted uppercase">
         {levelLabel(level)} · {ACT_NAMES[level.act]}
       </p>
       <h1 className="mt-1.5 text-3xl leading-tight font-extrabold tracking-tight md:text-[34px]">{level.title}</h1>
@@ -134,7 +156,7 @@ export function BriefCard({ level, onStart }: { level: Level; onStart: () => voi
           Start
           <svg width="12" height="12" viewBox="0 0 10 10" aria-hidden><path d="M1.5 0.8 L9 5 L1.5 9.2 Z" fill="currentColor" /></svg>
         </button>
-        <Link href="/" className={secondary}>All levels</Link>
+        <Link href="/" className={secondary}>Back to all levels</Link>
         <span className="ml-auto hidden text-[12px] text-muted sm:block">
           <kbd className="rounded-md border border-line bg-white px-1.5 py-px text-[11px]">Enter</kbd> to start
         </span>
@@ -167,19 +189,36 @@ function MissionCard({ mission }: { mission: NonNullable<Level["mission"]> }) {
   );
 }
 
+/** What the "next" button calls the level after this one: practice or a level, and which act if it changes. */
+export function nextLabel(level: Level, next: Level): string {
+  const kind = next.usedIn ? "practice" : "level";
+  const act = next.act !== level.act ? ` (Act ${next.act})` : "";
+  return `Next ${kind}: ${next.title}${act}`;
+}
+
+/** The win card. The X and Esc close it, so the player can look at the finished map. */
 export function WinCard({
   level,
   commands,
   next,
+  tryIt,
   onReplay,
+  onClose,
 }: {
   level: Level;
   commands: number;
   next: Level | null;
+  /** A later level that uses this practice level's tool for real. */
+  tryIt: Level | null;
   onReplay: () => void;
+  onClose: () => void;
 }) {
+  const arrow = (
+    <svg width="12" height="12" viewBox="0 0 10 10" aria-hidden><path d="M1.5 0.8 L9 5 L1.5 9.2 Z" fill="currentColor" /></svg>
+  );
   return (
-    <Modal label={`${level.title}: level complete`}>
+    <Modal label={`${level.title}: level complete`} onClose={onClose} closeOnBackdrop={false}>
+      <CloseButton label="Close and look at the map" onClick={onClose} />
       <div className="flex justify-center gap-1">
         {(["player", ...level.crew] as const).map((a, i) => (
           <motion.span
@@ -198,10 +237,20 @@ export function WinCard({
         Done in {commands} {commands === 1 ? "command" : "commands"}.
       </p>
       <div className="mt-7 flex flex-col items-center gap-3">
-        {next ? (
+        {tryIt ? (
+          <>
+            <Link href={`/level/${tryIt.id}`} data-autofocus className={`${primary} w-full sm:w-auto`}>
+              Try it for real: {tryIt.title}
+              {arrow}
+            </Link>
+            {next && next.id !== tryIt.id && (
+              <Link href={`/level/${next.id}`} className={secondary}>{nextLabel(level, next)}</Link>
+            )}
+          </>
+        ) : next ? (
           <Link href={`/level/${next.id}`} data-autofocus className={`${primary} w-full sm:w-auto`}>
-            Next level: {next.title}
-            <svg width="12" height="12" viewBox="0 0 10 10" aria-hidden><path d="M1.5 0.8 L9 5 L1.5 9.2 Z" fill="currentColor" /></svg>
+            {nextLabel(level, next)}
+            {arrow}
           </Link>
         ) : (
           <Link href="/" data-autofocus className={`${primary} w-full sm:w-auto`}>
@@ -210,7 +259,7 @@ export function WinCard({
         )}
         <div className="flex gap-2">
           <button type="button" onClick={onReplay} className={secondary}>Play again</button>
-          {next && <Link href="/" className={secondary}>All levels</Link>}
+          {(next || tryIt) && <Link href="/" className={secondary}>Back to all levels</Link>}
         </div>
       </div>
     </Modal>

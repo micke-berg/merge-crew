@@ -36,6 +36,7 @@ export const level: Level = {
     job: "Put your unfinished edit on the stash shelf, visit the prices branch, come back to main and take your edit off the shelf again. You will meet this again when Hoarder piles things up in Act 2.",
     practise: ["git stash", "git switch", "git stash pop"],
   },
+  usedIn: "act2-03",
   crew: ["tidy"],
   setup: [
     write("player", "menu.txt", MENU),

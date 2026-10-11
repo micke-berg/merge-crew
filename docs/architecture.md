@@ -43,6 +43,7 @@ A level is data, not code paths in the UI:
 - `intro` and `outro`: scripted scenes. Robots run git commands, speak and change mood.
 - `goals`: checks on the resulting state, written with the helpers in `goals.ts`. Goals accept any fair solution and reject shortcuts that lose work or rewrite shared history.
 - `suggestions`: the commands the suggestion buttons fill in. What Tidy's hint helper knows about a level is not in the level file: it lives server-side in `src/hints/data` (see "AI hints").
+- `usedIn` (practice levels only): the later level that uses the same tool for real. The win card offers it as a "Try it for real" button and the start page groups practice levels under their own heading.
 - `brief` and `mission`: the level list's one-liner, and the brief card's plain-words mission (what's going on, your job, what you'll practise).
 
 A `say` step may name the working files it talks about (`files`). The files panel highlights them while the line shows, and the line offers them as chips that open the file. The player's task is always shown in the "Your job" card above the terminal: every goal as a step in a short list. Done steps shrink to one line with a tick and the current step is bold. It is the only place the goals appear while playing; the brief card lists them all before the level starts.
