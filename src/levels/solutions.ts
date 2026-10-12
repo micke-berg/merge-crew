@@ -39,6 +39,8 @@ import { level as act1_12 } from "./act1-12-undo-an-edit";
 import { solution as act1_12_solution } from "./act1-12-undo-an-edit.solution";
 import { level as act1_13 } from "./act1-13-a-straight-line";
 import { solution as act1_13_solution } from "./act1-13-a-straight-line.solution";
+import { level as act1_14 } from "./act1-14-who-changed-it";
+import { solution as act1_14_solution } from "./act1-14-who-changed-it.solution";
 import type { Solution } from "./script";
 
 export const solutions: Readonly<Record<string, Solution>> = Object.fromEntries([
@@ -55,6 +57,7 @@ export const solutions: Readonly<Record<string, Solution>> = Object.fromEntries(
   [act1_11.id, act1_11_solution],
   [act1_12.id, act1_12_solution],
   [act1_13.id, act1_13_solution],
+  [act1_14.id, act1_14_solution],
   [act2_01.id, act2_01_solution],
   [act2_02.id, act2_02_solution],
   [act2_03.id, act2_03_solution],

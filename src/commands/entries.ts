@@ -203,6 +203,17 @@ export const entries: CommandEntry[] = [
     usedIn: "act2-04",
   },
   {
+    slug: "blame",
+    command: "git blame",
+    title: "Find who last changed a line",
+    what: "Prints a file with, next to every line, the save that last changed it and who made it.",
+    when: "When something in a file is wrong and you want to know which save to look at, or undo.",
+    risk: "It names the last save to touch a line, which may only have moved or reformatted it. Look at that save before you blame the change.",
+    examples: ["git blame notes.txt", "git show 3f9c1ab"],
+    practice: "act1-14",
+    usedIn: "act2-04",
+  },
+  {
     slug: "rebase",
     command: "git rebase",
     title: "Replay your work on a newer base",

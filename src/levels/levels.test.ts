@@ -509,6 +509,36 @@ describe("levels through the engine", () => {
     expect(failed).toEqual(["straight-line"]);
   });
 
+  it("act1-14: every robot's save is in the history before the player does anything", () => {
+    expect(failedGoals("act1-14", [])).toEqual(["free-lemonade-undone"]);
+    const level = getLevel("act1-14")!;
+    const state = runSteps(engine.createRepo(), [...level.setup, ...level.intro]);
+    const authors = Object.values(state.commits).map((c) => c.author).sort();
+    expect(authors).toEqual(["blaze", "drift", "player", "tidy"]);
+  });
+
+  it("act1-14: git blame names the save and the robot behind each line", () => {
+    const level = getLevel("act1-14")!;
+    const start = runSteps(engine.createRepo(), [...level.setup, ...level.intro]);
+    const out = engine.run(start, { actor: "player", argv: ["git", "blame", "prices.txt"] });
+    expect(out.ok).toBe(true);
+    const lines = out.output.map((l) => l.text);
+    expect(lines).toHaveLength(3);
+    expect(lines[0]).toMatch(/\(blaze\s+1\) Lemonade: 0 coins$/);
+    expect(lines[1]).toMatch(/\(tidy\s+2\) Iced tea: 3 coins$/);
+    expect(lines[2]).toMatch(/\(drift\s+3\) Cloud cup: 4 coins$/);
+  });
+
+  it("act1-14: reverting the latest save cancels the wrong one and does not win", () => {
+    const failed = failedGoals("act1-14", [git("player", "revert", "HEAD")]);
+    expect(failed).toEqual(["free-lemonade-undone"]);
+  });
+
+  it("act1-14: a hard reset erases the cloud cup price and does not win", () => {
+    const failed = failedGoals("act1-14", [git("player", "reset", "--hard", "HEAD~2")]);
+    expect(failed).toEqual(["free-lemonade-undone"]);
+  });
+
   it("act2-05: merging Drift's whole branch does not win", () => {
     const failed = failedGoals("act2-05", [git("player", "merge", "drift"), git("player", "push")]);
     expect(failed).toEqual(["only-the-fix"]);

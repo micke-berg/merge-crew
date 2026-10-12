@@ -6,7 +6,7 @@ A free browser game that teaches git. You lead a crew of small robot coding agen
 
 ## What you learn
 
-- **Act 1 (learn):** commit, branch, switch, merge, push and pull, then short practice levels for the everyday tools and the ones Act 2 relies on (looking at changes with diff and saving only part of them, undoing an unsaved edit, the stash, cherry-pick, revert, reset, the reflog, a first merge conflict and rebase), taught by Tidy.
+- **Act 1 (learn):** commit, branch, switch, merge, push and pull, then short practice levels for the everyday tools and the ones Act 2 relies on (looking at changes with diff and saving only part of them, undoing an unsaved edit, the stash, cherry-pick, revert, reset, the reflog, a first merge conflict, rebase and blame), taught by Tidy.
 - **Act 2 (fix):** recover commits lost to a force-push with the reflog, bring a diverged branch home and resolve the conflict, find a forgotten stash, undo a pushed change with revert, and cherry-pick one fix.
 - **Act 3 (lead), in progress:** all robots work at once, and you set the rules that prevent the mistakes.
 
@@ -14,7 +14,7 @@ Every command you type runs in a simulated git repository that behaves like real
 
 ## How it is built
 
-- **Git engine:** a pure TypeScript git simulator. It covers commits, branches, merges with conflicts, rebase, cherry-pick, revert, stash, remotes and worktrees.
+- **Git engine:** a pure TypeScript git simulator. It covers commits, branches, merges with conflicts, rebase, cherry-pick, revert, stash, blame, remotes and worktrees.
 - **Tested against real git:** 122 scenarios run through the real `git` command line and through the engine, and the resulting repositories must match.
 - **Levels are data:** each level is a starting repository, a scripted scene and goal checks. Every level's solution is played to the win in the tests.
 - **History map:** SVG and [motion](https://motion.dev), driven by events from the engine.
