@@ -15,9 +15,10 @@ import { DialogueBox } from "./DialogueBox";
 import { FilesPanel, type OpenFile } from "./FilesPanel";
 import { AskTidyButton } from "./AskTidyButton";
 import { JobBar } from "./JobBar";
+import { forgetIntro, introSeen, markIntroSeen, useIntroSeen } from "./introStorage";
 import { LevelPicker } from "./LevelPicker";
 import { PremiseCard } from "./Premise";
-import { markPremiseSeen, usePremiseSeen } from "./premiseStorage";
+import { markPremiseSeen, premiseSeen as premiseSeenInStorage, usePremiseSeen } from "./premiseStorage";
 import { Logo } from "./Logo";
 import { ConflictEditor } from "./ConflictEditor";
 import { conflictSource } from "./conflicts";
@@ -53,6 +54,17 @@ export function LevelGame({ level }: { level: Level }) {
   const [open, setOpen] = useState<OpenFile | null>(null);
   // A first-time player who lands straight on a level gets the opening story before the brief.
   const premiseSeen = usePremiseSeen();
+  // A returning player skips the brief and the intro and lands on their turn. They can replay it.
+  const introKnown = useIntroSeen(level.id);
+  const startPlaying = useEffectEvent(() => g.startPlaying());
+  useEffect(() => {
+    // Read storage here, not the hooks' values: during hydration the hooks still report their server
+    // answer ("seen"), which would skip the intro for a first-time player.
+    if (game.phase === "brief" && premiseSeenInStorage() && introSeen(level.id)) startPlaying();
+  }, [game.phase, premiseSeen, introKnown, level.id]);
+  useEffect(() => {
+    if (game.phase === "play") markIntroSeen(level.id);
+  }, [game.phase, level.id]);
 
   const touring = g.touring;
   const inScene = game.phase === "intro" || game.phase === "outro";
@@ -148,6 +160,15 @@ export function LevelGame({ level }: { level: Level }) {
             <h1 className="truncate text-[17px] font-bold tracking-tight">{level.title}</h1>
           </div>
           <div className="ml-auto flex items-center gap-2">
+            <ReplayIntroButton
+              disabled={touring || game.phase === "brief" || game.phase === "intro"}
+              onClick={() => {
+                forgetIntro(level.id);
+                setOpen(null);
+                setWinClosed(false);
+                g.restart();
+              }}
+            />
             <TourButton disabled={!playing || touring || SCREEN_TOUR.length === 0} onClick={() => g.tour(SCREEN_TOUR)} />
             <MuteButton />
             <PhaseChip phase={game.phase} />
@@ -203,7 +224,7 @@ export function LevelGame({ level }: { level: Level }) {
                   exit={{ opacity: 0, y: -6 }}
                   className="absolute top-3 right-3 z-[41] inline-flex items-center gap-2 rounded-full bg-ink/90 px-3.5 py-1.5 text-[13px] font-semibold text-paper shadow-md backdrop-blur-sm transition-colors hover:bg-ink focus-visible:ring-4 focus-visible:ring-focus/40 focus-visible:outline-none"
                 >
-                  {touring ? "End tour" : "Skip scene"}
+                  {touring ? "End tour" : game.phase === "intro" ? "Skip intro" : "Skip scene"}
                   <kbd className="rounded border border-term-edge-soft px-1 font-sans text-[10px] text-term-key">Esc</kbd>
                 </motion.button>
               )}
@@ -269,7 +290,7 @@ export function LevelGame({ level }: { level: Level }) {
           {game.phase === "brief" && !premiseSeen && (
             <PremiseCard key="premise" onDone={() => markPremiseSeen()} doneLabel="On to the first job" />
           )}
-          {game.phase === "brief" && premiseSeen && (
+          {game.phase === "brief" && premiseSeen && !introKnown && (
             <BriefCard key="brief" level={level} onStart={g.begin} onBack={() => {
                 if (phaseRef.current === "brief") router.push("/");
               }}
@@ -368,6 +389,25 @@ function TourButton({ disabled, onClick }: { disabled: boolean; onClick: () => v
       className="grid h-8 w-8 place-items-center rounded-full border border-line-button text-[15px] font-extrabold text-soft transition-colors hover:bg-sunk hover:text-ink focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent disabled:hover:text-soft"
     >
       ?
+    </button>
+  );
+}
+
+/** Starts the level over with Tidy's intro, for a player who has seen it and wants it again. */
+function ReplayIntroButton({ disabled, onClick }: { disabled: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label="Replay Tidy's intro"
+      title="Replay Tidy's intro"
+      className="inline-flex h-8 items-center gap-1.5 rounded-full border border-line-button px-2.5 text-[13px] font-semibold text-soft transition-colors hover:bg-sunk hover:text-ink focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent disabled:hover:text-soft"
+    >
+      <svg width="12" height="12" viewBox="0 0 10 10" aria-hidden>
+        <path d="M2 1 L8.5 5 L2 9 Z" fill="currentColor" />
+      </svg>
+      <span className="hidden sm:inline">Replay intro</span>
     </button>
   );
 }

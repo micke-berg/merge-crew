@@ -85,6 +85,8 @@ export function useLevel(level: Level) {
     /** Play the screen tour over the player turn. */
     tour: (steps: PointStep[]) => dispatch({ type: "tour", steps }),
     begin: () => dispatch({ type: "begin" }),
+    /** Skip the brief and the intro, for a level whose intro this player has already played. */
+    startPlaying: () => dispatch({ type: "start-playing" }),
     next: () => dispatch({ type: "continue" }),
     skip: () => dispatch({ type: "skip" }),
     command: (line: string) => dispatch({ type: "command", line }),
