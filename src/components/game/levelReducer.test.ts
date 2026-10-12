@@ -39,6 +39,17 @@ describe("level reducer", () => {
     expect(m.run).toBe(0);
   });
 
+  it("start-playing lands on the player turn with the intro's steps applied, and only from the brief", () => {
+    const m = levelReducer(initLevelModel(firstSave), { type: "start-playing" });
+    expect(m.game.phase).toBe("play");
+    expect(m.wait).toEqual({ kind: "none" });
+    // The same repository as watching the whole intro.
+    const watched = runScene(levelReducer(initLevelModel(firstSave), { type: "begin" }));
+    expect(m.game.repo).toEqual(watched.game.repo);
+    expect(m.game.goals).toEqual(watched.game.goals);
+    expect(levelReducer(m, { type: "start-playing" })).toBe(m);
+  });
+
   it("begin starts the intro once and is ignored after that", () => {
     const m = play(initLevelModel(blazeLevel), { type: "begin" });
     expect(m.game.phase).toBe("intro");

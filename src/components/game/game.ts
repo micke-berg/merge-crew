@@ -369,6 +369,8 @@ export const HINT_THINKING_TEXT = "Hmm, let me think…";
 
 export type LevelAction =
   | { type: "begin" }
+  /** A returning player: play the intro's git and file steps at once and land on their turn. */
+  | { type: "start-playing" }
   /** A timer ran out: play the next scene step. Ignored while a robot line waits for a click. */
   | { type: "step" }
   /** The player clicked past a robot line. */
@@ -440,6 +442,8 @@ export function levelReducer(m: LevelModel, a: LevelAction): LevelModel {
       return m.hint ? { ...m, hint: null } : m;
     case "begin":
       return m.game.phase === "brief" ? { ...m, game: begin(m.game), wait: NO_WAIT } : m;
+    case "start-playing":
+      return m.game.phase === "brief" ? { ...m, game: skipScript(begin(m.game)), wait: NO_WAIT } : m;
     case "step": {
       if (m.wait.kind === "click") return m;
       const { state, wait } = advance(m.game);
