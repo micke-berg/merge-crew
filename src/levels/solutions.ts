@@ -45,6 +45,8 @@ import { level as act3_01 } from "./act3-01-read-before-you-merge";
 import { solution as act3_01_solution } from "./act3-01-read-before-you-merge.solution";
 import { level as act3_02 } from "./act3-02-house-rules";
 import { solution as act3_02_solution, variants as act3_02_variants } from "./act3-02-house-rules.solution";
+import { level as act3_03 } from "./act3-03-the-full-shift";
+import { solution as act3_03_solution, variants as act3_03_variants } from "./act3-03-the-full-shift.solution";
 import type { Solution } from "./script";
 
 export const solutions: Readonly<Record<string, Solution>> = Object.fromEntries([
@@ -69,6 +71,7 @@ export const solutions: Readonly<Record<string, Solution>> = Object.fromEntries(
   [act2_05.id, act2_05_solution],
   [act3_01.id, act3_01_solution],
   [act3_02.id, act3_02_solution],
+  [act3_03.id, act3_03_solution],
 ]);
 
 /**
@@ -77,4 +80,5 @@ export const solutions: Readonly<Record<string, Solution>> = Object.fromEntries(
  */
 export const variantSolutions: Readonly<Record<string, Readonly<Record<string, Solution>>>> = {
   [act3_02.id]: act3_02_variants,
+  [act3_03.id]: act3_03_variants,
 };

@@ -566,7 +566,7 @@ describe("levels with rule cards", () => {
     expect(shift.documented).toHaveLength(shift.pick);
     for (const c of shift.documented) expect(ids).toContain(c);
     for (const beat of shift.beats) {
-      expect(ids, beat.report).toContain(beat.stoppedBy);
+      if (beat.stoppedBy !== undefined) expect(ids, beat.report).toContain(beat.stoppedBy);
       expect(level.crew).toContain(beat.actor);
       expect(level.crew).toContain(beat.after.actor);
       expect(beat.steps.every((s) => s.kind === "git" || s.kind === "edit")).toBe(true);
@@ -593,6 +593,14 @@ describe("levels with rule cards", () => {
     const start = runSteps(engine.createRepo(), [...level.setup, ...openingOf(level, cards)]);
     const forced = engine.run(start, { actor: "player", argv: ["git", "push", "--force"] });
     expect(goalsFailing(id, forced.state).length).toBeGreaterThan(0);
+  });
+
+  it.each(withCards.map((l) => [l.id, l] as const))("%s: a beat no card can stop runs for every pick", (_, level) => {
+    const always = level.shift!.beats.filter((b) => b.stoppedBy === undefined);
+    for (const cards of allPicks(level)) {
+      const script = openingOf(level, cards);
+      for (const beat of always) for (const step of beat.steps) expect(script).toContain(step);
+    }
   });
 
   it("a stopped beat runs no git, and says which rule stopped it", () => {

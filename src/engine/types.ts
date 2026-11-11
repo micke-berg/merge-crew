@@ -280,8 +280,10 @@ export type ShiftBeat = {
   actor: RobotId;
   /** What the robot says as it starts. */
   attempt: string;
-  /** The id of the rule card that stops this beat. */
-  stoppedBy: string;
+  /** The id of the rule card that stops this beat. Left out for a beat no card can stop. */
+  stoppedBy?: string;
+  /** The beat is honest work offered for review, not a mistake. The report lists it as such. */
+  review?: boolean;
   /** The git and edit steps that run when no chosen card stops the beat. */
   steps: ScriptStep[];
   /** The robot's line when the card stops it. */

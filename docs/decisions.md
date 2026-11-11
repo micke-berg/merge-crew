@@ -2,6 +2,13 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-11-11 — The full shift (act3-03) ends the game
+
+- **The last level gives the player two jobs at once: a review and a fix.** Tidy commits honest work on a branch and asks for a review; no card can stop that beat (`ShiftBeat.stoppedBy` is now optional, and `review` marks it in the report). Of the other three robots, the player's two cards stop two. The order of the two jobs is the player's.
+- **Only the beats a card can stop push to origin's main,** and exactly one of them gets through. A beat that always runs commits locally. That keeps every push in the scene valid in real git whatever the pick, without a script that branches on earlier beats.
+- **Drift's mistake differs from level 2:** unread work pushed straight to main, where one commit called "Tidy the folder" deletes the price list. It ties the review card back to the first Act 3 level.
+- **Three picks, three documented solutions, each compared with real git,** as in level 2.
+
 ## 2026-11-11 — Rule cards and the shift (act3-02, "House rules")
 
 - **A shift is data on the level (`Level.shift`): rule cards, how many to pick, and beats.** A beat is one robot's turn: what it says, the git steps it would run, and the id of the card that stops it. `src/levels/shift.ts` turns a shift and a pick into ordinary script steps that play after the intro, so the game, the level tests and the real-git comparison all run the same thing. No new phase, and no level logic in components.

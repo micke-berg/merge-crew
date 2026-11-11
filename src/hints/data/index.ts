@@ -27,6 +27,7 @@ import { hints as act2_04 } from "./act2-04-undo-politely";
 import { hints as act2_05 } from "./act2-05-just-that-one-fix";
 import { hints as act3_01 } from "./act3-01-read-before-you-merge";
 import { hints as act3_02 } from "./act3-02-house-rules";
+import { hints as act3_03 } from "./act3-03-the-full-shift";
 import type { LevelHints } from "./types";
 
 export type { LevelHints } from "./types";
@@ -53,6 +54,7 @@ const HINTS: Readonly<Record<string, LevelHints>> = {
   "act2-05": act2_05,
   "act3-01": act3_01,
   "act3-02": act3_02,
+  "act3-03": act3_03,
 };
 
 /** Everything the hint route knows about one level. */

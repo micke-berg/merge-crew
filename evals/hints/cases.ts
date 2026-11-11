@@ -132,6 +132,11 @@ export const CASES: StuckCase[] = [
   { id: "act3-02-nothing", levelId: "act3-02", kind: "nothing-useful", commands: ["git status", "git log --oneline"], expect: "The mistake happened on origin and the local copy has not seen it: bring origin's newest commit in first.", expectedCommand: "pull" },
   { id: "act3-02-forced", levelId: "act3-02", kind: "wrong-thing", commands: ["git push --force"], expect: "Forcing would cut the crew's commit out of the shared history; pull what is on origin and undo the mistake with a new commit.", expectedCommand: "pull" },
   { id: "act3-02-removed", levelId: "act3-02", kind: "one-step-away", commands: ["git pull", "git rm keys.txt", 'git commit -m "Remove the password"'], expect: "The password file is removed in a new commit; push it to origin.", expectedCommand: "push" },
+
+  // act3-03: the full shift. Played with the documented pick, so Hoarder's password got through and Tidy's branch waits.
+  { id: "act3-03-nothing", levelId: "act3-03", kind: "nothing-useful", commands: ["git status", "git branch"], expect: "Something went wrong on origin that the local copy has not seen: bring origin's newest commit in first.", expectedCommand: "pull" },
+  { id: "act3-03-merged-only", levelId: "act3-03", kind: "wrong-thing", commands: ["git merge tidy-hours", "git push"], expect: "The push was refused because origin has a commit the local copy lacks: pull it in, and look at what it added.", expectedCommand: "pull" },
+  { id: "act3-03-fixed", levelId: "act3-03", kind: "one-step-away", commands: ["git pull", "git rm keys.txt", 'git commit -m "Remove the password"', "git push"], expect: "The password is gone from origin; Tidy's reviewed branch still has to be merged into main and pushed.", expectedCommand: "merge" },
 ];
 
 /** The expected commands of a case as a list (empty when the case has none). */
