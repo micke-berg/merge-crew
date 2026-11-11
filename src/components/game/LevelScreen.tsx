@@ -18,6 +18,7 @@ import { JobBar } from "./JobBar";
 import { forgetIntro, introSeen, markIntroSeen, useIntroSeen } from "./introStorage";
 import { LevelPicker } from "./LevelPicker";
 import { PremiseCard } from "./Premise";
+import { ShiftReport } from "./ShiftReport";
 import { markPremiseSeen, premiseSeen as premiseSeenInStorage, usePremiseSeen } from "./premiseStorage";
 import { Logo } from "./Logo";
 import { Confetti } from "./Confetti";
@@ -62,8 +63,9 @@ export function LevelGame({ level }: { level: Level }) {
   useEffect(() => {
     // Read storage here, not the hooks' values: during hydration the hooks still report their server
     // answer ("seen"), which would skip the intro for a first-time player.
-    if (game.phase === "brief" && premiseSeenInStorage() && introSeen(level.id)) startPlaying();
-  }, [game.phase, premiseSeen, introKnown, level.id]);
+    // A level with rule cards always shows its brief: the cards are picked there.
+    if (game.phase === "brief" && !level.shift && premiseSeenInStorage() && introSeen(level.id)) startPlaying();
+  }, [game.phase, premiseSeen, introKnown, level.id, level.shift]);
   useEffect(() => {
     if (game.phase === "play") markIntroSeen(level.id);
   }, [game.phase, level.id]);
@@ -257,6 +259,9 @@ export function LevelGame({ level }: { level: Level }) {
               highlight={bubble?.files.length ? { actor: bubble.actor, files: bubble.files } : null}
               folders={level.act === 3 ? level.crew : []}
             />
+            {level.shift && (game.phase === "play" || game.phase === "outro" || game.phase === "won") && (
+              <ShiftReport level={level} cards={game.cards} />
+            )}
           </div>
 
           {/* command box */}
@@ -309,7 +314,7 @@ export function LevelGame({ level }: { level: Level }) {
           {game.phase === "brief" && !premiseSeen && (
             <PremiseCard key="premise" onDone={() => markPremiseSeen()} doneLabel="On to the first job" />
           )}
-          {game.phase === "brief" && premiseSeen && !introKnown && (
+          {game.phase === "brief" && premiseSeen && (!introKnown || !!level.shift) && (
             <BriefCard key="brief" level={level} onStart={g.begin} onBack={() => {
                 if (phaseRef.current === "brief") router.push("/");
               }}
@@ -320,6 +325,7 @@ export function LevelGame({ level }: { level: Level }) {
               key="won"
               level={level}
               moves={game.moves}
+              cards={game.cards}
               next={next}
               tryIt={tryIt}
               onReplay={() => {

@@ -86,7 +86,8 @@ export function useLevel(level: Level) {
     awaitingClick: touring || (inScene && wait.kind === "click"),
     /** Play the screen tour over the player turn. */
     tour: (steps: PointStep[]) => dispatch({ type: "tour", steps }),
-    begin: () => dispatch({ type: "begin" }),
+    /** Start the level. `cards` are the rule cards picked on the brief (Act 3). */
+    begin: (cards?: readonly string[]) => dispatch({ type: "begin", cards }),
     /** Skip the brief and the intro, for a level whose intro this player has already played. */
     startPlaying: () => dispatch({ type: "start-playing" }),
     next: () => dispatch({ type: "continue" }),

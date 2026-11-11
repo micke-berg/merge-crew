@@ -43,6 +43,8 @@ import { level as act1_14 } from "./act1-14-who-changed-it";
 import { solution as act1_14_solution } from "./act1-14-who-changed-it.solution";
 import { level as act3_01 } from "./act3-01-read-before-you-merge";
 import { solution as act3_01_solution } from "./act3-01-read-before-you-merge.solution";
+import { level as act3_02 } from "./act3-02-house-rules";
+import { solution as act3_02_solution, variants as act3_02_variants } from "./act3-02-house-rules.solution";
 import type { Solution } from "./script";
 
 export const solutions: Readonly<Record<string, Solution>> = Object.fromEntries([
@@ -66,4 +68,13 @@ export const solutions: Readonly<Record<string, Solution>> = Object.fromEntries(
   [act2_04.id, act2_04_solution],
   [act2_05.id, act2_05_solution],
   [act3_01.id, act3_01_solution],
+  [act3_02.id, act3_02_solution],
 ]);
+
+/**
+ * For a level with rule cards: the solution for every pick, keyed by pickKey. The pick decides which
+ * mistake gets through, so each one needs its own fix. `solutions` holds the documented pick's.
+ */
+export const variantSolutions: Readonly<Record<string, Readonly<Record<string, Solution>>>> = {
+  [act3_02.id]: act3_02_variants,
+};

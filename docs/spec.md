@@ -38,14 +38,14 @@ A level is won when its goal check passes. Examples: "these commits are reachabl
 Three things are new in Act 3. Each is something a person leading coding agents does and a person learning git alone does not.
 
 - **Review before merge.** A robot says its branch is ready. The player reads it (`git log`, `git diff main..branch`, `git show`) and then merges it or sends it back. Some branches are fine. Some hide a mistake: a deleted file, a secret in a commit, a change to a file the robot was not asked to touch. Merging a bad branch does not lose the level at once; it becomes one more thing to fix.
-- **A shift, in turns.** The robots follow a script that moves forward one beat after each command the player runs, never on a clock. A level therefore plays the same way every time, can be tested like any other level, and never rushes a beginner. Problems arrive as robot messages in a short inbox, and the player chooses what to deal with first. Leaving a problem costs something concrete later in the script (a second robot builds on the broken commit).
-- **Rule cards.** Before a shift the player picks a few cards from a small hand, for example "no force-push to main", "commit before switching branch", "pull before you push", "one worktree per robot". When a robot's scripted step breaks a chosen rule, the step is refused on screen and the robot reacts. A mistake with no rule against it happens, and the player fixes it with git. Each card names the real tool that does this job (a protected branch, a pre-push hook, a line in the agents' instruction file), on the card and again on the win card.
+- **A shift, in beats.** After the opening lines the crew's shift plays as one scene: each robot in turn is about to do something. Nothing runs on a clock, so a level plays the same way every time for the same choices, can be tested like any other level, and never rushes a beginner. Then it is the player's turn to put right whatever went through.
+- **Rule cards.** Before a shift the player picks a few cards from a small hand on the brief, for example "No force-push to main", "Nothing goes to main unread", "No passwords in commits". A robot's beat that breaks a chosen rule is refused on screen and the robot reacts. A beat with no rule against it happens, and the player fixes it with git. Each card names the real tool that does this job (a protected branch, a pull request with a required review, a secret scanner), on the card and again on the win card. A report next to the files lists what was stopped and what is the player's to fix.
 
 The three levels:
 
-1. **Read before you merge.** Three robots each offer a branch. No rule cards yet. The player merges the good ones and sends one back.
-2. **House rules.** The first shift with cards: pick two of four. The script contains four mistakes, so two are blocked and two are left to fix. Which two is the player's choice, and the level is winnable with any pair.
-3. **The full shift.** All four robots, the inbox, three cards from six, and a review. The last level of the game.
+1. **Read before you merge.** Three robots each offer a branch. No rule cards yet. The player merges the good ones and leaves one out.
+2. **House rules.** The first shift with cards: pick two of three. The script has three mistakes, so two are stopped and one is left to fix. Which one is the player's choice, and every pick is winnable and has its own documented solution.
+3. **The full shift.** All four robots, more beats than cards, and a review in the same level, so the player also decides what to fix first. The last level of the game.
 
 The robots' worktrees, which the engine already has, become visible in Act 3: the files panel can show a robot's folder, read-only.
 

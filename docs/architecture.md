@@ -42,6 +42,7 @@ A level is data, not code paths in the UI:
 
 - `setup`: git commands and file edits that build the starting repository from empty, instantly.
 - `intro` and `outro`: scripted scenes. Robots run git commands, speak and change mood.
+- `shift` (Act 3 only): rule cards to pick on the brief, and the crew's beats. `src/levels/shift.ts` turns the shift and the player's pick into script steps that play after the intro: a beat whose card was picked becomes a refusal, the others run their git steps. The picked cards live in `GameState.cards`; the report next to the files (`ShiftReport.tsx`) and the win card read them.
 - `goals`: checks on the resulting state, written with the helpers in `goals.ts`. Goals accept any fair solution and reject shortcuts that lose work or rewrite shared history.
 - `suggestions`: the commands the suggestion buttons fill in. What Tidy's hint helper knows about a level is not in the level file: it lives server-side in `src/hints/data` (see "AI hints").
 - `usedIn` (practice levels only): the later level that uses the same tool for real. The win card offers it as a "Try it for real" button and the start page groups practice levels under their own heading.

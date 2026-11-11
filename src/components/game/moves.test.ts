@@ -34,7 +34,8 @@ describe("againstPar", () => {
 describe("par and the recap line of every level", () => {
   it.each(levels.map((l) => [l.id, l] as const))("%s: par is the documented solution's move count", (id, level) => {
     const counted = solutions[id].filter((s) => s.kind === "git" && countsAsMove(s.argv)).length;
-    expect(level.par).toBe(counted);
+    // With rule cards the pick decides how much there is to fix, so there is no single par.
+    expect(level.par).toBe(level.shift ? undefined : counted);
     expect(level.learned?.length ?? 0).toBeGreaterThan(20);
     expect(level.learned!.length).toBeLessThanOrEqual(140);
   });
@@ -45,7 +46,8 @@ describe("par and the recap line of every level", () => {
       if (step.kind === "git") game = runPlayerCommand(game, step.argv.map((a) => (/[\s"]/.test(a) ? JSON.stringify(a) : a)).join(" ")).state;
       else if (step.kind === "edit") game = { ...game, repo: engine.edit(game.repo, step.edit).state };
     }
-    expect(game.moves).toHaveLength(level.par!);
+    expect(game.phase === "outro" || game.phase === "won").toBe(true);
+    if (!level.shift) expect(game.moves).toHaveLength(level.par!);
   });
 });
 

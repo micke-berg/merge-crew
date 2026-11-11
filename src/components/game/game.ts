@@ -4,6 +4,7 @@
 
 import { engine, queries, validateCommandLine } from "@/engine";
 import { MAX_HINTS_PER_RUN } from "@/hints/types";
+import { defaultCards, openingOf } from "@/levels/shift";
 import { countsAsMove } from "./moves";
 import type {
   ActorId,
@@ -70,6 +71,8 @@ export type GameState = {
    * commit stays in the history"), not steps to do; the job bar shows them apart.
    */
   kept: boolean[];
+  /** Act 3: the ids of the rule cards the player picked for this shift. Empty for other levels. */
+  cards: string[];
   /** Commands the player has run, including refused ones. */
   commands: number;
   /**
@@ -144,15 +147,16 @@ export function startLevel(level: Level): GameState {
     nextLineId: 1,
     goals: level.goals.map(() => false),
     kept: level.goals.map(() => false),
+    cards: defaultCards(level),
     commands: 0,
     moves: [],
   };
 }
 
 /** Leave the brief and start the opening scene (or the player turn if there is none). */
-export function begin(s: GameState): GameState {
+export function begin(s: GameState, cards?: readonly string[]): GameState {
   if (s.phase !== "brief") return s;
-  return enterScript({ ...s, phase: "intro", cursor: 0 });
+  return enterScript({ ...s, phase: "intro", cursor: 0, cards: cards ? [...cards] : s.cards });
 }
 
 function enterScript(s: GameState): GameState {
@@ -162,7 +166,7 @@ function enterScript(s: GameState): GameState {
 }
 
 export function currentScript(s: GameState): ScriptStep[] {
-  if (s.phase === "intro") return s.level.intro;
+  if (s.phase === "intro") return openingOf(s.level, s.cards);
   if (s.phase === "outro") return s.level.outro;
   return [];
 }
@@ -222,6 +226,8 @@ export function advance(s: GameState): { state: GameState; wait: Wait } {
       return { state: { ...next, moods: { ...s.moods, [step.actor]: step.mood } }, wait: { kind: "none" } };
     case "pause":
       return { state: { ...next, bubble: null }, wait: { kind: "ms", ms: step.ms } };
+    case "note":
+      return { state: { ...next, ...addLines(s, [{ kind: "note", text: step.text }]) }, wait: { kind: "ms", ms: 700 } };
     case "git":
     case "edit": {
       const r = applyStep(s.repo, step);
@@ -384,7 +390,7 @@ export type HintView = { key: string; status: "thinking" } | { key: string; stat
 export const HINT_THINKING_TEXT = "Hmm, let me think…";
 
 export type LevelAction =
-  | { type: "begin" }
+  | { type: "begin"; cards?: readonly string[] }
   /** A returning player: play the intro's git and file steps at once and land on their turn. */
   | { type: "start-playing" }
   /** A timer ran out: play the next scene step. Ignored while a robot line waits for a click. */
@@ -457,7 +463,7 @@ export function levelReducer(m: LevelModel, a: LevelAction): LevelModel {
     case "hint-dismiss":
       return m.hint ? { ...m, hint: null } : m;
     case "begin":
-      return m.game.phase === "brief" ? { ...m, game: begin(m.game), wait: NO_WAIT } : m;
+      return m.game.phase === "brief" ? { ...m, game: begin(m.game, a.cards), wait: NO_WAIT } : m;
     case "start-playing":
       return m.game.phase === "brief" ? { ...m, game: skipScript(begin(m.game)), wait: NO_WAIT } : m;
     case "step": {

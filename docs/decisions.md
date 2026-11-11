@@ -2,6 +2,16 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-11-11 — Rule cards and the shift (act3-02, "House rules")
+
+- **A shift is data on the level (`Level.shift`): rule cards, how many to pick, and beats.** A beat is one robot's turn: what it says, the git steps it would run, and the id of the card that stops it. `src/levels/shift.ts` turns a shift and a pick into ordinary script steps that play after the intro, so the game, the level tests and the real-git comparison all run the same thing. No new phase, and no level logic in components.
+- **The shift plays as one scene, then the player fixes what got through.** The amended spec first said the script would move one beat per player command. That would have interleaved robot steps with the player's fix, and every card pick would need its own interleaved solution checked against real git. One scene keeps each pick's solution short and exact. The spec is corrected to match.
+- **Pick two of three, so exactly one mistake gets through and every pick is a different level.** Blaze force-pushes over main (fix: pull, which merges, then push). Drift pushes unfinished notes onto the menu (fix: revert). Hoarder commits the till password (fix: remove the file in a new commit; the outro says the password must be changed too, because it stays in the history).
+- **Every pick has a documented solution, and each is compared with real git** (`variantSolutions`, three runs for this level). The hint leak check uses the commands of all of them.
+- **No par for a level with cards.** The pick decides how much there is to fix, so one number would be unfair to two of the three picks.
+- **A level with cards always shows its brief,** also to a returning player, because the cards are picked there.
+- **Contract changes (additive, in `src/engine/types.ts`):** `RuleCard`, `ShiftBeat`, `Shift`, `Level.shift?`, and a `note` script step that writes one line into the command box.
+
 ## 2026-11-11 — Act 3 begins: review before merge
 
 - **act3-01, "Read before you merge", is the first level about leading and not about a git tool.** Three robots each say a branch is ready. Two are. Blaze's second commit is called "Make the site faster" and deletes the price list. Nothing in the level says which branch is the bad one: the goals ask for "the safe ones", and the rule is "nothing goes missing from main".
