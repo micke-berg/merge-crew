@@ -10,6 +10,7 @@ A free browser game that teaches git. You lead a crew of small robot coding agen
 - **Act 2 (fix):** recover commits lost to a force-push with the reflog, bring a diverged branch home and resolve the conflict, find a forgotten stash, undo a pushed change with revert, and cherry-pick one fix.
 - **Act 3 (lead):** you do what a person leading coding agents does. First a review: three robots say their branches are ready, and you read what each one really changes before you merge it. Then house rules: you pick rule cards before the crew's shift, the rules stop some mistakes on screen, and you fix the one that got through. Last, the full shift: all four robots at once, a branch to review and a mistake to fix, in the order you choose.
 
+- **Sandbox:** a repository of your own with no goals. Make files, commit, branch and merge, and watch the map draw it.
 - **Today's incident:** one broken repository a day, the same for everyone, with a par to beat, a streak, and a result you can paste to a colleague without spoiling it.
 
 Every command you type runs in a simulated git repository that behaves like real git. The history is drawn as a metro map, and each commit, merge and lost commit is animated.

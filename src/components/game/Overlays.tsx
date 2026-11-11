@@ -6,6 +6,7 @@ import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "rea
 import type { Level, RuleCard } from "@/engine/types";
 import { actorColor } from "@/lib/palette";
 import { shareText } from "@/daily/daily";
+import { validFileName } from "@/levels/sandbox";
 import { againstPar, type ParResult } from "./moves";
 import { RobotPortrait } from "./RobotPortrait";
 
@@ -444,6 +445,84 @@ export function WinCard({
           <button type="button" onClick={onReplay} className={secondary}>{result === "over" ? "Try for par" : "Play again"}</button>
           {(next || tryIt) && !daily && <Link href="/" className={secondary}>Back to all levels</Link>}
         </div>
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * A plain editor for one of the player's working files (the sandbox). With no `path` it also asks for
+ * a file name and makes a new file. Saving writes the working file only: staging and committing stay
+ * with the player's git commands.
+ */
+export function FileEditor({
+  path,
+  content = "",
+  taken = [],
+  onSave,
+  onClose,
+}: {
+  /** The file being edited. Left out for a new file. */
+  path?: string;
+  content?: string;
+  /** File names that already exist, for a new file. */
+  taken?: readonly string[];
+  onSave: (path: string, content: string) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(path ?? "");
+  const [text, setText] = useState(content);
+  const fresh = path === undefined;
+  const problem = !fresh || name === ""
+    ? null
+    : !validFileName(name)
+      ? "Use letters, digits, dots and dashes. Folders with a slash are fine."
+      : taken.includes(name)
+        ? "That file already exists. Click it in the list to edit it."
+        : null;
+  const ready = name !== "" && problem === null;
+  const save = () => {
+    if (ready) onSave(name, text === "" || text.endsWith("\n") ? text : `${text}\n`);
+  };
+  return (
+    <Modal label={fresh ? "New file" : `Edit ${path}`} onClose={onClose} closeOnBackdrop={false}>
+      <p className="text-[11px] font-bold tracking-[0.12em] text-muted uppercase">{fresh ? "New file" : "Working file"}</p>
+      {fresh ? (
+        <>
+          <label htmlFor="new-file-name" className="sr-only">File name</label>
+          <input
+            id="new-file-name"
+            data-autofocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="menu.txt"
+            autoComplete="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            className="mt-1 w-full rounded-xl border border-line-strong bg-card px-3 py-2 font-mono text-[15px] font-bold text-ink focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none"
+          />
+          <p className="mt-1 min-h-[1.2em] text-[12px] text-warn-deep" aria-live="polite">{problem}</p>
+        </>
+      ) : (
+        <h2 className="mt-1 truncate font-mono text-lg font-bold">{path}</h2>
+      )}
+      <label htmlFor="file-text" className="sr-only">File contents</label>
+      <textarea
+        id="file-text"
+        {...(fresh ? {} : { "data-autofocus": true })}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={10}
+        spellCheck={false}
+        maxLength={4000}
+        className="mt-2 w-full resize-y rounded-2xl bg-ink px-4 py-3 font-mono text-[13px] leading-relaxed text-paper caret-term-prompt focus-visible:ring-4 focus-visible:ring-focus/40 focus-visible:outline-none"
+      />
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button type="button" onClick={save} disabled={!ready} className={`${primary} disabled:cursor-not-allowed disabled:opacity-45`}>
+          Save file
+        </button>
+        <button type="button" onClick={onClose} className={secondary}>Cancel</button>
+        <span className="ml-auto text-[12px] text-muted">Saving changes the file. git add and git commit are still yours.</span>
       </div>
     </Modal>
   );

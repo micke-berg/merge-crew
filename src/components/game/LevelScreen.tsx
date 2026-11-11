@@ -25,7 +25,7 @@ import { Confetti } from "./Confetti";
 import { ConflictEditor } from "./ConflictEditor";
 import type { CompletionWords } from "./completion";
 import { conflictSource } from "./conflicts";
-import { BriefCard, FileViewer, WinCard } from "./Overlays";
+import { BriefCard, FileEditor, FileViewer, WinCard } from "./Overlays";
 import { Terminal, type TerminalHandle } from "./Terminal";
 import { TARGET_NAMES, TourSpotlight } from "./TourSpotlight";
 import type { PointStep } from "./game";
@@ -48,7 +48,17 @@ export function LevelScreen({ levelId }: { levelId: string }) {
 }
 
 /** One level's screen, for a level object that may not be in the level list (tests, dev pages). */
-export function LevelGame({ level, daily }: { level: Level; /** Today's incident number, when the level is played as the daily incident. */ daily?: number }) {
+export function LevelGame({
+  level,
+  daily,
+  sandbox = false,
+}: {
+  level: Level;
+  /** Today's incident number, when the level is played as the daily incident. */
+  daily?: number;
+  /** Free play: no brief, no job, no hints, and the player can write files. */
+  sandbox?: boolean;
+}) {
   const g = useLevel(level);
   const { game } = g;
   // A challenge link carries the sender's count: /level/act2-01?beat=4.
@@ -66,6 +76,7 @@ export function LevelGame({ level, daily }: { level: Level; /** Today's incident
   useGameSounds({ events: game.events, repo: game.repo, goals: game.goals, phase: game.phase, log: game.log, reduce });
   const terminal = useRef<TerminalHandle>(null);
   const [open, setOpen] = useState<OpenFile | null>(null);
+  const [newFile, setNewFile] = useState(false);
   // A first-time player who lands straight on a level gets the opening story before the brief.
   const premiseSeen = usePremiseSeen();
   // A returning player skips the brief and the intro and lands on their turn. They can replay it.
@@ -77,8 +88,9 @@ export function LevelGame({ level, daily }: { level: Level; /** Today's incident
     // A level with rule cards always shows its brief: the cards are picked there. So does the daily
     // incident and a challenge, which say on the brief what they are.
     const always = !!level.shift || daily !== undefined || new URLSearchParams(window.location.search).has("beat");
-    if (game.phase === "brief" && !always && premiseSeenInStorage() && introSeen(level.id)) startPlaying();
-  }, [game.phase, premiseSeen, introKnown, level.id, level.shift, daily]);
+    // The sandbox has no brief and no story: it starts on the player's turn.
+    if (game.phase === "brief" && (sandbox || (!always && premiseSeenInStorage() && introSeen(level.id)))) startPlaying();
+  }, [game.phase, premiseSeen, introKnown, level.id, level.shift, daily, sandbox]);
   useEffect(() => {
     if (game.phase === "play") markIntroSeen(level.id);
   }, [game.phase, level.id]);
@@ -154,6 +166,13 @@ export function LevelGame({ level, daily }: { level: Level; /** Today's incident
   const openConflict =
     open && !open.actor && playing && open.area === "working" && player ? player.conflicts[open.path] : undefined;
 
+  // In the sandbox the player writes their own working files; a conflicted file still opens in the conflict editor.
+  const editable = sandbox && playing && !!open && !open.actor && open.area === "working" && !openConflict;
+  const closeNewFile = () => {
+    setNewFile(false);
+    requestAnimationFrame(() => terminal.current?.focus());
+  };
+
   const saveFile = (path: string, content: string) => {
     g.edit(path, content);
     closeFile();
@@ -187,7 +206,9 @@ export function LevelGame({ level, daily }: { level: Level; /** Today's incident
           </Link>
           <span className="h-5 w-px bg-divider" aria-hidden />
           <div className="flex min-w-0 items-baseline gap-2.5">
-            {daily === undefined ? (
+            {sandbox ? (
+              <span className="rounded-full bg-ink px-3 py-1 text-[12px] font-bold whitespace-nowrap text-paper">Free play</span>
+            ) : daily === undefined ? (
               <LevelPicker level={level} />
             ) : (
               <span className="rounded-full bg-ink px-3 py-1 text-[12px] font-bold whitespace-nowrap text-paper">Incident #{daily}</span>
@@ -195,7 +216,7 @@ export function LevelGame({ level, daily }: { level: Level; /** Today's incident
             <h1 className="truncate text-[17px] font-bold tracking-tight">{level.title}</h1>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <ReplayIntroButton
+            {!sandbox && <ReplayIntroButton
               disabled={touring || game.phase === "brief" || game.phase === "intro"}
               onClick={() => {
                 forgetIntro(level.id);
@@ -203,7 +224,7 @@ export function LevelGame({ level, daily }: { level: Level; /** Today's incident
                 setWinClosed(false);
                 g.restart();
               }}
-            />
+            />}
             <TourButton disabled={!playing || touring || SCREEN_TOUR.length === 0} onClick={() => g.tour(SCREEN_TOUR)} />
             <MuteButton />
             <PhaseChip phase={game.phase} />
@@ -227,7 +248,7 @@ export function LevelGame({ level, daily }: { level: Level; /** Today's incident
               <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden>
                 <path d="M3 8a5 5 0 1 0 1.6-3.7M3 2.5v3h3" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              Restart level
+              {sandbox ? "Start over" : "Restart level"}
             </button>
           </div>
         </header>
@@ -275,6 +296,7 @@ export function LevelGame({ level, daily }: { level: Level; /** Today's incident
               onOpen={setOpen}
               highlight={bubble?.files.length ? { actor: bubble.actor, files: bubble.files } : null}
               folders={level.act === 3 ? level.crew : []}
+              onNew={sandbox && playing ? () => setNewFile(true) : undefined}
             />
             {level.shift && (game.phase === "play" || game.phase === "outro" || game.phase === "won") && (
               <ShiftReport level={level} cards={game.cards} />
@@ -284,16 +306,23 @@ export function LevelGame({ level, daily }: { level: Level; /** Today's incident
           {/* command box */}
           <div className="flex h-[440px] flex-col gap-2 sm:h-[372px] md:col-span-2 lg:col-span-1 lg:h-auto lg:min-h-0">
             {/* Phones stack the task above the hint button; wider screens put them side by side. */}
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-              <div className="min-w-0 flex-1">
-                <JobBar goals={level.goals} done={game.goals} kept={game.kept} won={game.phase === "outro" || game.phase === "won"} />
+            {sandbox ? (
+              <p data-tour="jobbar" className="rounded-2xl border border-line bg-card px-4 py-2.5 text-[14px] leading-snug text-body">
+                <span className="font-bold text-ink">No job here.</span> A repository of your own: make files, commit, branch, merge, push. Click a file to
+                edit it. <code className="rounded bg-ink px-1.5 py-px font-mono text-[12px] text-paper">help</code> lists every command.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                <div className="min-w-0 flex-1">
+                  <JobBar goals={level.goals} done={game.goals} kept={game.kept} won={game.phase === "outro" || game.phase === "won"} />
+                </div>
+                <AskTidyButton left={g.hintsLeft} playing={playing && !touring} thinking={g.hintStatus === "thinking"} onAsk={askHint} />
               </div>
-              <AskTidyButton left={g.hintsLeft} playing={playing && !touring} thinking={g.hintStatus === "thinking"} onAsk={askHint} />
-            </div>
+            )}
             <Terminal
               ref={terminal}
               log={game.log}
-              active={playing && !open && !touring}
+              active={playing && !open && !touring && !newFile}
               where={where}
               path={player?.path ?? "/repo"}
               suggestions={level.suggestions}
@@ -328,10 +357,10 @@ export function LevelGame({ level, daily }: { level: Level; /** Today's incident
         </main>
 
         <AnimatePresence>
-          {game.phase === "brief" && !premiseSeen && (
+          {game.phase === "brief" && !premiseSeen && !sandbox && (
             <PremiseCard key="premise" onDone={() => markPremiseSeen()} doneLabel="On to the first job" />
           )}
-          {game.phase === "brief" && premiseSeen && (!introKnown || !!level.shift || daily !== undefined || beat !== null) && (
+          {game.phase === "brief" && premiseSeen && !sandbox && (!introKnown || !!level.shift || daily !== undefined || beat !== null) && (
             <BriefCard key="brief" level={level} daily={daily} beat={beat} onStart={g.begin} onBack={() => {
                 if (phaseRef.current === "brief") router.push("/");
               }}
@@ -367,7 +396,21 @@ export function LevelGame({ level, daily }: { level: Level; /** Today's incident
               onClose={closeFile}
             />
           )}
-          {open && !openConflict && openContent !== undefined && (
+          {newFile && (
+            <FileEditor
+              key="new-file"
+              taken={Object.keys(player?.workingTree ?? {})}
+              onSave={(path, content) => {
+                g.edit(path, content);
+                closeNewFile();
+              }}
+              onClose={closeNewFile}
+            />
+          )}
+          {open && editable && openContent !== undefined && (
+            <FileEditor key={`edit-${open.path}`} path={open.path} content={openContent} onSave={saveFile} onClose={closeFile} />
+          )}
+          {open && !openConflict && !editable && openContent !== undefined && (
             <FileViewer
               key="file"
               path={open.path}

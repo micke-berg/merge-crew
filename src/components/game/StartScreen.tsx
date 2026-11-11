@@ -238,6 +238,15 @@ export function StartScreen() {
               {" "}reference, in plain words
             </p>
             <p>
+              <Link
+                href="/sandbox"
+                className="font-semibold underline decoration-line-strong underline-offset-2 hover:text-ink focus-visible:rounded focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none"
+              >
+                Sandbox
+              </Link>
+              : a repository of your own, with no goals
+            </p>
+            <p>
               <a
                 href={ASSETS_URL}
                 className="underline decoration-line-strong underline-offset-2 hover:text-ink focus-visible:rounded focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none"

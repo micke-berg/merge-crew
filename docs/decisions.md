@@ -2,6 +2,12 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-11-11 — The sandbox
+
+- **`/sandbox` is the ordinary level screen on a repository with no goals.** The sandbox is a `Level` with empty goals, intro and outro, in no level list. It starts on the player's turn, shows no brief, no job bar and no "Ask Tidy", and can never be won. Nothing new in the engine or the game state machine.
+- **The player can write files there.** "New file" and a click on a working file open a plain editor that writes the working file through the same path the conflict editor uses. Staging and committing stay with git commands, which is the point. File names are limited to letters, digits, dots, dashes and folders, so nothing needs quoting on the command line.
+- **Nothing is saved between visits.** A reload starts over. Saving a sandbox would mean storing a whole repository in the browser and migrating it when the engine's state changes.
+
 ## 2026-11-11 — Six incidents made only for the daily
 
 - **The daily pool doubles to twelve.** Six new incidents, each one small mistake with one idea: a commit on the wrong branch, a commit on no branch (detached HEAD), a diverged main that has to stay straight (`pull --rebase`), a password staged by mistake (`restore --staged`), a local reset that hid unpushed commits (reflog), and a useless commit message (`commit --amend`). Four of the six ideas appear in no level of the acts, so the daily teaches something new and is not only a chase for par.

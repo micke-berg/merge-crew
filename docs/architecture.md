@@ -85,6 +85,10 @@ A static page that explains the commands the game teaches in plain language, rea
 - **`dailyStorage.ts` is the browser side:** the record in browser storage, and today's number. The server never renders a day: `/daily` and the start page's card draw the incident only once the browser knows the date, so the two cannot disagree.
 - **`DailyScreen.tsx` plays the day's level with the ordinary level screen** (`LevelGame` with a `daily` number). The win card saves the result, shows the streak and offers the result to copy.
 
+## The sandbox (`/sandbox`)
+
+Free play: `LevelGame` with the `sandbox` level (`src/levels/sandbox.ts`, no goals and no script) and the `sandbox` flag, which hides the brief, the job bar and the hints and lets the player create and edit working files (`FileEditor` in `Overlays.tsx`).
+
 ## Shared helpers (`src/lib`)
 
 - `palette.ts`: every colour in the game, defined once. The root layout writes the colours as CSS variables, Tailwind maps them to classes such as `bg-ink` and `text-muted`, and the SVG map reads the same constants. A test checks the contrast of every text and background pair.

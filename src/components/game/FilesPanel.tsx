@@ -28,6 +28,8 @@ type Props = {
    * Empty or left out: the panel shows only the player's own files.
    */
   folders?: readonly ActorId[];
+  /** Set where the player may create files (the sandbox): shows a "New file" button. */
+  onNew?: () => void;
 };
 
 type Badge = { letter: string; label: string; className: string };
@@ -42,7 +44,7 @@ const BADGES: Record<string, Badge> = {
   clean: { letter: "·", label: "unchanged", className: "text-ghost" },
 };
 
-export function FilesPanel({ repo, where, onOpen, highlight, folders = [] }: Props) {
+export function FilesPanel({ repo, where, onOpen, highlight, folders = [], onNew }: Props) {
   const [chosen, setChosen] = useState<ActorId>("player");
   const others = folders.filter((a) => a !== "player" && repo.worktrees[a]);
   // A folder that is gone (a restart, a removed worktree) falls back to the player's own.
@@ -112,7 +114,18 @@ export function FilesPanel({ repo, where, onOpen, highlight, folders = [] }: Pro
 
       <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
         {mine && <ConflictBanner wt={wt} conflicted={st.conflicted} onOpen={(path) => onOpen({ path, area: "working" })} />}
-        <h3 className="text-[11px] font-bold tracking-wide text-muted uppercase">Working files</h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-[11px] font-bold tracking-wide text-muted uppercase">Working files</h3>
+          {onNew && mine && (
+            <button
+              type="button"
+              onClick={onNew}
+              className="rounded-full border border-line-button px-2.5 py-0.5 text-[11.5px] font-semibold text-soft transition-colors hover:bg-sunk hover:text-ink focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none"
+            >
+              + New file
+            </button>
+          )}
+        </div>
         <ul className="mt-1.5 flex flex-col gap-0.5">
           {working.length === 0 && <li className="px-2 py-1 text-[13px] text-muted">No files yet.</li>}
           {working.map((f) => {
