@@ -23,6 +23,7 @@ A git simulator written as pure TypeScript functions, with no React and no brows
 - **A refused command changes nothing.** Where real git would leave partial changes behind, the engine leaves none. A command that stops on a conflict counts as a success, because the state did change. The known differences from git are listed in `docs/decisions.md`.
 - **Events are the only link to the visuals.** Examples: "commit created", "branch moved", "commits lost". The map, the robots and the sounds all read the same list.
 - **Code layout:** one file per command family in `commands/`. Revision parsing (`HEAD~2`, `main@{1}`, `origin/main`) is in `revisions.ts`. The line diff and the three-way merge are ports of git's own algorithms, in `diff.ts` and `merge3.ts`. Rebase, cherry-pick and revert share a sequencer in `sequencer.ts`.
+- **Help is part of the engine (`commands/help.ts`).** `help` and `git help` list the commands, and an unknown command is answered with the nearest real one. Tab completion in the command box is a separate pure helper, `src/components/game/completion.ts`, fed with the engine's command list and the branches and files that exist at that moment.
 - **Read-only questions live in `queries` (`query.ts`).** Which commits are reachable, which are lost, what `git status` would say. Goals, hints and views use these.
 
 ## Tests against real git (`tests/oracle`)

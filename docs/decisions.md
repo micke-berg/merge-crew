@@ -2,6 +2,14 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-11-11 — Help, a guess for a mistyped command, and Tab
+
+- **`help`, `git help` and `git --help` list what the game runs,** one plain line per command. The list is checked against the engine's command table in a test, so a new command needs a help line.
+- **A mistyped git command gets git's own "The most similar command is" answer.** The wording is git's (checked against git 2.43). The scoring is not: the engine uses a plain edit distance where swapped neighbours count once, and also offers a command the typed word is the start of. Git's list can differ, for example it also offers its `stage` alias, which the game does not have.
+- **A git command typed without `git` in front is answered with "Did you mean: git status".** It is the most common slip a beginner makes.
+- **Tab completes commands, branch names and file names** in the command box (`completion.ts`, pure and tested). An empty box leaves Tab alone, so keyboard users can still move on from it.
+- **`git log --graph` is not in this batch.** Its output is the behaviour, so it needs its own comparison against real git's drawing, which is a port of git's graph code and not a small change.
+
 ## 2026-11-11 — Goals that start true are rules, not steps
 
 - **The job bar shows a goal that is already met when the player's turn begins under "Keep it that way", apart from the numbered steps.** Every Act 2 level has one or two such goals ("Blaze's commit stays in the history"). They were drawn as ticked steps, so a level opened on "2 of 3 done" before the player had typed anything. The earlier rule against pre-done goals removed them from the practice levels; in Act 2 they have to stay, because they are what rejects a shortcut.

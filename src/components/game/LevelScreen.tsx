@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "motion/react";
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
-import { queries } from "@/engine";
+import { GIT_COMMANDS, SHELL_COMMANDS, queries } from "@/engine";
 import type { Level, ScriptStep } from "@/engine/types";
 import { HistoryMap } from "@/components/map/HistoryMap";
 import { actorColor } from "@/lib/palette";
@@ -21,6 +21,7 @@ import { PremiseCard } from "./Premise";
 import { markPremiseSeen, premiseSeen as premiseSeenInStorage, usePremiseSeen } from "./premiseStorage";
 import { Logo } from "./Logo";
 import { ConflictEditor } from "./ConflictEditor";
+import type { CompletionWords } from "./completion";
 import { conflictSource } from "./conflicts";
 import { BriefCard, FileViewer, WinCard } from "./Overlays";
 import { Terminal, type TerminalHandle } from "./Terminal";
@@ -138,6 +139,17 @@ export function LevelGame({ level }: { level: Level }) {
     g.edit(path, content);
     closeFile();
   };
+
+  // What Tab completes to in the command box: commands, then the branches and files that exist now.
+  const words: CompletionWords = useMemo(
+    () => ({
+      git: GIT_COMMANDS,
+      shell: [...SHELL_COMMANDS, "clear"],
+      refs: [...Object.keys(game.repo.branches), ...Object.keys(game.repo.remoteTracking)],
+      files: [...new Set([...Object.keys(player?.workingTree ?? {}), ...Object.keys(player?.index ?? {})])],
+    }),
+    [game.repo, player],
+  );
 
   const cast = (["player", ...level.crew] as const).filter((a, i, all) => all.indexOf(a) === i);
 
@@ -257,6 +269,7 @@ export function LevelGame({ level }: { level: Level }) {
               where={where}
               path={player?.path ?? "/repo"}
               suggestions={level.suggestions}
+              words={words}
               onRun={g.command}
               showControls={pointer?.target === "terminal" || pointer?.target === "suggestions" || hint !== null}
               scene={
