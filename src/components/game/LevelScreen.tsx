@@ -31,6 +31,9 @@ import { TARGET_NAMES, TourSpotlight } from "./TourSpotlight";
 import type { PointStep } from "./game";
 import { useLevel } from "./useLevel";
 import { MuteButton, useGameSounds } from "@/components/sound";
+import { currentStreak, parseBeat } from "@/daily/daily";
+import { saveSolve, useDailyRecord, useSearchValue } from "@/daily/dailyStorage";
+import { MAX_HINTS_PER_RUN } from "@/hints/types";
 
 /** The screen tour the "?" button replays: the first level's point steps, without its story or git. */
 const SCREEN_TOUR: PointStep[] = (getLevel("act1-01")?.intro ?? []).filter(
@@ -45,9 +48,17 @@ export function LevelScreen({ levelId }: { levelId: string }) {
 }
 
 /** One level's screen, for a level object that may not be in the level list (tests, dev pages). */
-export function LevelGame({ level }: { level: Level }) {
+export function LevelGame({ level, daily }: { level: Level; /** Today's incident number, when the level is played as the daily incident. */ daily?: number }) {
   const g = useLevel(level);
   const { game } = g;
+  // A challenge link carries the sender's count: /level/act2-01?beat=4.
+  const beat = parseBeat(useSearchValue("beat"));
+  const record = useDailyRecord();
+  const hintsUsed = MAX_HINTS_PER_RUN - g.hintsLeft;
+  const movesCount = game.moves.length;
+  useEffect(() => {
+    if (daily !== undefined && game.phase === "won") saveSolve(daily, { moves: movesCount, hints: hintsUsed });
+  }, [daily, game.phase, movesCount, hintsUsed]);
   // Fetch the robot sheets this level plays, so no state change waits on the network.
   const sheets = useMemo(() => levelSheets(level), [level]);
   useEffect(() => preloadSheets(sheets), [sheets]);
@@ -63,9 +74,11 @@ export function LevelGame({ level }: { level: Level }) {
   useEffect(() => {
     // Read storage here, not the hooks' values: during hydration the hooks still report their server
     // answer ("seen"), which would skip the intro for a first-time player.
-    // A level with rule cards always shows its brief: the cards are picked there.
-    if (game.phase === "brief" && !level.shift && premiseSeenInStorage() && introSeen(level.id)) startPlaying();
-  }, [game.phase, premiseSeen, introKnown, level.id, level.shift]);
+    // A level with rule cards always shows its brief: the cards are picked there. So does the daily
+    // incident and a challenge, which say on the brief what they are.
+    const always = !!level.shift || daily !== undefined || new URLSearchParams(window.location.search).has("beat");
+    if (game.phase === "brief" && !always && premiseSeenInStorage() && introSeen(level.id)) startPlaying();
+  }, [game.phase, premiseSeen, introKnown, level.id, level.shift, daily]);
   useEffect(() => {
     if (game.phase === "play") markIntroSeen(level.id);
   }, [game.phase, level.id]);
@@ -174,7 +187,11 @@ export function LevelGame({ level }: { level: Level }) {
           </Link>
           <span className="h-5 w-px bg-divider" aria-hidden />
           <div className="flex min-w-0 items-baseline gap-2.5">
-            <LevelPicker level={level} />
+            {daily === undefined ? (
+              <LevelPicker level={level} />
+            ) : (
+              <span className="rounded-full bg-ink px-3 py-1 text-[12px] font-bold whitespace-nowrap text-paper">Incident #{daily}</span>
+            )}
             <h1 className="truncate text-[17px] font-bold tracking-tight">{level.title}</h1>
           </div>
           <div className="ml-auto flex items-center gap-2">
@@ -314,8 +331,8 @@ export function LevelGame({ level }: { level: Level }) {
           {game.phase === "brief" && !premiseSeen && (
             <PremiseCard key="premise" onDone={() => markPremiseSeen()} doneLabel="On to the first job" />
           )}
-          {game.phase === "brief" && premiseSeen && (!introKnown || !!level.shift) && (
-            <BriefCard key="brief" level={level} onStart={g.begin} onBack={() => {
+          {game.phase === "brief" && premiseSeen && (!introKnown || !!level.shift || daily !== undefined || beat !== null) && (
+            <BriefCard key="brief" level={level} daily={daily} beat={beat} onStart={g.begin} onBack={() => {
                 if (phaseRef.current === "brief") router.push("/");
               }}
             />
@@ -326,6 +343,9 @@ export function LevelGame({ level }: { level: Level }) {
               level={level}
               moves={game.moves}
               cards={game.cards}
+              hints={hintsUsed}
+              beat={beat}
+              daily={daily === undefined ? undefined : { number: daily, streak: currentStreak(record, daily), best: record.best }}
               next={next}
               tryIt={tryIt}
               onReplay={() => {

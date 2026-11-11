@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import type { Level, RuleCard } from "@/engine/types";
 import { actorColor } from "@/lib/palette";
+import { shareText } from "@/daily/daily";
 import { againstPar, type ParResult } from "./moves";
 import { RobotPortrait } from "./RobotPortrait";
 
@@ -121,7 +122,21 @@ function CloseButton({ label, onClick }: { label: string; onClick: () => void })
 }
 
 /** The level's brief. The X and Esc go back to the level list, Start begins the level. */
-export function BriefCard({ level, onStart, onBack }: { level: Level; onStart: (cards: string[]) => void; onBack: () => void }) {
+export function BriefCard({
+  level,
+  daily,
+  beat,
+  onStart,
+  onBack,
+}: {
+  level: Level;
+  /** Today's incident number, when the level is played as the daily incident. */
+  daily?: number;
+  /** A challenge link's count to beat. */
+  beat?: number | null;
+  onStart: (cards: string[]) => void;
+  onBack: () => void;
+}) {
   const shift = level.shift;
   const [picked, setPicked] = useState<string[]>([]);
   const ready = !shift || picked.length === shift.pick;
@@ -131,7 +146,7 @@ export function BriefCard({ level, onStart, onBack }: { level: Level; onStart: (
     <Modal label={`${level.title}: level brief`} wide onClose={onBack} closeOnBackdrop={false}>
       <CloseButton label="Back to all levels" onClick={onBack} />
       <p className="pr-10 text-[12px] font-bold tracking-[0.12em] text-muted uppercase">
-        {levelLabel(level)} · {ACT_NAMES[level.act]}
+        {daily === undefined ? `${levelLabel(level)} · ${ACT_NAMES[level.act]}` : `Today's incident · #${daily}`}
       </p>
       <h1 className="mt-1.5 text-3xl leading-tight font-extrabold tracking-tight md:text-[34px]">{level.title}</h1>
 
@@ -146,6 +161,21 @@ export function BriefCard({ level, onStart, onBack }: { level: Level; onStart: (
         ))}
       </div>
 
+      {(daily !== undefined || beat) && (
+        <p className="mt-3 rounded-2xl bg-sunk px-4 py-2.5 text-[14px] leading-snug text-body">
+          {beat ? (
+            <>
+              <span className="font-bold text-ink">A challenge.</span> Someone fixed this in {beat} {beat === 1 ? "command" : "commands"}. Looking around is free. Can you match it?
+            </>
+          ) : (
+            <>
+              <span className="font-bold text-ink">The same incident for everyone today.</span>{" "}
+              {level.par !== undefined && <>Par is {level.par} {level.par === 1 ? "command" : "commands"}, and looking around is free. </>}
+              A new one tomorrow.
+            </>
+          )}
+        </p>
+      )}
       {level.mission ? <MissionCard mission={level.mission} /> : <p className="mt-3 text-[16px] leading-relaxed text-body">{level.brief}</p>}
       <h2 className="mt-6 text-[12px] font-bold tracking-[0.12em] text-muted uppercase">Done when</h2>
       <ul className="mt-2 flex flex-col gap-1.5">
@@ -268,6 +298,9 @@ export function WinCard({
   level,
   moves,
   cards = [],
+  hints = 0,
+  beat = null,
+  daily,
   next,
   tryIt,
   onReplay,
@@ -276,6 +309,12 @@ export function WinCard({
   level: Level;
   /** Act 3: the ids of the house rules the player picked. */
   cards?: readonly string[];
+  /** Hints asked for in this run. */
+  hints?: number;
+  /** A challenge link's count to beat. */
+  beat?: number | null;
+  /** Set when the level was played as the daily incident. */
+  daily?: { number: number; streak: number; best: number };
   /** The commands that counted, in the order the player ran them. */
   moves: readonly string[];
   next: Level | null;
@@ -289,6 +328,10 @@ export function WinCard({
   );
   const count = moves.length;
   const result = level.par === undefined ? null : againstPar(count, level.par);
+  // Built on click, in the browser: the link has to carry this page's own address.
+  const origin = () => window.location.origin;
+  const resultText = () =>
+    shareText({ number: daily?.number, title: level.title, moves: count, par: level.par, hints, url: daily ? `${origin()}/daily` : `${origin()}/level/${level.id}?beat=${count}` });
   return (
     <Modal label={`${level.title}: level complete`} onClose={onClose} closeOnBackdrop={false}>
       <CloseButton label="Close and look at the map" onClick={onClose} />
@@ -356,8 +399,28 @@ export function WinCard({
         )}
       </div>
 
+      {(daily || beat !== null) && (
+        <p className="mt-3 text-center text-[14px] font-semibold text-ink">
+          {daily ? (
+            <>
+              {daily.streak > 1 ? `${daily.streak} days in a row.` : "First day of a new streak."}{" "}
+              <span className="font-normal text-soft">A new incident tomorrow.</span>
+            </>
+          ) : beat !== null && count <= beat ? (
+            count < beat ? `You beat the challenge: ${count} against ${beat}.` : `You matched the challenge: ${count} commands.`
+          ) : (
+            <span className="text-soft">The challenge was {beat}. You took {count}.</span>
+          )}
+        </p>
+      )}
+      {count > 0 && <CopyButton text={resultText} label={daily ? "Copy my result" : "Challenge a friend"} hint={daily ? "No spoilers in it" : "Copies a link with your count to beat"} />}
+
       <div className="mt-6 flex flex-col items-center gap-3">
-        {tryIt ? (
+        {daily ? (
+          <Link href="/" data-autofocus className={`${primary} w-full sm:w-auto`}>
+            Back to all levels
+          </Link>
+        ) : tryIt ? (
           <>
             <Link href={`/level/${tryIt.id}`} data-autofocus className={`${primary} w-full sm:w-auto`}>
               Try it for real: {tryIt.title}
@@ -379,10 +442,39 @@ export function WinCard({
         )}
         <div className="flex gap-2">
           <button type="button" onClick={onReplay} className={secondary}>{result === "over" ? "Try for par" : "Play again"}</button>
-          {(next || tryIt) && <Link href="/" className={secondary}>Back to all levels</Link>}
+          {(next || tryIt) && !daily && <Link href="/" className={secondary}>Back to all levels</Link>}
         </div>
       </div>
     </Modal>
+  );
+}
+
+/** Copies a line of text for the player to paste somewhere. Shows the text itself when the browser refuses. */
+function CopyButton({ text, label, hint }: { text: () => string; label: string; hint: string }) {
+  const [state, setState] = useState<"idle" | "copied" | "shown">("idle");
+  const [shown, setShown] = useState("");
+  const copy = async () => {
+    const value = text();
+    try {
+      await navigator.clipboard.writeText(value);
+      setState("copied");
+    } catch {
+      setShown(value);
+      setState("shown");
+    }
+  };
+  return (
+    <div className="mt-3 flex flex-col items-center gap-1.5">
+      <button type="button" onClick={copy} className={secondary}>
+        {state === "copied" ? "Copied. Paste it anywhere" : label}
+      </button>
+      <p className="text-[12px] text-muted" aria-live="polite">
+        {state === "shown" ? "Copy it from here:" : hint}
+      </p>
+      {state === "shown" && (
+        <textarea readOnly value={shown} rows={2} onFocus={(e) => e.currentTarget.select()} className="w-full rounded-xl border border-line bg-card px-3 py-2 font-mono text-[12px] text-ink" aria-label="Your result" />
+      )}
+    </div>
   );
 }
 

@@ -2,6 +2,14 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-11-11 — The daily incident, a result to paste, and challenge links
+
+- **`/daily` plays one level a day, the same for everyone.** The day is counted in UTC from 2026-11-11 (incident #1). The level comes from a pool, shuffled afresh each round with a seeded generator, so no server is involved and no incident repeats two days running (`src/daily/daily.ts`, pure and tested).
+- **The pool is the six existing levels with a par where a robot breaks or hides something** (Act 2, and the review level of Act 3). Levels with rule cards are left out: the pick decides how much there is to fix, so two players' counts could not be compared. Six is thin. A player who has finished the acts has seen them all, and the daily is then a chase for par. Incidents written only for the daily are the way to make it worth coming back for; the spec now says the pool grows and does not promise 20 for v1.
+- **The streak and each day's best result live in browser storage only.** A streak survives until a whole day is missed.
+- **The win card can copy the result as plain text with no spoilers:** the incident number, the title, commands against par, hints used and the link. When the browser refuses the clipboard, the text is shown to copy by hand.
+- **A challenge link is a level address with the sender's count, `/level/act2-01?beat=3`.** The brief says what there is to beat, the win card says whether it was matched, and nothing is stored anywhere. The page stays static: the count is read in the browser.
+
 ## 2026-11-11 — The full shift (act3-03) ends the game
 
 - **The last level gives the player two jobs at once: a review and a fix.** Tidy commits honest work on a branch and asks for a review; no card can stop that beat (`ShiftBeat.stoppedBy` is now optional, and `review` marks it in the report). Of the other three robots, the player's two cards stop two. The order of the two jobs is the player's.

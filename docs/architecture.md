@@ -78,6 +78,12 @@ A static page that explains the commands the game teaches in plain language, rea
 - **`src/app/commands/page.tsx` and `src/components/commands` only render it.** Each entry has an anchor, so `/commands#stash` opens at that entry. The start page footer and the level picker link to the page.
 - **Tests keep the links honest** (`src/commands/entries.test.ts`): every linked level exists, slugs are unique, and every level that has `usedIn` set is the practice level of some entry. A new practice level therefore needs an entry.
 
+## The daily incident (`src/daily`, `/daily`)
+
+- **`daily.ts` is pure:** the day number from a time, the pool, the level for a day, the streak rules, the text of a shared result and the reading of a challenge link's `?beat=` value. It takes the clock and the stored record as arguments.
+- **`dailyStorage.ts` is the browser side:** the record in browser storage, and today's number. The server never renders a day: `/daily` and the start page's card draw the incident only once the browser knows the date, so the two cannot disagree.
+- **`DailyScreen.tsx` plays the day's level with the ordinary level screen** (`LevelGame` with a `daily` number). The win card saves the result, shows the streak and offers the result to copy.
+
 ## Shared helpers (`src/lib`)
 
 - `palette.ts`: every colour in the game, defined once. The root layout writes the colours as CSS variables, Tailwind maps them to classes such as `bg-ink` and `text-muted`, and the SVG map reads the same constants. A test checks the contrast of every text and background pair.

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { Fragment, useEffect, useRef, useState } from "react";
+import { currentStreak, incidentLevel } from "@/daily/daily";
+import { useDailyRecord, useToday } from "@/daily/dailyStorage";
 import { levels } from "@/levels";
 import { actorColor } from "@/lib/palette";
 import { Logo } from "./Logo";
@@ -39,6 +41,11 @@ const TOOLS_SECTION = { title: "Handy tools", text: "One tool per level, calm an
 export function StartScreen() {
   const done = useProgress();
   const best = useBest();
+  const today = useToday();
+  const daily = useDailyRecord();
+  const incident = today === null ? null : incidentLevel(today);
+  const solvedToday = today !== null && Object.hasOwn(daily.results, String(today));
+  const streak = today === null ? 0 : currentStreak(daily, today);
   const playRef = useRef<HTMLAnchorElement>(null);
   useEffect(() => playRef.current?.focus({ preventScroll: true }), []);
   const firstOpen = levels.find((l) => !done.includes(l.id)) ?? levels[0];
@@ -112,6 +119,32 @@ export function StartScreen() {
               <CrewCard key={r.id} id={r.id} line={r.line} index={i} />
             ))}
           </ul>
+
+          {/* today's incident: drawn once the browser knows the day */}
+          {today !== null && incident && (
+            <Link
+              href="/daily"
+              className="group mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-3xl border-2 border-ink bg-card px-5 py-4 shadow-[0_4px_0_var(--color-ink-shadow)] transition-transform hover:-translate-y-0.5 focus-visible:ring-4 focus-visible:ring-focus/40 focus-visible:outline-none"
+            >
+              <span className="rounded-full bg-ink px-3 py-1 text-[12px] font-bold tracking-wide text-paper uppercase">Today · #{today}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[17px] leading-tight font-extrabold">
+                  {"Today's incident"}
+                  {solvedToday && <span className="ml-2 rounded-full bg-success-wash px-2 py-px align-middle text-[11px] font-bold text-success-deep uppercase">Solved</span>}
+                </span>
+                <span className="block text-[13.5px] leading-snug text-soft">
+                  One broken repository a day, the same for everyone. Fix it in as few commands as you can.
+                </span>
+              </span>
+              <span className="text-[13px] font-semibold text-soft">
+                {streak > 0 ? `${streak} ${streak === 1 ? "day" : "days"} in a row` : "Start a streak"}
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-bold text-paper">
+                {solvedToday ? "Play again" : "Play"}
+                <svg width="11" height="11" viewBox="0 0 10 10" aria-hidden className="transition-transform group-hover:translate-x-0.5"><path d="M1.5 0.8 L9 5 L1.5 9.2 Z" fill="currentColor" /></svg>
+              </span>
+            </Link>
+          )}
 
           {/* acts and levels */}
           <section aria-label="Levels" className="mt-12 grid gap-5 md:grid-cols-3">
