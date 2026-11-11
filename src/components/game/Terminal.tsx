@@ -2,6 +2,7 @@
 
 import { useEffect, useImperativeHandle, useRef, useState, type ReactNode } from "react";
 import { TOKENS, actorColor, lighten } from "@/lib/palette";
+import { complete, type CompletionWords } from "./completion";
 import type { TermLine } from "./game";
 
 export type TerminalHandle = { focus: () => void };
@@ -15,6 +16,8 @@ type Props = {
   /** The player's worktree path, e.g. "/repo". */
   path: string;
   suggestions: string[];
+  /** The words Tab can complete to: commands, branches and the player's files. */
+  words: CompletionWords;
   onRun: (line: string) => void;
   ref?: React.Ref<TerminalHandle>;
   /** Shown instead of the input and suggestions while a scene plays (the crew's dialogue). */
@@ -28,7 +31,7 @@ function promptName(actor: string) {
 }
 
 /** The command box: scrollback, a real input with history, and suggestion buttons. */
-export function Terminal({ log, active, where, path, suggestions, onRun, ref, scene, showControls = false }: Props) {
+export function Terminal({ log, active, where, path, suggestions, words, onRun, ref, scene, showControls = false }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [value, setValue] = useState("");
@@ -36,6 +39,8 @@ export function Terminal({ log, active, where, path, suggestions, onRun, ref, sc
   // Position while browsing history with the arrow keys; history.length means "the draft".
   const [cursor, setCursor] = useState(0);
   const [draft, setDraft] = useState("");
+  // What Tab could not decide between; shown under the input until the next keystroke.
+  const [options, setOptions] = useState<string[]>([]);
 
   useImperativeHandle(ref, () => ({ focus: () => inputRef.current?.focus() }), []);
 
@@ -58,6 +63,7 @@ export function Terminal({ log, active, where, path, suggestions, onRun, ref, sc
     }
     setDraft("");
     setValue("");
+    setOptions([]);
     onRun(line);
   };
 
@@ -65,6 +71,15 @@ export function Terminal({ log, active, where, path, suggestions, onRun, ref, sc
     if (e.key === "Enter") {
       e.preventDefault();
       submit();
+    } else if (e.key === "Tab" && !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey) {
+      // An empty box keeps Tab for moving on to the next control. Completion only works at the end of the line.
+      const el = e.currentTarget;
+      if (!value.trim() || el.selectionStart !== value.length) return;
+      e.preventDefault();
+      const done = complete(value, words);
+      setValue(done.line);
+      setOptions(done.options);
+      setCursor(history.length);
     } else if (e.key === "ArrowUp") {
       if (!history.length) return;
       e.preventDefault();
@@ -87,6 +102,7 @@ export function Terminal({ log, active, where, path, suggestions, onRun, ref, sc
 
   const fill = (s: string) => {
     setValue(s);
+    setOptions([]);
     setCursor(history.length);
     requestAnimationFrame(() => {
       const el = inputRef.current;
@@ -173,6 +189,7 @@ export function Terminal({ log, active, where, path, suggestions, onRun, ref, sc
               onChange={(e) => {
                 setValue(e.target.value);
                 setCursor(history.length);
+                setOptions([]);
               }}
               onKeyDown={onKeyDown}
               disabled={!active}
@@ -192,6 +209,13 @@ export function Terminal({ log, active, where, path, suggestions, onRun, ref, sc
               Enter
             </kbd>
           </form>
+          {/* Announced, so a screen reader hears the choices Tab found. */}
+          <p aria-live="polite" className={options.length ? "mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 px-3.5 font-mono text-[12px] text-term-key" : "sr-only"}>
+            {options.length > 0 && <span className="sr-only">Tab found {options.length} choices: </span>}
+            {options.map((o) => (
+              <span key={o}>{o}</span>
+            ))}
+          </p>
 
           {suggestions.length > 0 && (
             // On phones the buttons stay in one row that scrolls sideways, so they never spill out of the box.

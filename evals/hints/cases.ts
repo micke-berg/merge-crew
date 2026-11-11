@@ -122,6 +122,16 @@ export const CASES: StuckCase[] = [
   { id: "act2-05-nothing", levelId: "act2-05", kind: "nothing-useful", commands: ["git log --oneline"], expect: "Look at Drift's branch's commits to find the table fix.", expectedCommand: ["log", "cherry-pick"] },
   { id: "act2-05-merged-all", levelId: "act2-05", kind: "wrong-thing", commands: ["git merge drift"], expect: "Merging brings the cups and the poem too; copy only the fix commit instead.", expectedCommand: ["reset", "cherry-pick"] },
   { id: "act2-05-picked", levelId: "act2-05", kind: "one-step-away", commands: ["git cherry-pick drift~1"], expect: "The fix is on main locally; push it.", expectedCommand: "push" },
+
+  // act3-01: review three branches, merge the safe two, push
+  { id: "act3-01-nothing", levelId: "act3-01", kind: "nothing-useful", commands: ["git status", "git branch"], expect: "Read what each branch changes before merging anything: look at the files each branch's commits touch.", expectedCommand: ["show", "log"] },
+  { id: "act3-01-merged-blaze", levelId: "act3-01", kind: "wrong-thing", commands: ["git merge blaze-sale"], expect: "That merge took prices.txt off main; nothing is pushed yet, so undo the merge and bring in only the branches that are safe.", expectedCommand: "reset" },
+  { id: "act3-01-ready-to-push", levelId: "act3-01", kind: "one-step-away", commands: ["git show --stat blaze-sale", "git merge tidy-hours", "git merge hoarder-soup"], expect: "Both safe branches are in main; push main to origin.", expectedCommand: "push" },
+
+  // act3-02: rule cards. Played with the documented pick, so Hoarder's password is what got through.
+  { id: "act3-02-nothing", levelId: "act3-02", kind: "nothing-useful", commands: ["git status", "git log --oneline"], expect: "The mistake happened on origin and the local copy has not seen it: bring origin's newest commit in first.", expectedCommand: "pull" },
+  { id: "act3-02-forced", levelId: "act3-02", kind: "wrong-thing", commands: ["git push --force"], expect: "Forcing would cut the crew's commit out of the shared history; pull what is on origin and undo the mistake with a new commit.", expectedCommand: "pull" },
+  { id: "act3-02-removed", levelId: "act3-02", kind: "one-step-away", commands: ["git pull", "git rm keys.txt", 'git commit -m "Remove the password"'], expect: "The password file is removed in a new commit; push it to origin.", expectedCommand: "push" },
 ];
 
 /** The expected commands of a case as a list (empty when the case has none). */

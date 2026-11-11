@@ -2,6 +2,50 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-11-11 — Rule cards and the shift (act3-02, "House rules")
+
+- **A shift is data on the level (`Level.shift`): rule cards, how many to pick, and beats.** A beat is one robot's turn: what it says, the git steps it would run, and the id of the card that stops it. `src/levels/shift.ts` turns a shift and a pick into ordinary script steps that play after the intro, so the game, the level tests and the real-git comparison all run the same thing. No new phase, and no level logic in components.
+- **The shift plays as one scene, then the player fixes what got through.** The amended spec first said the script would move one beat per player command. That would have interleaved robot steps with the player's fix, and every card pick would need its own interleaved solution checked against real git. One scene keeps each pick's solution short and exact. The spec is corrected to match.
+- **Pick two of three, so exactly one mistake gets through and every pick is a different level.** Blaze force-pushes over main (fix: pull, which merges, then push). Drift pushes unfinished notes onto the menu (fix: revert). Hoarder commits the till password (fix: remove the file in a new commit; the outro says the password must be changed too, because it stays in the history).
+- **Every pick has a documented solution, and each is compared with real git** (`variantSolutions`, three runs for this level). The hint leak check uses the commands of all of them.
+- **No par for a level with cards.** The pick decides how much there is to fix, so one number would be unfair to two of the three picks.
+- **A level with cards always shows its brief,** also to a returning player, because the cards are picked there.
+- **Contract changes (additive, in `src/engine/types.ts`):** `RuleCard`, `ShiftBeat`, `Shift`, `Level.shift?`, and a `note` script step that writes one line into the command box.
+
+## 2026-11-11 — Act 3 begins: review before merge
+
+- **act3-01, "Read before you merge", is the first level about leading and not about a git tool.** Three robots each say a branch is ready. Two are. Blaze's second commit is called "Make the site faster" and deletes the price list. Nothing in the level says which branch is the bad one: the goals ask for "the safe ones", and the rule is "nothing goes missing from main".
+- **Merging the bad branch does not lose the level.** The rule turns into a warning and the player puts it right (undo the merge, or revert the commit that deleted the file). Taking only the banner with a cherry-pick is also accepted.
+- **In Act 3 the files panel can show each robot's folder, read-only.** The engine has had one worktree per robot from the start; a lead who reviews work has a reason to look inside them. The player's commands still run in the player's own folder.
+- **`git log --stat` is not in the engine.** The level's buttons use `git show --stat` and `git diff main...branch`, which are.
+
+## 2026-11-11 — Par, a recap and a celebration on the win
+
+- **Every level has a par: the number of commands in its documented solution that change something.** Looking is free (`status`, `log`, `diff`, `show`, `reflog`, `blame`, listing branches or stashes, `ls`, `cat`, `help`), because looking is how a player learns and a count that punishes it teaches the wrong habit. A typo or a command git refuses is not counted either. The rule is one function, `countsAsMove` in `src/components/game/moves.ts`.
+- **Par is written in the level file, and a test holds it to the solution.** The solution itself must not reach the browser, so the number is copied; the test fails when they drift apart, and a second test plays each solution and requires it to land on par.
+- **The win card says what was learned in one or two sentences (`Level.learned`), shows the count against par, and lists the commands that counted.** The old line counted everything typed, `ls` included, and meant nothing.
+- **A short fall of confetti in the crew's colours marks the win on the map,** not drawn with reduced motion.
+- **The fewest moves per level are kept in browser storage,** and the level list marks a level solved at or under par.
+- **Contract change (additive, in `src/engine/types.ts`):** `Level.par?: number` and `Level.learned?: string`.
+
+## 2026-11-11 — Help, a guess for a mistyped command, and Tab
+
+- **`help`, `git help` and `git --help` list what the game runs,** one plain line per command. The list is checked against the engine's command table in a test, so a new command needs a help line.
+- **A mistyped git command gets git's own "The most similar command is" answer.** The wording is git's (checked against git 2.43). The scoring is not: the engine uses a plain edit distance where swapped neighbours count once, and also offers a command the typed word is the start of. Git's list can differ, for example it also offers its `stage` alias, which the game does not have.
+- **A git command typed without `git` in front is answered with "Did you mean: git status".** It is the most common slip a beginner makes.
+- **Tab completes commands, branch names and file names** in the command box (`completion.ts`, pure and tested). An empty box leaves Tab alone, so keyboard users can still move on from it.
+- **`git log --graph` is not in this batch.** Its output is the behaviour, so it needs its own comparison against real git's drawing, which is a port of git's graph code and not a small change.
+
+## 2026-11-11 — Goals that start true are rules, not steps
+
+- **The job bar shows a goal that is already met when the player's turn begins under "Keep it that way", apart from the numbered steps.** Every Act 2 level has one or two such goals ("Blaze's commit stays in the history"). They were drawn as ticked steps, so a level opened on "2 of 3 done" before the player had typed anything. The earlier rule against pre-done goals removed them from the practice levels; in Act 2 they have to stay, because they are what rejects a shortcut.
+- **A kept rule is quiet, a broken one is loud.** It is not counted in the progress line. If a command makes it false it turns into a warning, and it becomes the current line once every step is done.
+- **No level or contract change.** Which goals are rules is worked out from the game state at the start of the turn (`GameState.kept`), so `Level` and `Goal` are untouched and every level gets it for free. A test plays each level to the player's turn and requires at least one step, none of them ticked.
+
+## 2026-11-11 — Robot names avoid the tags of other stops
+
+- **Name pills treat the tags under a stop on the row above as obstacles,** and go above the robots when both sides are taken. After a merge, the names of robots on main could cover the `origin/main` tag hanging from the branch above them, which is the label several levels are about.
+
 ## 2026-10-11 — `git blame` in the engine, and a level for it
 
 - **`git blame <file>` (and `git blame <rev> <file>`) is in the engine.** A line is blamed on the commit that introduced it: starting from the commit, a line unchanged in a parent is handed to the first parent that has it, and a line no parent has stays with the commit. This is git's own rule, in parent order, using the same line diff as `git diff`.

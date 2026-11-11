@@ -167,7 +167,7 @@ export function HistoryMap({ state, events = NO_EVENTS, moods, className, focus,
           <LineEndLabels scene={scene} />
           <StopTags scene={scene} tags={tags} />
           <MapRobots scene={scene} moods={moods} />
-          <MapRobotNames scene={scene} />
+          <MapRobotNames scene={scene} tags={tags} />
           <MapFocusOver scene={scene} focus={focused} accent={focusColor} part="ring" />
 
           {/* hover card */}

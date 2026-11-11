@@ -49,6 +49,8 @@ export const level: Level = {
   act: 2,
   order: 1,
   title: "Hoarder's secret pile",
+  par: 3,
+  learned: "A stash is easy to forget. git stash list shows every pile, and git stash branch turns one into a real branch.",
   brief:
     "Hoarder never commits. Weeks ago it tucked a secret recipe into the stash and forgot which pile it was in. Find it and save it properly in a commit.",
   mission: {

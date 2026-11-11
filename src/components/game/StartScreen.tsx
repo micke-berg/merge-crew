@@ -7,7 +7,7 @@ import { levels } from "@/levels";
 import { actorColor } from "@/lib/palette";
 import { Logo } from "./Logo";
 import { ACT_NAMES } from "./Overlays";
-import { useProgress } from "./progress";
+import { useBest, useProgress } from "./progress";
 import { RobotPortrait } from "./RobotPortrait";
 import { CAFE_NAME, PremiseCard } from "./Premise";
 import { markPremiseSeen, usePremiseSeen } from "./premiseStorage";
@@ -38,6 +38,7 @@ const TOOLS_SECTION = { title: "Handy tools", text: "One tool per level, calm an
 
 export function StartScreen() {
   const done = useProgress();
+  const best = useBest();
   const playRef = useRef<HTMLAnchorElement>(null);
   useEffect(() => playRef.current?.focus({ preventScroll: true }), []);
   const firstOpen = levels.find((l) => !done.includes(l.id)) ?? levels[0];
@@ -169,6 +170,14 @@ export function StartScreen() {
                                 <span className="block font-bold leading-tight">
                                   {l.title}
                                   {complete && <span className="sr-only"> (completed)</span>}
+                                  {complete && l.par !== undefined && Object.hasOwn(best, l.id) && best[l.id] <= l.par && (
+                                    <span
+                                      className="ml-2 inline-block rounded-full bg-success-wash px-2 py-px align-middle text-[10.5px] font-bold tracking-wide text-success-deep uppercase"
+                                      title={`Solved in ${best[l.id]} ${best[l.id] === 1 ? "command" : "commands"}, par ${l.par}`}
+                                    >
+                                      Par
+                                    </span>
+                                  )}
                                 </span>
                                 <span className="mt-0.5 line-clamp-2 text-[13px] leading-snug text-soft">{l.brief}</span>
                               </span>

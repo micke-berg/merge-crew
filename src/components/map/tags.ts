@@ -1,6 +1,7 @@
 // The small pills that hang below a stop: branch tags, remote tags and the stash. Pure.
 
 import type { ActorId, Oid, RepoState } from "@/engine/types";
+import { monoWidth } from "./geometry";
 import type { BranchLabel, MapLayout } from "./layout";
 
 export type TagKind = "branch" | "remote" | "tracking" | "stash";
@@ -46,4 +47,14 @@ export function tagTitle(t: Tag): string {
     case "stash": return `${t.text}: stashed work based here`;
     default: return `branch ${t.text}`;
   }
+}
+
+export const TAG_FONT = 10.5;
+const TAG_HALF = 9;
+
+/** Where the `index`-th tag under a stop is drawn: its centre and width, and the box it covers. */
+export function tagBox(stopX: number, stopY: number, stopR: number, index: number, text: string) {
+  const w = monoWidth(text, TAG_FONT) + 24;
+  const y = stopY + stopR + 30 + index * 19;
+  return { w, y, lo: stopX - w / 2, hi: stopX + w / 2, top: y - TAG_HALF, bottom: y + TAG_HALF };
 }

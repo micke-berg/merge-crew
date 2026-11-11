@@ -38,6 +38,8 @@ export const level: Level = {
   act: 1,
   order: 12,
   title: "Two edits, one line",
+  par: 3,
+  learned: "When two branches change the same line, git stops and asks you. You edit the file, stage it and commit.",
   brief: "You and Tidy both added a line to the sign. Merge Tidy's branch, settle the clash and keep both lines.",
   mission: {
     situation:

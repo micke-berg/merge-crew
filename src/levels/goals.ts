@@ -252,3 +252,28 @@ export const branchIsStraightLine =
       history.every((c) => c.parents.length <= 1)
     );
   };
+
+/** The target's tip commit has no file at this path. False when the target does not exist. */
+export const fileAbsentInTip =
+  (target: RefTarget, path: Path): Check =>
+  (state, queries) => {
+    const tip = tipOf(state, queries, target);
+    return tip !== null && !Object.hasOwn(state.commits[tip]?.tree ?? {}, path);
+  };
+
+/**
+ * Nothing that exists was cut out of the target's history: for each message, either no commit has
+ * it (it never happened), or the original commit is still reachable from the target. Used where a
+ * step may or may not have run, such as a shift beat a rule card can stop.
+ */
+export const keptIfMade =
+  (target: RefTarget, ...messages: string[]): Check =>
+  (state, queries) => {
+    const reachable = new Set(historyOf(state, queries, target).map((c) => c.oid));
+    return messages.every((m) => {
+      const made = commitsWithMessage(state, m);
+      if (made.length === 0) return true;
+      const original = made.reduce((a, b) => (a.time <= b.time ? a : b));
+      return reachable.has(original.oid);
+    });
+  };

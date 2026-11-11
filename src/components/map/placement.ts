@@ -49,20 +49,58 @@ export function huddle(heads: HeadMarker[], width: (actor: ActorId) => number = 
 export const nameWidth = (label: string) => label.length * 6.6 + 22;
 
 export type Span = { lo: number; hi: number; y: number };
+/** A drawn label that names must not cover, in map units. */
+export type Box = { lo: number; hi: number; top: number; bottom: number };
+
+/** Name pills stack upwards beside the robots' heads: the lowest one sits this far above the stop. */
+export const NAME_BASE = 30;
+export const NAME_STEP = 20;
+const NAME_HALF = 9;
+
+/** Names stacked above a group start this far above the stop: clear of the robots' heads. */
+export const NAME_ABOVE = 80;
+/** How tall a robot stands above its stop, for keeping names off robots on the row above. */
+const ROBOT_REACH = 66;
+
+export type NamePlace = { side: "left" | "right" | "above"; x: number };
 
 /**
- * Which side of a robot group its name pills go: to the right, unless another group on about the
- * same height is in the way there and the left is free.
+ * Where a robot group's name pills go: to the right, unless something is in the way there and the
+ * left is clear. In the way: another group on about the same height, or a label (`boxes`, such as
+ * the tags under a stop on the row above) that the stack of `count` names would cover.
+ * When both sides are blocked the names go above the robots, if nothing is there and they stay
+ * below `minY` (the top of the map). Failing that, the side with less in the way wins, and a tie
+ * stays right.
  */
 export function nameSide(
-  group: { x: number; y: number; left: number; right: number; reach: number },
+  group: { x: number; y: number; left: number; right: number; reach: number; count?: number },
   others: Span[],
-): { side: "left" | "right"; x: number } {
-  const blocked = (from: number, to: number) => others.some((o) => Math.abs(o.y - group.y) <= 40 && o.hi > from && o.lo < to);
+  boxes: Box[] = [],
+  minY = -Infinity,
+): NamePlace {
+  const stack = ((group.count ?? 1) - 1) * NAME_STEP;
+  const overlap = (lo: number, hi: number, from: number, to: number) => Math.max(0, Math.min(hi, to) - Math.max(lo, from));
+  const covered = (from: number, to: number, top: number, bottom: number) =>
+    boxes.reduce((sum, b) => sum + (b.bottom > top && b.top < bottom ? overlap(b.lo, b.hi, from, to) : 0), 0);
+  const beside = (from: number, to: number) =>
+    others.reduce((sum, o) => sum + (Math.abs(o.y - group.y) <= 40 ? overlap(o.lo, o.hi, from, to) : 0), 0) +
+    covered(from, to, group.y - NAME_BASE - stack - NAME_HALF, group.y - NAME_BASE + NAME_HALF);
   const rightEdge = group.x + group.right + 6;
   const leftEdge = group.x + group.left - 6;
-  const onLeft = blocked(rightEdge, rightEdge + group.reach) && !blocked(leftEdge - group.reach, leftEdge);
-  return onLeft ? { side: "left", x: leftEdge } : { side: "right", x: rightEdge };
+  const right: NamePlace = { side: "right", x: rightEdge };
+  const left: NamePlace = { side: "left", x: leftEdge };
+  const onRight = beside(rightEdge, rightEdge + group.reach);
+  if (onRight === 0) return right;
+  const onLeft = beside(leftEdge - group.reach, leftEdge);
+  if (onLeft === 0) return left;
+
+  const centre = group.x + (group.left + group.right) / 2;
+  const half = (group.reach - 8) / 2;
+  const top = group.y - NAME_ABOVE - stack - NAME_HALF;
+  const bottom = group.y - NAME_ABOVE + NAME_HALF;
+  const robotsThere = others.some((o) => o.y - ROBOT_REACH < bottom && o.y + NAME_HALF > top && o.hi > centre - half && o.lo < centre + half);
+  if (top >= minY && !robotsThere && covered(centre - half, centre + half, top, bottom) === 0) return { side: "above", x: centre };
+  return onLeft < onRight ? left : right;
 }
 
 /** A hover card under a stop, kept inside the map. */

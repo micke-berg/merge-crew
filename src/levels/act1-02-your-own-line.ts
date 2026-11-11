@@ -7,6 +7,8 @@ export const level: Level = {
   act: 1,
   order: 2,
   title: "Your own line",
+  par: 4,
+  learned: "A branch is your own line of history. Work saved there does not touch main until you say so.",
   brief:
     "Branches let you try things without touching main. Put your snack idea on a branch of its own, then come back to main.",
   mission: {

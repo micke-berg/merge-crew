@@ -6,7 +6,7 @@ import { GHOST, INK, INK_SOFT, TOKENS, WARN, WHITE, actorColor } from "@/lib/pal
 import { monoWidth } from "./geometry";
 import { POP_DELAY_MS } from "./motion";
 import { MONO, STOP_R, laneColor, type MapScene } from "./scene";
-import { labelAtLineEnd, tagTitle, type Tag, type TagKind } from "./tags";
+import { TAG_FONT, labelAtLineEnd, tagBox, tagTitle, type Tag, type TagKind } from "./tags";
 
 /** Branch names at the end of their line, in the line's colour. */
 export function LineEndLabels({ scene }: { scene: MapScene }) {
@@ -43,8 +43,6 @@ function tagStyle(kind: TagKind, actorLine: string) {
   }
 }
 
-const TAG_FONT = 10.5;
-
 /** Branch tags, remote tags and stashes, stacked under their stop. */
 export function StopTags({ scene, tags }: { scene: MapScene; tags: Map<Oid, Tag[]> }) {
   const { g, prevStops, prev, schedule, reduce, play, stopsByOid, sec, glide, moveAt } = scene;
@@ -52,8 +50,7 @@ export function StopTags({ scene, tags }: { scene: MapScene; tags: Map<Oid, Tag[
     const s = stopsByOid.get(oid);
     if (!s) return [];
     return list.map((t, i) => {
-      const w = monoWidth(t.text, TAG_FONT) + 24;
-      const y = g.y(s.row) + STOP_R + 30 + i * 19;
+      const { w, y } = tagBox(g.x(s.col), g.y(s.row), STOP_R, i, t.text);
       const remote = t.ref ? schedule.remote.get(t.ref) : undefined;
       const branch = t.kind === "branch" ? schedule.branch.get(t.text) : undefined;
       const delay = remote?.at ?? branch?.at ?? moveAt(s);

@@ -6,7 +6,8 @@
 import { availableParallelism } from "node:os";
 import { beforeAll, describe, expect, it } from "vitest";
 import { levels } from "@/levels";
-import { solutions } from "@/levels/solutions";
+import { allPicks, openingOf, pickKey } from "@/levels/shift";
+import { solutions, variantSolutions } from "@/levels/solutions";
 import type { Level, ScriptStep } from "@/engine/types";
 import { engine } from "@/engine";
 import { diffOutcomes, diffSnapshots, formatDiff } from "./compare";
@@ -29,21 +30,26 @@ function toScenarioStep(step: ScriptStep): ScenarioStep | null {
   }
 }
 
-type LevelRun = { level: Level; scenario: Scenario; solutionStart: number };
+type LevelRun = { level: Level; name: string; scenario: Scenario; solutionStart: number };
 
-function toScenario(level: Level): LevelRun {
-  const solution = solutions[level.id];
-  if (!solution) throw new Error(`level ${level.id} has no documented solution`);
+/** One run per level, and for a level with rule cards one per pick: the pick decides what the crew does. */
+function toScenarios(level: Level): LevelRun[] {
+  if (!solutions[level.id]) throw new Error(`level ${level.id} has no documented solution`);
   const convert = (steps: ScriptStep[]) => steps.map(toScenarioStep).filter((s): s is ScenarioStep => s !== null);
-  const before = [...convert(level.setup), ...convert(level.intro)];
-  return {
-    level,
-    scenario: { name: `level ${level.id}`, steps: [...before, ...convert(solution)], copiesCommits: true },
-    solutionStart: before.length,
-  };
+  return allPicks(level).map((cards) => {
+    const solution = level.shift ? variantSolutions[level.id][pickKey(cards)] : solutions[level.id];
+    const name = level.shift ? `${level.id} with ${pickKey(cards)}` : level.id;
+    const before = [...convert(level.setup), ...convert(openingOf(level, cards))];
+    return {
+      level,
+      name,
+      scenario: { name: `level ${name}`, steps: [...before, ...convert(solution)], copiesCommits: true },
+      solutionStart: before.length,
+    };
+  });
 }
 
-const runs = levels.map(toScenario);
+const runs = levels.flatMap(toScenarios);
 const real = new Map<string, RealGitResult | Error>();
 
 beforeAll(async () => {
@@ -51,9 +57,9 @@ beforeAll(async () => {
   const worker = async () => {
     for (let r = queue.shift(); r; r = queue.shift()) {
       try {
-        real.set(r.level.id, await runRealGit(r.scenario));
+        real.set(r.name, await runRealGit(r.scenario));
       } catch (e) {
-        real.set(r.level.id, e as Error);
+        real.set(r.name, e as Error);
       }
     }
   };
@@ -72,7 +78,7 @@ describe("levels in real git", () => {
     expect(levels.filter((l) => !solutions[l.id]).map((l) => l.id)).toEqual([]);
   });
 
-  it.for(runs.map((r) => [r.level.id, r] as const))("%s: every solution step succeeds in real git", ([id, run]) => {
+  it.for(runs.map((r) => [r.name, r] as const))("%s: every solution step succeeds in real git", ([id, run]) => {
     const failed = realResult(id)
       .records.slice(run.solutionStart)
       .filter((rec) => rec.outcome === "error")
@@ -80,7 +86,7 @@ describe("levels in real git", () => {
     expect(failed).toEqual([]);
   });
 
-  it.for(runs.map((r) => [r.level.id, r] as const))("%s: the engine ends in the same state as real git", ([id, run]) => {
+  it.for(runs.map((r) => [r.name, r] as const))("%s: the engine ends in the same state as real git", ([id, run]) => {
     const engineRun = runEngine(engine, run.scenario);
     if (engineRun.kind === "unsupported") expect.fail(`level ${id} uses something the engine does not support: ${engineRun.reason}`);
     const realRun = realResult(id);

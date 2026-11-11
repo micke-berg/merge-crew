@@ -208,6 +208,7 @@ describe("expected command for hint 3", () => {
       "act1-13-merged": "reset", // undo the local merge
       "act1-12-stashed": "stash pop", // bring both edits back
       "act2-05-merged-all": "reset", // undo the local merge
+      "act3-01-merged-blaze": "reset", // undo the local merge
     };
     for (const c of CASES) {
       const steps = hintLevel(c.levelId)!.solution.map((argv) => {

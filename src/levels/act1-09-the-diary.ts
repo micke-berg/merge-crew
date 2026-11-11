@@ -31,6 +31,8 @@ export const level: Level = {
   act: 1,
   order: 11,
   title: "The diary",
+  par: 1,
+  learned: "The reflog remembers where HEAD has been, so a commit with no branch can be found and given one again.",
   brief: "A branch was deleted too soon and its only save is not on any branch now. Git remembers where it was.",
   mission: {
     situation:

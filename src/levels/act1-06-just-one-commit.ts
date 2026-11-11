@@ -34,6 +34,8 @@ export const level: Level = {
   act: 1,
   order: 8,
   title: "Just one commit",
+  par: 1,
+  learned: "git cherry-pick copies one commit onto your branch and leaves the rest of that branch behind.",
   brief: "Tidy's branch has one useful commit and one unfinished one. Copy only the useful one onto main.",
   mission: {
     situation:

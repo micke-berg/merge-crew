@@ -52,3 +52,47 @@ export function markLevelComplete(id: string): void {
 export function useProgress(): readonly string[] {
   return useSyncExternalStore(subscribe, snapshot, () => EMPTY);
 }
+
+// The fewest moves each level was won in, for the "on par" mark in the level list.
+
+const BEST_KEY = "merge-crew:best:v1";
+const NO_BEST: Readonly<Record<string, number>> = {};
+let bestRaw: string | null = null;
+let best: Readonly<Record<string, number>> = NO_BEST;
+
+function parseBest(raw: string | null): Readonly<Record<string, number>> {
+  if (!raw) return NO_BEST;
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return NO_BEST;
+    const out: Record<string, number> = {};
+    for (const [id, n] of Object.entries(value)) {
+      if (typeof n === "number" && Number.isInteger(n) && n >= 0) out[id] = n;
+    }
+    return out;
+  } catch {
+    return NO_BEST;
+  }
+}
+
+function bestSnapshot(): Readonly<Record<string, number>> {
+  const raw = readItem(BEST_KEY);
+  if (raw !== bestRaw) {
+    bestRaw = raw;
+    best = parseBest(raw);
+  }
+  return best;
+}
+
+/** Remember a win's move count if it is the player's best for that level. */
+export function recordBest(id: string, moves: number): void {
+  const all = bestSnapshot();
+  if (Object.hasOwn(all, id) && all[id] <= moves) return;
+  writeItem(BEST_KEY, JSON.stringify({ ...all, [id]: moves }));
+  window.dispatchEvent(new Event(EVENT));
+}
+
+/** Fewest moves per completed level id. Empty during server rendering. */
+export function useBest(): Readonly<Record<string, number>> {
+  return useSyncExternalStore(subscribe, bestSnapshot, () => NO_BEST);
+}

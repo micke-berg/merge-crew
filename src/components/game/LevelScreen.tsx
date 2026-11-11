@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, MotionConfig, motion, useReducedMotion } from "motion/react";
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
-import { queries } from "@/engine";
+import { GIT_COMMANDS, SHELL_COMMANDS, queries } from "@/engine";
 import type { Level, ScriptStep } from "@/engine/types";
 import { HistoryMap } from "@/components/map/HistoryMap";
 import { actorColor } from "@/lib/palette";
@@ -18,9 +18,12 @@ import { JobBar } from "./JobBar";
 import { forgetIntro, introSeen, markIntroSeen, useIntroSeen } from "./introStorage";
 import { LevelPicker } from "./LevelPicker";
 import { PremiseCard } from "./Premise";
+import { ShiftReport } from "./ShiftReport";
 import { markPremiseSeen, premiseSeen as premiseSeenInStorage, usePremiseSeen } from "./premiseStorage";
 import { Logo } from "./Logo";
+import { Confetti } from "./Confetti";
 import { ConflictEditor } from "./ConflictEditor";
+import type { CompletionWords } from "./completion";
 import { conflictSource } from "./conflicts";
 import { BriefCard, FileViewer, WinCard } from "./Overlays";
 import { Terminal, type TerminalHandle } from "./Terminal";
@@ -60,8 +63,9 @@ export function LevelGame({ level }: { level: Level }) {
   useEffect(() => {
     // Read storage here, not the hooks' values: during hydration the hooks still report their server
     // answer ("seen"), which would skip the intro for a first-time player.
-    if (game.phase === "brief" && premiseSeenInStorage() && introSeen(level.id)) startPlaying();
-  }, [game.phase, premiseSeen, introKnown, level.id]);
+    // A level with rule cards always shows its brief: the cards are picked there.
+    if (game.phase === "brief" && !level.shift && premiseSeenInStorage() && introSeen(level.id)) startPlaying();
+  }, [game.phase, premiseSeen, introKnown, level.id, level.shift]);
   useEffect(() => {
     if (game.phase === "play") markIntroSeen(level.id);
   }, [game.phase, level.id]);
@@ -128,16 +132,30 @@ export function LevelGame({ level }: { level: Level }) {
   };
 
   const player = game.repo.worktrees.player;
+  // A file opened from a robot's folder (Act 3) is that robot's copy, and always read-only.
+  const openFolder = open ? game.repo.worktrees[open.actor ?? "player"] : undefined;
   const openContent = open
-    ? (open.area === "staged" ? player?.index[open.path] : player?.workingTree[open.path])
+    ? (open.area === "staged" ? openFolder?.index[open.path] : openFolder?.workingTree[open.path])
     : undefined;
   // Conflicted files open in the editor during the player turn, and read-only during scenes.
-  const openConflict = open && playing && open.area === "working" && player ? player.conflicts[open.path] : undefined;
+  const openConflict =
+    open && !open.actor && playing && open.area === "working" && player ? player.conflicts[open.path] : undefined;
 
   const saveFile = (path: string, content: string) => {
     g.edit(path, content);
     closeFile();
   };
+
+  // What Tab completes to in the command box: commands, then the branches and files that exist now.
+  const words: CompletionWords = useMemo(
+    () => ({
+      git: GIT_COMMANDS,
+      shell: [...SHELL_COMMANDS, "clear"],
+      refs: [...Object.keys(game.repo.branches), ...Object.keys(game.repo.remoteTracking)],
+      files: [...new Set([...Object.keys(player?.workingTree ?? {}), ...Object.keys(player?.index ?? {})])],
+    }),
+    [game.repo, player],
+  );
 
   const cast = (["player", ...level.crew] as const).filter((a, i, all) => all.indexOf(a) === i);
 
@@ -214,6 +232,7 @@ export function LevelGame({ level }: { level: Level }) {
               focusColor={pointColor}
             />
             <Legend actors={cast.filter((a) => game.repo.worktrees[a])} />
+            {(game.phase === "outro" || game.phase === "won") && <Confetti key={`confetti-${g.run}`} actors={cast} reduce={reduce} />}
             <AnimatePresence>
               {talking && (
                 <motion.button
@@ -238,7 +257,11 @@ export function LevelGame({ level }: { level: Level }) {
               where={where}
               onOpen={setOpen}
               highlight={bubble?.files.length ? { actor: bubble.actor, files: bubble.files } : null}
+              folders={level.act === 3 ? level.crew : []}
             />
+            {level.shift && (game.phase === "play" || game.phase === "outro" || game.phase === "won") && (
+              <ShiftReport level={level} cards={game.cards} />
+            )}
           </div>
 
           {/* command box */}
@@ -246,7 +269,7 @@ export function LevelGame({ level }: { level: Level }) {
             {/* Phones stack the task above the hint button; wider screens put them side by side. */}
             <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
               <div className="min-w-0 flex-1">
-                <JobBar goals={level.goals} done={game.goals} won={game.phase === "outro" || game.phase === "won"} />
+                <JobBar goals={level.goals} done={game.goals} kept={game.kept} won={game.phase === "outro" || game.phase === "won"} />
               </div>
               <AskTidyButton left={g.hintsLeft} playing={playing && !touring} thinking={g.hintStatus === "thinking"} onAsk={askHint} />
             </div>
@@ -257,6 +280,7 @@ export function LevelGame({ level }: { level: Level }) {
               where={where}
               path={player?.path ?? "/repo"}
               suggestions={level.suggestions}
+              words={words}
               onRun={g.command}
               showControls={pointer?.target === "terminal" || pointer?.target === "suggestions" || hint !== null}
               scene={
@@ -290,7 +314,7 @@ export function LevelGame({ level }: { level: Level }) {
           {game.phase === "brief" && !premiseSeen && (
             <PremiseCard key="premise" onDone={() => markPremiseSeen()} doneLabel="On to the first job" />
           )}
-          {game.phase === "brief" && premiseSeen && !introKnown && (
+          {game.phase === "brief" && premiseSeen && (!introKnown || !!level.shift) && (
             <BriefCard key="brief" level={level} onStart={g.begin} onBack={() => {
                 if (phaseRef.current === "brief") router.push("/");
               }}
@@ -300,7 +324,8 @@ export function LevelGame({ level }: { level: Level }) {
             <WinCard
               key="won"
               level={level}
-              commands={game.commands}
+              moves={game.moves}
+              cards={game.cards}
               next={next}
               tryIt={tryIt}
               onReplay={() => {
@@ -323,7 +348,14 @@ export function LevelGame({ level }: { level: Level }) {
             />
           )}
           {open && !openConflict && openContent !== undefined && (
-            <FileViewer key="file" path={open.path} area={open.area} content={openContent} onClose={closeFile} />
+            <FileViewer
+              key="file"
+              path={open.path}
+              area={open.area}
+              owner={open.actor ? actorColor(open.actor).name : undefined}
+              content={openContent}
+              onClose={closeFile}
+            />
           )}
         </AnimatePresence>
 

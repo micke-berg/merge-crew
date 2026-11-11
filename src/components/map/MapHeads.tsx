@@ -4,7 +4,9 @@ import { AnimatePresence, motion } from "motion/react";
 import type { ActorId, Mood } from "@/engine/types";
 import { INK, TOKENS, WARN, WHITE, actorColor, actorName } from "@/lib/palette";
 import { HOP_FLIGHT_MS, HOP_LIFT_MS, POP_DELAY_MS, travelMs } from "./motion";
-import { markerWidth, nameSide, nameWidth } from "./placement";
+import type { Oid } from "@/engine/types";
+import { NAME_ABOVE, NAME_BASE, NAME_STEP, markerWidth, nameSide, nameWidth } from "./placement";
+import { tagBox, type Tag } from "./tags";
 import { RobotMarker, type Facing, type MapAction } from "./RobotMarker";
 import { STOP_R, type MapScene } from "./scene";
 
@@ -72,12 +74,17 @@ export function MapRobots({ scene, moods }: { scene: MapScene; moods?: Partial<R
   });
 }
 
-/** Robot names beside each group of robots: to the right, or to the left when the next group is too close. */
-export function MapRobotNames({ scene }: { scene: MapScene }) {
+/** Robot names beside each group of robots: right, left when the right is taken, above when both are. */
+export function MapRobotNames({ scene, tags }: { scene: MapScene; tags: Map<Oid, Tag[]> }) {
   const { g, prev, schedule, stopsByOid, headsByOid, slots, glide, moveAt, isNew } = scene;
   const groups = [...headsByOid.entries()].map(([oid, hs]) => {
     const s = stopsByOid.get(oid)!;
     return { oid, hs, s, x: g.x(s.col), y: g.y(s.row) };
+  });
+  // The tags hanging under other stops: names must not cover them.
+  const tagBoxes = [...tags.entries()].flatMap(([oid, list]) => {
+    const s = stopsByOid.get(oid);
+    return s ? list.map((t, i) => tagBox(g.x(s.col), g.y(s.row), STOP_R, i, t.text)) : [];
   });
   return groups.map(({ oid, hs, s, x, y }) => {
     const delay = Math.max(...hs.map((h) => schedule.actorMove.get(h.actor) ?? moveAt(s))) + (isNew(oid) ? POP_DELAY_MS : 0);
@@ -86,7 +93,7 @@ export function MapRobotNames({ scene }: { scene: MapScene }) {
     const others = groups
       .filter((o) => o.oid !== oid)
       .map((o) => ({ lo: o.x + slots.left(o.oid), hi: o.x + slots.right(o.oid), y: o.y }));
-    const { side, x: ax } = nameSide({ x, y, left: slots.left(oid), right: slots.right(oid), reach: Math.max(...widths) + 8 }, others);
+    const { side, x: ax } = nameSide({ x, y, left: slots.left(oid), right: slots.right(oid), reach: Math.max(...widths) + 8, count: hs.length }, others, tagBoxes, 6);
     return (
       <motion.g
         key={`names:${hs.map((h) => h.actor).join(",")}`}
@@ -98,9 +105,9 @@ export function MapRobotNames({ scene }: { scene: MapScene }) {
           const c = actorColor(h.actor);
           const w = widths[i];
           // Stacked beside the robots' heads, low enough that three names stay inside the map.
-          const ly = -30 - (hs.length - 1 - i) * 20;
+          const ly = -(side === "above" ? NAME_ABOVE : NAME_BASE) - (hs.length - 1 - i) * NAME_STEP;
           return (
-            <g key={h.actor} transform={`translate(${side === "left" ? -w : 0} ${ly})`}>
+            <g key={h.actor} transform={`translate(${side === "left" ? -w : side === "above" ? -w / 2 : 0} ${ly})`}>
               <rect x={0} y={-9} width={w} height={18} rx={9} fill={WHITE} stroke={c.line} strokeWidth={1.4} />
               <circle cx={9} cy={0} r={3.2} fill={c.line} />
               <text x={16} y={4} fontSize={11.5} fontWeight={650} fill={INK}>{labels[i]}</text>

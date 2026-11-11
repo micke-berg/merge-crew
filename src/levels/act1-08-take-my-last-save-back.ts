@@ -27,6 +27,8 @@ export const level: Level = {
   act: 1,
   order: 10,
   title: "Take my last save back",
+  par: 1,
+  learned: "git reset --soft moves the branch back and keeps your changes. Only do it to commits nobody else has.",
   brief: "You saved too soon. Take the save back, but keep the change in your files so you can finish it.",
   mission: {
     situation:

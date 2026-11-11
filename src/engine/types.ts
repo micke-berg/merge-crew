@@ -238,6 +238,8 @@ export type ScriptStep =
   | { kind: "say"; actor: RobotId; text: string; mood?: Mood; files?: Path[] }
   | { kind: "mood"; actor: RobotId; mood: Mood }
   | { kind: "pause"; ms: number }
+  /** A line in the command box that is not a command or its output, e.g. a rule card refusing a step. */
+  | { kind: "note"; text: string }
   /**
    * A guided-tour step: a robot explains one part of the screen while the game highlights it.
    * `target` names a screen region; `focus` optionally narrows a map highlight to commits (by message)
@@ -262,6 +264,41 @@ export type Goal = {
   check: (state: RepoState, queries: Queries) => boolean;
 };
 
+/** A house rule the player can pick before a shift (Act 3). A chosen card stops the beats that name it. */
+export type RuleCard = {
+  id: string;
+  /** The rule, as the crew would write it on the wall, e.g. "No force-push to main". */
+  title: string;
+  /** One sentence: what goes wrong without it. */
+  text: string;
+  /** The real tool that does this job, e.g. "A protected branch on the server". */
+  tool: string;
+};
+
+/** One robot's turn in a shift: something it is about to do that a rule card may stop. */
+export type ShiftBeat = {
+  actor: RobotId;
+  /** What the robot says as it starts. */
+  attempt: string;
+  /** The id of the rule card that stops this beat. */
+  stoppedBy: string;
+  /** The git and edit steps that run when no chosen card stops the beat. */
+  steps: ScriptStep[];
+  /** The robot's line when the card stops it. */
+  stopped: string;
+  /** The line said after the beat went through, and who says it. */
+  after: { actor: RobotId; text: string; mood?: Mood };
+  /** The beat in a few words for the shift report, e.g. "force-pushed over main". */
+  report: string;
+};
+
+/**
+ * A shift: the player picks `pick` of the `cards` on the brief, then the beats play as part of the
+ * opening scene. A beat whose card was picked is refused on screen; the others happen, and are the
+ * player's to fix. `documented` is the pick the level's documented solution is written for.
+ */
+export type Shift = { pick: number; cards: RuleCard[]; beats: ShiftBeat[]; documented: string[] };
+
 export type Level = {
   id: string;
   act: 1 | 2 | 3;
@@ -281,11 +318,20 @@ export type Level = {
    * own heading.
    */
   usedIn?: string;
+  /**
+   * How many commands the documented solution needs, not counting the ones that only look
+   * (`status`, `log`, `diff` and so on). The win card compares the player's count with it.
+   */
+  par?: number;
+  /** One or two plain sentences on the win card: what the player just learned. */
+  learned?: string;
   crew: RobotId[];
   /** Runs instantly from createRepo() to build the starting repository. */
   setup: ScriptStep[];
   /** Played as the opening scene. */
   intro: ScriptStep[];
+  /** Act 3: rule cards to pick, and the crew's shift that plays after the intro. */
+  shift?: Shift;
   goals: Goal[];
   // What Tidy's hint helper knows about the level (the problem and the intended fix) is not part of
   // the level: it lives in server-only modules under src/hints/data, so it never reaches the browser.

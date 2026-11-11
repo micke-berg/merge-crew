@@ -3,7 +3,8 @@ import { engine, queries } from "@/engine";
 import type { OutputLine, RepoState, ScriptStep } from "@/engine/types";
 import { getLevel, levels } from "./index";
 import { git, write } from "./script";
-import { solutions } from "./solutions";
+import { allPicks, openingOf, pickKey } from "./shift";
+import { solutions, variantSolutions } from "./solutions";
 
 /** Output that must never appear while a level runs: a crash inside the engine, or a missing feature. */
 const UNSUPPORTED = /not (yet )?(supported|implemented)/i;
@@ -97,7 +98,7 @@ describe("level data", () => {
 
   it.each(levels.map((l) => [l.id, l] as const))("%s: every file a robot line points at is in the player's files", (_, level) => {
     let state = runSteps(engine.createRepo(), level.setup);
-    for (const step of level.intro) {
+    for (const step of openingOf(level)) {
       if (step.kind === "say") {
         for (const path of step.files ?? []) {
           expect(Object.hasOwn(state.worktrees.player.workingTree, path), `${step.actor}: "${step.text}" -> ${path}`).toBe(true);
@@ -124,7 +125,7 @@ describe("level data", () => {
       if (step.focus.lost) expect(queries.lost(state).length, what).toBeGreaterThan(0);
     };
     let state = runSteps(engine.createRepo(), level.setup);
-    for (const step of level.intro) {
+    for (const step of openingOf(level)) {
       check(state, step);
       state = runSteps(state, [step]);
     }
@@ -152,17 +153,17 @@ describe("levels through the engine", () => {
       });
 
       it("goals are not met after setup and intro", () => {
-        const state = runSteps(engine.createRepo(), [...level.setup, ...level.intro]);
+        const state = runSteps(engine.createRepo(), [...level.setup, ...openingOf(level)]);
         expect(level.goals.map((g) => g.check(state, queries)).every(Boolean)).toBe(false);
       });
 
       it("the documented solution meets every goal", () => {
-        const state = runSteps(engine.createRepo(), [...level.setup, ...level.intro, ...solutions[level.id]]);
+        const state = runSteps(engine.createRepo(), [...level.setup, ...openingOf(level), ...solutions[level.id]]);
         expect(goalsFailing(level.id, state)).toEqual([]);
       });
 
       it("every suggestion is a command the engine knows", () => {
-        const state = runSteps(engine.createRepo(), [...level.setup, ...level.intro]);
+        const state = runSteps(engine.createRepo(), [...level.setup, ...openingOf(level)]);
         for (const line of level.suggestions) {
           const result = engine.run(state, { actor: "player", argv: engine.parseCommandLine(line) });
           expect(badLines(result.output), line).toEqual([]);
@@ -173,7 +174,7 @@ describe("levels through the engine", () => {
 
   it("act2-01: Tidy's commits are lost after the intro and found again after the fix", () => {
     const level = getLevel("act2-01")!;
-    const state = runSteps(engine.createRepo(), [...level.setup, ...level.intro]);
+    const state = runSteps(engine.createRepo(), [...level.setup, ...openingOf(level)]);
     const lostMessages = queries
       .lost(state)
       .map((oid) => state.commits[oid].message)
@@ -191,12 +192,12 @@ describe("levels through the engine", () => {
   /** Run setup, intro and the given steps; every step must succeed. Returns the ids of goals that fail. */
   function failedGoals(id: string, steps: ScriptStep[]): string[] {
     const level = getLevel(id)!;
-    return goalsFailing(id, runSteps(engine.createRepo(), [...level.setup, ...level.intro, ...steps]));
+    return goalsFailing(id, runSteps(engine.createRepo(), [...level.setup, ...openingOf(level), ...steps]));
   }
 
   it("act1-04: after Tidy's push the player is behind origin/main by one commit", () => {
     const level = getLevel("act1-04")!;
-    const state = runSteps(engine.createRepo(), [...level.setup, ...level.intro]);
+    const state = runSteps(engine.createRepo(), [...level.setup, ...openingOf(level)]);
     const status = engine.run(state, { actor: "player", argv: ["git", "status"] }).output.map((l) => l.text);
     expect(status).toContain("Your branch is behind 'origin/main' by 1 commit, and can be fast-forwarded.");
   });
@@ -205,7 +206,7 @@ describe("levels through the engine", () => {
     const level = getLevel("act1-04")!;
     let state = runSteps(engine.createRepo(), [
       ...level.setup,
-      ...level.intro,
+      ...openingOf(level),
       git("player", "add", "sign.txt"),
       git("player", "commit", "-m", "Announce Saturdays on the sign"),
     ]);
@@ -542,5 +543,65 @@ describe("levels through the engine", () => {
   it("act2-05: merging Drift's whole branch does not win", () => {
     const failed = failedGoals("act2-05", [git("player", "merge", "drift"), git("player", "push")]);
     expect(failed).toEqual(["only-the-fix"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Rule cards (Act 3): every pick is winnable, and lets exactly the beats through that it should.
+// ---------------------------------------------------------------------------
+
+describe("levels with rule cards", () => {
+  const withCards = levels.filter((l) => l.shift);
+
+  it("exist", () => {
+    expect(withCards.length).toBeGreaterThan(0);
+  });
+
+  it.each(withCards.map((l) => [l.id, l] as const))("%s: the cards and beats line up", (id, level) => {
+    const shift = level.shift!;
+    const ids = shift.cards.map((c) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(shift.pick).toBeGreaterThan(0);
+    expect(shift.pick).toBeLessThan(ids.length);
+    expect(shift.documented).toHaveLength(shift.pick);
+    for (const c of shift.documented) expect(ids).toContain(c);
+    for (const beat of shift.beats) {
+      expect(ids, beat.report).toContain(beat.stoppedBy);
+      expect(level.crew).toContain(beat.actor);
+      expect(level.crew).toContain(beat.after.actor);
+      expect(beat.steps.every((s) => s.kind === "git" || s.kind === "edit")).toBe(true);
+    }
+    for (const card of shift.cards) {
+      expect(card.title.length).toBeGreaterThan(0);
+      expect(card.tool.length).toBeGreaterThan(0);
+      // A card that stops nothing would be a dead choice.
+      expect(shift.beats.some((b) => b.stoppedBy === card.id), card.id).toBe(true);
+    }
+    expect(Object.keys(variantSolutions[id] ?? {}).sort()).toEqual(allPicks(level).map(pickKey).sort());
+    expect(variantSolutions[id][pickKey(shift.documented)]).toBe(solutions[id]);
+  });
+
+  const picks = withCards.flatMap((l) => allPicks(l).map((cards) => [l.id, pickKey(cards), l, cards] as const));
+
+  it.each(picks)("%s with %s: something gets through, and its fix wins the level", (id, key, level, cards) => {
+    const start = runSteps(engine.createRepo(), [...level.setup, ...openingOf(level, cards)]);
+    expect(goalsFailing(id, start).length).toBeGreaterThan(0);
+    expect(goalsFailing(id, runSteps(start, variantSolutions[id][key]))).toEqual([]);
+  });
+
+  it.each(picks)("%s with %s: forcing the old main back over origin is refused by the goals", (id, _key, level, cards) => {
+    const start = runSteps(engine.createRepo(), [...level.setup, ...openingOf(level, cards)]);
+    const forced = engine.run(start, { actor: "player", argv: ["git", "push", "--force"] });
+    expect(goalsFailing(id, forced.state).length).toBeGreaterThan(0);
+  });
+
+  it("a stopped beat runs no git, and says which rule stopped it", () => {
+    const level = getLevel("act3-02")!;
+    const all = level.shift!.cards.map((c) => c.id);
+    const script = openingOf(level, all).slice(level.intro.length);
+    expect(script.some((s) => s.kind === "git" || s.kind === "edit")).toBe(false);
+    expect(script.filter((s) => s.kind === "note")).toHaveLength(level.shift!.beats.length);
+    const none = openingOf(level, []).slice(level.intro.length);
+    expect(none.filter((s) => s.kind === "note")).toHaveLength(0);
   });
 });

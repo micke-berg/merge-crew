@@ -12,6 +12,8 @@ export const level: Level = {
   act: 1,
   order: 3,
   title: "Bringing it home",
+  par: 2,
+  learned: "A merge brings another branch's commits into the branch you are on.",
   brief: "Tidy finished two branches for the café. Merge both into main.",
   mission: {
     situation: "Tidy finished two things for the café, each on its own branch: the menu and the wall colors.",

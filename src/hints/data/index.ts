@@ -3,7 +3,7 @@
 
 import "server-only";
 import { levels } from "@/levels";
-import { solutions } from "@/levels/solutions";
+import { solutions, variantSolutions } from "@/levels/solutions";
 import type { Level } from "@/engine/types";
 import type { SolutionCommand } from "../leak";
 import { hints as act1_01 } from "./act1-01-first-save";
@@ -25,6 +25,8 @@ import { hints as act2_02 } from "./act2-02-drifts-long-walk";
 import { hints as act2_03 } from "./act2-03-hoarders-secret-pile";
 import { hints as act2_04 } from "./act2-04-undo-politely";
 import { hints as act2_05 } from "./act2-05-just-that-one-fix";
+import { hints as act3_01 } from "./act3-01-read-before-you-merge";
+import { hints as act3_02 } from "./act3-02-house-rules";
 import type { LevelHints } from "./types";
 
 export type { LevelHints } from "./types";
@@ -49,6 +51,8 @@ const HINTS: Readonly<Record<string, LevelHints>> = {
   "act2-03": act2_03,
   "act2-04": act2_04,
   "act2-05": act2_05,
+  "act3-01": act3_01,
+  "act3-02": act3_02,
 };
 
 /** Everything the hint route knows about one level. */
@@ -62,7 +66,14 @@ export function hintLevel(levelId: string): HintLevel | undefined {
   const level = levels.find((l) => l.id === levelId);
   const data = HINTS[levelId];
   if (!level || !data) return undefined;
-  const solution = (solutions[levelId] ?? []).flatMap((step) => (step.kind === "git" ? [step.argv] : []));
+  // A level with rule cards has one fix per pick; a hint must not give any of them away.
+  const all = [solutions[levelId] ?? [], ...Object.values(variantSolutions[levelId] ?? {})].flat();
+  const seen = new Set<string>();
+  const solution = all.flatMap((step) => {
+    if (step.kind !== "git" || seen.has(step.argv.join("\u0000"))) return [];
+    seen.add(step.argv.join("\u0000"));
+    return [step.argv];
+  });
   return { ...data, level, solution };
 }
 

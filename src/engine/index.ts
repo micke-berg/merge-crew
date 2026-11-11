@@ -33,6 +33,8 @@ import type {
 export * from "./types";
 export { queries } from "./query";
 
+import { helpLines, similar, similarLines } from "./commands/help";
+
 type Command = (ctx: Ctx, args: string[]) => void;
 
 // Maps, not object literals: the key is whatever the player typed, and a plain object would also
@@ -163,31 +165,47 @@ function execute(state: RepoState, actor: string, body: (ctx: Ctx) => void): Com
   }
 }
 
+/** `help`, `git help` and `git --help`: the same list, with or without a repository. */
+function help(state: RepoState): CommandResult {
+  return { ok: true, state, output: helpLines().map((text) => ({ kind: "out" as const, text })), events: [] };
+}
+
 function run(state: RepoState, input: CommandInput): CommandResult {
   const [program, sub, ...args] = input.argv;
+  if (program === "help") return help(state);
   if (program !== "git") {
     const shell = program !== undefined ? SHELL.get(program) : undefined;
     if (!shell) {
-      return failure(state, [{ kind: "error", text: `${program ?? ""}: shell commands are not supported in Merge Crew yet` }]);
+      // A git command typed without "git" in front is the most common slip of all.
+      const meant = program === undefined ? [] : similar(program, [...COMMANDS.keys()]);
+      const lines = [`${program ?? ""}: shell commands are not supported in Merge Crew yet`];
+      if (meant.length) lines.push(`Did you mean: git ${meant[0]}${args.length || sub ? " ..." : ""}`);
+      else lines.push("Type help to see what works here.");
+      return failure(state, lines.map((text) => ({ kind: "error" as const, text })));
     }
     if (!has(state.worktrees, input.actor)) {
       return failure(state, [{ kind: "error", text: `${program}: '${input.actor}' has no worktree` }]);
     }
     return execute(state, input.actor, (ctx) => shell(ctx, input.argv.slice(1)));
   }
-  if (sub === undefined) return failure(state, [{ kind: "error", text: "usage: git <command> [<args>]" }]);
+  if (sub === undefined) return failure(state, [{ kind: "error", text: "usage: git <command> [<args>]" }, { kind: "error", text: "Type help to see the commands." }]);
+  if (sub === "help" || sub === "--help") return help(state);
   const command = COMMANDS.get(sub);
   if (!command) {
-    const text = PLANNED.has(sub)
-      ? `git ${sub} is not supported in Merge Crew yet`
-      : `git: '${sub}' is not a git command. See 'git --help'.`;
-    return failure(state, [{ kind: "error", text }]);
+    if (PLANNED.has(sub)) return failure(state, [{ kind: "error", text: `git ${sub} is not supported in Merge Crew yet` }]);
+    const lines = [`git: '${sub}' is not a git command. See 'git --help'.`, ...similarLines(similar(sub, [...COMMANDS.keys()]))];
+    return failure(state, lines.map((text) => ({ kind: "error" as const, text })));
   }
   if (!has(state.worktrees, input.actor)) {
     return failure(state, [{ kind: "error", text: "fatal: not a git repository (or any of the parent directories): .git" }]);
   }
   return execute(state, input.actor, (ctx) => command(ctx, args));
 }
+
+/** Every git subcommand the engine runs, for help and for completing what the player types. */
+export const GIT_COMMANDS: readonly string[] = [...COMMANDS.keys()];
+/** The other words the command box understands (`clear` is handled by the game, not the engine). */
+export const SHELL_COMMANDS: readonly string[] = [...SHELL.keys(), "help"];
 
 function edit(state: RepoState, change: FileEdit): CommandResult {
   return execute(state, change.actor, (ctx) => {

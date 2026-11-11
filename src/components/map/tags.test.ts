@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { RepoBuilder, linear, merge } from "./fixtures";
 import { layoutRepo } from "./layout";
-import { buildTags, labelAtLineEnd, tagTitle } from "./tags";
+import { buildTags, labelAtLineEnd, tagBox, tagTitle } from "./tags";
 
 describe("buildTags", () => {
   it("tags a remote branch on its stop and leaves line-end branches alone", () => {
@@ -37,5 +37,17 @@ describe("buildTags", () => {
     const merged = layout.branchLabels.filter((b) => !labelAtLineEnd(layout, b));
     const tagged = [...buildTags(layout, state).values()].flat().filter((t) => t.kind === "branch").map((t) => t.text);
     expect(tagged).toEqual(merged.map((b) => b.name));
+  });
+});
+
+describe("tagBox", () => {
+  it("stacks tags under their stop, centred on it", () => {
+    const first = tagBox(100, 50, 6, 0, "origin/main");
+    const second = tagBox(100, 50, 6, 1, "tidy");
+    expect((first.lo + first.hi) / 2).toBeCloseTo(100);
+    expect(first.y).toBe(86);
+    expect(second.y - first.y).toBe(19);
+    expect(first.bottom).toBeLessThanOrEqual(second.top + 1);
+    expect(first.w).toBeGreaterThan(second.w);
   });
 });

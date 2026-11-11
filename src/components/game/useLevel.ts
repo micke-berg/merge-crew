@@ -19,7 +19,7 @@ import {
   type Wait,
 } from "./game";
 import { buildHintRequest, fetchHint, newRunId } from "./hintRequest";
-import { markLevelComplete } from "./progress";
+import { markLevelComplete, recordBest } from "./progress";
 
 /** How long to hold after a scripted git step so its animation can play. */
 function waitMs(wait: Wait, game: GameState, reduce: boolean): number | null {
@@ -51,8 +51,10 @@ export function useLevel(level: Level) {
   }, [game, wait, inScene, reduce]);
 
   useEffect(() => {
-    if (game.phase === "won") markLevelComplete(game.level.id);
-  }, [game.phase, game.level.id]);
+    if (game.phase !== "won") return;
+    markLevelComplete(game.level.id);
+    recordBest(game.level.id, game.moves.length);
+  }, [game.phase, game.level.id, game.moves.length]);
 
   // The latest model, for the hint request (built from the state at the moment the player asks).
   const latest = useRef(model);
@@ -84,7 +86,8 @@ export function useLevel(level: Level) {
     awaitingClick: touring || (inScene && wait.kind === "click"),
     /** Play the screen tour over the player turn. */
     tour: (steps: PointStep[]) => dispatch({ type: "tour", steps }),
-    begin: () => dispatch({ type: "begin" }),
+    /** Start the level. `cards` are the rule cards picked on the brief (Act 3). */
+    begin: (cards?: readonly string[]) => dispatch({ type: "begin", cards }),
     /** Skip the brief and the intro, for a level whose intro this player has already played. */
     startPlaying: () => dispatch({ type: "start-playing" }),
     next: () => dispatch({ type: "continue" }),

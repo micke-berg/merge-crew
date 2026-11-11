@@ -33,6 +33,8 @@ export const level: Level = {
   act: 1,
   order: 14,
   title: "Who changed this line?",
+  par: 1,
+  learned: "git blame shows which commit last changed each line, so you can undo exactly the one that broke it.",
   brief: "A price became free and three robots have saved into the same file. Find out which save did it, and undo only that one.",
   mission: {
     situation:

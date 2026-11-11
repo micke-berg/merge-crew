@@ -21,9 +21,11 @@ import { level as act2_02 } from "./act2-02-drifts-long-walk";
 import { level as act2_03 } from "./act2-03-hoarders-secret-pile";
 import { level as act2_04 } from "./act2-04-undo-politely";
 import { level as act2_05 } from "./act2-05-just-that-one-fix";
+import { level as act3_01 } from "./act3-01-read-before-you-merge";
+import { level as act3_02 } from "./act3-02-house-rules";
 
 /** Every level, sorted by act and then by order within the act. */
-export const levels: Level[] = [act1_01, act1_02, act1_03, act1_04, act1_05, act1_06, act1_07, act1_08, act1_09, act1_10, act1_11, act1_12, act1_13, act1_14, act2_01, act2_02, act2_03, act2_04, act2_05].sort(
+export const levels: Level[] = [act1_01, act1_02, act1_03, act1_04, act1_05, act1_06, act1_07, act1_08, act1_09, act1_10, act1_11, act1_12, act1_13, act1_14, act2_01, act2_02, act2_03, act2_04, act2_05, act3_01, act3_02].sort(
   (a, b) => a.act - b.act || a.order - b.order,
 );
 
