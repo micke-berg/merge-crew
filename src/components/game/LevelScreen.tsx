@@ -130,11 +130,14 @@ export function LevelGame({ level }: { level: Level }) {
   };
 
   const player = game.repo.worktrees.player;
+  // A file opened from a robot's folder (Act 3) is that robot's copy, and always read-only.
+  const openFolder = open ? game.repo.worktrees[open.actor ?? "player"] : undefined;
   const openContent = open
-    ? (open.area === "staged" ? player?.index[open.path] : player?.workingTree[open.path])
+    ? (open.area === "staged" ? openFolder?.index[open.path] : openFolder?.workingTree[open.path])
     : undefined;
   // Conflicted files open in the editor during the player turn, and read-only during scenes.
-  const openConflict = open && playing && open.area === "working" && player ? player.conflicts[open.path] : undefined;
+  const openConflict =
+    open && !open.actor && playing && open.area === "working" && player ? player.conflicts[open.path] : undefined;
 
   const saveFile = (path: string, content: string) => {
     g.edit(path, content);
@@ -252,6 +255,7 @@ export function LevelGame({ level }: { level: Level }) {
               where={where}
               onOpen={setOpen}
               highlight={bubble?.files.length ? { actor: bubble.actor, files: bubble.files } : null}
+              folders={level.act === 3 ? level.crew : []}
             />
           </div>
 
@@ -338,7 +342,14 @@ export function LevelGame({ level }: { level: Level }) {
             />
           )}
           {open && !openConflict && openContent !== undefined && (
-            <FileViewer key="file" path={open.path} area={open.area} content={openContent} onClose={closeFile} />
+            <FileViewer
+              key="file"
+              path={open.path}
+              area={open.area}
+              owner={open.actor ? actorColor(open.actor).name : undefined}
+              content={openContent}
+              onClose={closeFile}
+            />
           )}
         </AnimatePresence>
 

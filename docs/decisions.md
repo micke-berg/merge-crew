@@ -2,6 +2,13 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-11-11 — Act 3 begins: review before merge
+
+- **act3-01, "Read before you merge", is the first level about leading and not about a git tool.** Three robots each say a branch is ready. Two are. Blaze's second commit is called "Make the site faster" and deletes the price list. Nothing in the level says which branch is the bad one: the goals ask for "the safe ones", and the rule is "nothing goes missing from main".
+- **Merging the bad branch does not lose the level.** The rule turns into a warning and the player puts it right (undo the merge, or revert the commit that deleted the file). Taking only the banner with a cherry-pick is also accepted.
+- **In Act 3 the files panel can show each robot's folder, read-only.** The engine has had one worktree per robot from the start; a lead who reviews work has a reason to look inside them. The player's commands still run in the player's own folder.
+- **`git log --stat` is not in the engine.** The level's buttons use `git show --stat` and `git diff main...branch`, which are.
+
 ## 2026-11-11 — Par, a recap and a celebration on the win
 
 - **Every level has a par: the number of commands in its documented solution that change something.** Looking is free (`status`, `log`, `diff`, `show`, `reflog`, `blame`, listing branches or stashes, `ls`, `cat`, `help`), because looking is how a player learns and a count that punishes it teaches the wrong habit. A typo or a command git refuses is not counted either. The rule is one function, `countsAsMove` in `src/components/game/moves.ts`.

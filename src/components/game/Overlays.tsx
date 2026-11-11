@@ -309,11 +309,14 @@ export function WinCard({
 export function FileViewer({
   path,
   area,
+  owner,
   content,
   onClose,
 }: {
   path: string;
   area: "working" | "staged";
+  /** The robot whose folder the file is in. Left out for the player's own files. */
+  owner?: string;
   content: string;
   onClose: () => void;
 }) {
@@ -324,6 +327,7 @@ export function FileViewer({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-[11px] font-bold tracking-[0.12em] text-muted uppercase">
+            {owner ? `${owner}'s folder · ` : ""}
             {area === "staged" ? "Staged version" : "Working file"} · read-only
           </p>
           <h2 className="mt-1 truncate font-mono text-lg font-bold">{path}</h2>

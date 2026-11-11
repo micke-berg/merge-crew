@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { useState } from "react";
 import { queries } from "@/engine";
 import type { ActorId, RepoState, Worktree } from "@/engine/types";
 import { actorColor } from "@/lib/palette";
@@ -13,7 +14,8 @@ import {
   readyHeadline,
 } from "./conflicts";
 
-export type OpenFile = { path: string; area: "working" | "staged" };
+/** A file to show. `actor` is whose folder it is in: the player's when left out. */
+export type OpenFile = { path: string; area: "working" | "staged"; actor?: ActorId };
 
 type Props = {
   repo: RepoState;
@@ -21,6 +23,11 @@ type Props = {
   onOpen: (file: OpenFile) => void;
   /** Files a robot's current line talks about, and who is speaking. */
   highlight?: { actor: ActorId; files: readonly string[] } | null;
+  /**
+   * Robots whose folders the player may look into, read-only (Act 3: a lead reads the crew's work).
+   * Empty or left out: the panel shows only the player's own files.
+   */
+  folders?: readonly ActorId[];
 };
 
 type Badge = { letter: string; label: string; className: string };
@@ -35,12 +42,21 @@ const BADGES: Record<string, Badge> = {
   clean: { letter: "·", label: "unchanged", className: "text-ghost" },
 };
 
-export function FilesPanel({ repo, where, onOpen, highlight }: Props) {
-  const spoken = new Set(highlight?.files ?? []);
-  const speaker = highlight ? actorColor(highlight.actor) : null;
-  const wt = repo.worktrees.player;
+export function FilesPanel({ repo, where, onOpen, highlight, folders = [] }: Props) {
+  const [chosen, setChosen] = useState<ActorId>("player");
+  const others = folders.filter((a) => a !== "player" && repo.worktrees[a]);
+  // A folder that is gone (a restart, a removed worktree) falls back to the player's own.
+  const viewing: ActorId = others.includes(chosen) ? chosen : "player";
+  const mine = viewing === "player";
+  // A robot's line about a file means the player's copy, so it lights up only in the player's folder.
+  const spoken = new Set(mine ? (highlight?.files ?? []) : []);
+  const speaker = highlight && mine ? actorColor(highlight.actor) : null;
+  const wt = repo.worktrees[viewing];
   if (!wt) return null;
-  const st = queries.status(repo, "player");
+  const st = queries.status(repo, viewing);
+  const owner = actorColor(viewing);
+  const branchName = queries.currentBranch(repo, viewing);
+  const place = mine ? where : (branchName ?? (wt.head.kind === "detached" ? `detached ${wt.head.oid.slice(0, 7)}` : "no branch"));
   const unstaged = new Map(st.unstaged.map((u) => [u.path, u.change]));
   const untracked = new Set(st.untracked);
   const conflicted = new Set(st.conflicted);
@@ -62,12 +78,40 @@ export function FilesPanel({ repo, where, onOpen, highlight }: Props) {
   return (
     <section data-tour="files" aria-labelledby="files-title" className="flex min-h-0 flex-col rounded-3xl border border-line bg-panel p-4">
       <div className="flex items-center justify-between gap-2">
-        <h2 id="files-title" className="text-sm font-bold">Files</h2>
-        <span className="truncate font-mono text-[11px] text-muted">{wt.path} · {where}</span>
+        <h2 id="files-title" className="text-sm font-bold">{mine ? "Files" : `${owner.name}'s files`}</h2>
+        <span className="truncate font-mono text-[11px] text-muted">{wt.path} · {place}</span>
       </div>
 
+      {others.length > 0 && (
+        <div role="group" aria-label="Whose folder to look at" className="mt-2.5 flex flex-wrap gap-1.5">
+          {(["player", ...others] as const).map((a) => {
+            const c = actorColor(a);
+            const on = a === viewing;
+            return (
+              <button
+                key={a}
+                type="button"
+                aria-pressed={on}
+                onClick={() => setChosen(a)}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[12px] font-semibold transition-colors focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none ${
+                  on ? "border-ink bg-ink text-paper" : "border-line-button text-soft hover:bg-sunk hover:text-ink"
+                }`}
+              >
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: c.line }} aria-hidden />
+                {a === "player" ? "Yours" : c.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {!mine && (
+        <p className="mt-2 rounded-xl bg-sunk px-2.5 py-1.5 text-[12px] leading-snug text-soft">
+          {owner.name}{"'s"} own folder, on its own branch. You can look, not change: your commands run in yours.
+        </p>
+      )}
+
       <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
-        <ConflictBanner wt={wt} conflicted={st.conflicted} onOpen={(path) => onOpen({ path, area: "working" })} />
+        {mine && <ConflictBanner wt={wt} conflicted={st.conflicted} onOpen={(path) => onOpen({ path, area: "working" })} />}
         <h3 className="text-[11px] font-bold tracking-wide text-muted uppercase">Working files</h3>
         <ul className="mt-1.5 flex flex-col gap-0.5">
           {working.length === 0 && <li className="px-2 py-1 text-[13px] text-muted">No files yet.</li>}
@@ -88,7 +132,7 @@ export function FilesPanel({ repo, where, onOpen, highlight }: Props) {
               <button
                 type="button"
                 disabled={!f.exists && !conflicted.has(f.path)}
-                onClick={() => onOpen({ path: f.path, area: "working" })}
+                onClick={() => onOpen({ path: f.path, area: "working", ...(mine ? {} : { actor: viewing }) })}
                 className={`group relative flex w-full items-center gap-2 rounded-lg px-2 py-1 text-left font-mono text-[12.5px] transition-colors hover:bg-wash focus-visible:bg-wash focus-visible:ring-2 focus-visible:ring-focus/40 focus-visible:outline-none disabled:cursor-default disabled:hover:bg-transparent ${
                   f.kind === "conflict" ? "bg-warn-soft ring-1 ring-warn/40" : f.kind === "fixed" ? "bg-success-soft ring-1 ring-success/35" : ""
                 }`}
@@ -126,7 +170,7 @@ export function FilesPanel({ repo, where, onOpen, highlight }: Props) {
                 <button
                   type="button"
                   disabled={!exists}
-                  onClick={() => onOpen({ path: f.path, area: "staged" })}
+                  onClick={() => onOpen({ path: f.path, area: "staged", ...(mine ? {} : { actor: viewing }) })}
                   className="flex w-full items-center gap-2 rounded-lg px-2 py-1 text-left font-mono text-[12.5px] transition-colors hover:bg-wash focus-visible:bg-wash focus-visible:ring-2 focus-visible:ring-focus/40 focus-visible:outline-none disabled:cursor-default"
                   title={`Staged: ${f.path} (${badge.label})`}
                 >
