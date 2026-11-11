@@ -2,6 +2,12 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-11-11 — A Content-Security-Policy that keeps the pages static
+
+- **Every page now sends a Content-Security-Policy:** only this site's own scripts, styles, fonts, images and requests, no framing, no plugins, no form posts elsewhere. The game loads nothing from other origins, so the policy only writes down what was already true and makes the browser hold to it.
+- **`'unsafe-inline'` stays for scripts and styles.** Next.js puts small inline scripts in every page, and allowing exactly those needs a nonce made per request, which turns every static page into one rendered on each visit (Next.js's own guide says so). For a static game that renders no visitor's text as HTML, static pages are worth more than the stricter rule. Revisit if the game ever shows text one player wrote to another.
+- **CI fails on a high or critical `npm audit` finding in shipped dependencies.** The lint tool chain is left out of that check: its advisories do not reach players.
+
 ## 2026-11-11 — The sandbox
 
 - **`/sandbox` is the ordinary level screen on a repository with no goals.** The sandbox is a `Level` with empty goals, intro and outro, in no level list. It starts on the player's turn, shows no brief, no job bar and no "Ask Tidy", and can never be won. Nothing new in the engine or the game state machine.
