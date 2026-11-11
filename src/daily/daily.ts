@@ -2,14 +2,14 @@
 // Pure: no clock and no storage in here, the caller passes them in.
 
 import type { Level } from "@/engine/types";
-import { levels } from "@/levels";
+import { everyLevel } from "@/levels";
 
 /**
- * The levels that can be the day's incident, in pool order: the ones where a robot breaks something
- * or hides something, and that have a par. Levels with rule cards are left out, because the pick
+ * The levels that can be the day's incident, in pool order: the acts' levels where a robot breaks
+ * something or hides something, and the incidents made only for the daily. All have a par. Levels with rule cards are left out, because the pick
  * decides how much there is to fix and two players' results could not be compared.
  */
-export const DAILY_POOL: readonly string[] = levels.filter((l) => l.act >= 2 && l.par !== undefined && !l.shift).map((l) => l.id);
+export const DAILY_POOL: readonly string[] = everyLevel.filter((l) => l.act >= 2 && l.par !== undefined && !l.shift).map((l) => l.id);
 
 /** Day 1 of the daily incident, as a UTC date. */
 export const FIRST_DAY = Date.UTC(2026, 10, 11);
@@ -60,7 +60,7 @@ export function incidentId(number: number, pool: readonly string[] = DAILY_POOL)
 
 export function incidentLevel(number: number): Level | null {
   const id = incidentId(number);
-  return (id && levels.find((l) => l.id === id)) || null;
+  return (id && everyLevel.find((l) => l.id === id)) || null;
 }
 
 export type DailyRecord = {

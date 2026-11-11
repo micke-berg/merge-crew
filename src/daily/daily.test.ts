@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { levels } from "@/levels";
+import { everyLevel as levels, incidents } from "@/levels";
 import {
   DAILY_POOL,
   FIRST_DAY,
@@ -16,6 +16,12 @@ import {
 } from "./daily";
 
 describe("the pool", () => {
+  it("has every incident made for the daily", () => {
+    expect(incidents.length).toBeGreaterThanOrEqual(6);
+    for (const i of incidents) expect(DAILY_POOL).toContain(i.id);
+    expect(DAILY_POOL.length).toBeGreaterThanOrEqual(12);
+  });
+
   it("holds levels with a par and without rule cards", () => {
     expect(DAILY_POOL.length).toBeGreaterThanOrEqual(5);
     for (const id of DAILY_POOL) {

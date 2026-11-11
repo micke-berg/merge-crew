@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Goal } from "@/engine/types";
-import { levels } from "@/levels";
+import { everyLevel as levels } from "@/levels";
 import { begin, skipScript, startLevel } from "./game";
 import { readJob } from "./jobSteps";
 

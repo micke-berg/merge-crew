@@ -5,7 +5,7 @@
 
 import { availableParallelism } from "node:os";
 import { beforeAll, describe, expect, it } from "vitest";
-import { levels } from "@/levels";
+import { everyLevel as levels } from "@/levels";
 import { allPicks, openingOf, pickKey } from "@/levels/shift";
 import { solutions, variantSolutions } from "@/levels/solutions";
 import type { Level, ScriptStep } from "@/engine/types";

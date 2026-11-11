@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import engine from "@/engine";
-import { levels } from "@/levels";
+import { everyLevel as levels } from "@/levels";
 import { solutions } from "@/levels/solutions";
 import { begin, runPlayerCommand, skipScript, startLevel } from "./game";
 import { againstPar, countsAsMove } from "./moves";

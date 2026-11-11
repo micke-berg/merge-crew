@@ -57,7 +57,7 @@ The win is a moment, not only a card. The crew celebrates on the map, and the wi
 
 One small broken repository per day, the same for every player, solvable in a few minutes. It is the reason to come back after the acts are done.
 
-- **Incidents are data,** like levels: a setup, a short scene, goals, a documented solution and a par, tested the same way. The day's incident is picked from the pool by the date (UTC), with no server. The pool starts with the levels the game already has where a robot breaks or hides something and that have a par, and repeats in a fresh order each round. It grows toward about 20 as incidents made only for the daily are added; each new one is a level file with a solution checked against real git.
+- **Incidents are data,** like levels: a setup, a short scene, goals, a documented solution and a par, tested the same way. The day's incident is picked from the pool by the date (UTC), with no server. The pool is the levels of the acts where a robot breaks or hides something and that have a par, plus incidents made only for the daily. It repeats in a fresh order each round. It grows toward about 20 as incidents made only for the daily are added; each new one is a level file with a solution checked against real git.
 - **Streak and results live in browser storage only.**
 - **A result can be shared as plain text with no spoilers:** the incident's number and name, commands against par, hints used, and the link. Example: `Merge Crew #12 · Blaze was in a hurry · 4 commands (par 4) · 0 hints`.
 - **A challenge link** opens one named level or incident directly, with the sender's command count to beat in the address. No data is stored anywhere.

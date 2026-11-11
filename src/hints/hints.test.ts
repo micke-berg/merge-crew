@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { levels } from "@/levels";
+import { everyLevel as levels } from "@/levels";
 import { hintLevel, hintLevelIds } from "./data";
 import { MAX_HINT_CHARS, MAX_HINT_SENTENCES, checkLeak, cleanHint, countSentences, normalise, vetHint } from "./leak";
 import { buildHintPrompt, type PromptInput } from "./prompt";

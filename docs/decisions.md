@@ -2,6 +2,14 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-11-11 — Six incidents made only for the daily
+
+- **The daily pool doubles to twelve.** Six new incidents, each one small mistake with one idea: a commit on the wrong branch, a commit on no branch (detached HEAD), a diverged main that has to stay straight (`pull --rebase`), a password staged by mistake (`restore --staged`), a local reset that hid unpushed commits (reflog), and a useless commit message (`commit --amend`). Four of the six ideas appear in no level of the acts, so the daily teaches something new and is not only a chase for par.
+- **An incident is a level in every way but its address.** It lives in `src/levels` as `daily-NN-*.ts` with a documented solution, a par, a recap line and server-side hint data, and runs through the same tests: the engine plays it to the win, real git referees the solution, and the scripted hints pass the leak check. It is exported as `incidents`, not listed in the acts, and has no page under `/level`.
+- **No eval cases for incidents.** The stuck cases in `evals/hints` cover the acts' levels. Hints for incidents still work: the route knows them and falls back to their scripted hints like any other level.
+- **Incidents' suggestion buttons only look.** A button that fills in the fix would decide the day's result.
+- **Adding incidents changes which level a given day gets,** because the pool is shuffled as a whole. Fine before launch; after launch, append and expect the calendar to shift.
+
 ## 2026-11-11 — The daily incident, a result to paste, and challenge links
 
 - **`/daily` plays one level a day, the same for everyone.** The day is counted in UTC from 2026-11-11 (incident #1). The level comes from a pool, shuffled afresh each round with a seeded generator, so no server is involved and no incident repeats two days running (`src/daily/daily.ts`, pure and tested).
