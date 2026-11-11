@@ -150,6 +150,7 @@ The suggestion buttons do not make a command safe: a hint that says which button
 
 Every pull request runs:
 - lint, typecheck, all tests and a production build
+- `npm audit` on the shipped dependencies, failing on a high or critical advisory
 - a secret scan (gitleaks)
 - a check that blocks a private word list from code, commits and pull request text
 
