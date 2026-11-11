@@ -78,6 +78,17 @@ A static page that explains the commands the game teaches in plain language, rea
 - **`src/app/commands/page.tsx` and `src/components/commands` only render it.** Each entry has an anchor, so `/commands#stash` opens at that entry. The start page footer and the level picker link to the page.
 - **Tests keep the links honest** (`src/commands/entries.test.ts`): every linked level exists, slugs are unique, and every level that has `usedIn` set is the practice level of some entry. A new practice level therefore needs an entry.
 
+## The daily incident (`src/daily`, `/daily`)
+
+- **The pool is the acts' levels where a robot breaks or hides something, plus the incidents made only for the daily** (`incidents` in `src/levels/index.ts`, files `daily-NN-*.ts`). An incident is tested like a level and has hint data, but is not listed in the acts and has no page under `/level`.
+- **`daily.ts` is pure:** the day number from a time, the pool, the level for a day, the streak rules, the text of a shared result and the reading of a challenge link's `?beat=` value. It takes the clock and the stored record as arguments.
+- **`dailyStorage.ts` is the browser side:** the record in browser storage, and today's number. The server never renders a day: `/daily` and the start page's card draw the incident only once the browser knows the date, so the two cannot disagree.
+- **`DailyScreen.tsx` plays the day's level with the ordinary level screen** (`LevelGame` with a `daily` number). The win card saves the result, shows the streak and offers the result to copy.
+
+## The sandbox (`/sandbox`)
+
+Free play: `LevelGame` with the `sandbox` level (`src/levels/sandbox.ts`, no goals and no script) and the `sandbox` flag, which hides the brief, the job bar and the hints and lets the player create and edit working files (`FileEditor` in `Overlays.tsx`).
+
 ## Shared helpers (`src/lib`)
 
 - `palette.ts`: every colour in the game, defined once. The root layout writes the colours as CSS variables, Tailwind maps them to classes such as `bg-ink` and `text-muted`, and the SVG map reads the same constants. A test checks the contrast of every text and background pair.
@@ -144,6 +155,7 @@ The suggestion buttons do not make a command safe: a hint that says which button
 
 Every pull request runs:
 - lint, typecheck, all tests and a production build
+- `npm audit` on the shipped dependencies, failing on a high or critical advisory
 - a secret scan (gitleaks)
 - a check that blocks a private word list from code, commits and pull request text
 

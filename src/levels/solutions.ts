@@ -45,6 +45,20 @@ import { level as act3_01 } from "./act3-01-read-before-you-merge";
 import { solution as act3_01_solution } from "./act3-01-read-before-you-merge.solution";
 import { level as act3_02 } from "./act3-02-house-rules";
 import { solution as act3_02_solution, variants as act3_02_variants } from "./act3-02-house-rules.solution";
+import { level as act3_03 } from "./act3-03-the-full-shift";
+import { solution as act3_03_solution, variants as act3_03_variants } from "./act3-03-the-full-shift.solution";
+import { level as daily_01 } from "./daily-01-the-wrong-line";
+import { solution as daily_01_solution } from "./daily-01-the-wrong-line.solution";
+import { level as daily_02 } from "./daily-02-no-branch-at-all";
+import { solution as daily_02_solution } from "./daily-02-no-branch-at-all.solution";
+import { level as daily_03 } from "./daily-03-straight-home";
+import { solution as daily_03_solution } from "./daily-03-straight-home.solution";
+import { level as daily_04 } from "./daily-04-not-that-file";
+import { solution as daily_04_solution } from "./daily-04-not-that-file.solution";
+import { level as daily_05 } from "./daily-05-blaze-cleaned-up";
+import { solution as daily_05_solution } from "./daily-05-blaze-cleaned-up.solution";
+import { level as daily_06 } from "./daily-06-say-what-you-did";
+import { solution as daily_06_solution } from "./daily-06-say-what-you-did.solution";
 import type { Solution } from "./script";
 
 export const solutions: Readonly<Record<string, Solution>> = Object.fromEntries([
@@ -69,6 +83,13 @@ export const solutions: Readonly<Record<string, Solution>> = Object.fromEntries(
   [act2_05.id, act2_05_solution],
   [act3_01.id, act3_01_solution],
   [act3_02.id, act3_02_solution],
+  [act3_03.id, act3_03_solution],
+  [daily_01.id, daily_01_solution],
+  [daily_02.id, daily_02_solution],
+  [daily_03.id, daily_03_solution],
+  [daily_04.id, daily_04_solution],
+  [daily_05.id, daily_05_solution],
+  [daily_06.id, daily_06_solution],
 ]);
 
 /**
@@ -77,4 +98,5 @@ export const solutions: Readonly<Record<string, Solution>> = Object.fromEntries(
  */
 export const variantSolutions: Readonly<Record<string, Readonly<Record<string, Solution>>>> = {
   [act3_02.id]: act3_02_variants,
+  [act3_03.id]: act3_03_variants,
 };

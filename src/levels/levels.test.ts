@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { engine, queries } from "@/engine";
 import type { OutputLine, RepoState, ScriptStep } from "@/engine/types";
-import { getLevel, levels } from "./index";
+import { everyLevel, getLevel, levels } from "./index";
 import { git, write } from "./script";
 import { allPicks, openingOf, pickKey } from "./shift";
 import { solutions, variantSolutions } from "./solutions";
@@ -40,7 +40,7 @@ function runSteps(start: RepoState, steps: ScriptStep[]): RepoState {
 }
 
 function goalsFailing(id: string, state: RepoState): string[] {
-  return getLevel(id)!.goals.filter((g) => !g.check(state, queries)).map((g) => g.id);
+  return everyLevel.find((l) => l.id === id)!.goals.filter((g) => !g.check(state, queries)).map((g) => g.id);
 }
 
 // ---------------------------------------------------------------------------
@@ -68,7 +68,7 @@ describe("level data", () => {
     expect(getLevel("nope")).toBeUndefined();
   });
 
-  it.each(levels.map((l) => [l.id, l] as const))("%s is complete", (id, level) => {
+  it.each(everyLevel.map((l) => [l.id, l] as const))("%s is complete", (id, level) => {
     expect(level.goals.length).toBeGreaterThan(0);
     expect(new Set(level.goals.map((g) => g.id)).size).toBe(level.goals.length);
     expect(level.suggestions.length).toBeGreaterThan(0);
@@ -86,7 +86,7 @@ describe("level data", () => {
     for (const s of level.suggestions) expect(s.startsWith("git ")).toBe(true);
   });
 
-  it.each(levels.map((l) => [l.id, l] as const))("%s has a mission card and a short opening scene", (_, level) => {
+  it.each(everyLevel.map((l) => [l.id, l] as const))("%s has a mission card and a short opening scene", (_, level) => {
     expect(level.mission?.situation.length).toBeGreaterThan(0);
     expect(level.mission?.job.length).toBeGreaterThan(0);
     expect(level.mission?.practise.length).toBeGreaterThan(0);
@@ -96,7 +96,7 @@ describe("level data", () => {
     expect(level.intro.filter((s) => s.kind === "say" || s.kind === "point").length).toBeLessThanOrEqual(8);
   });
 
-  it.each(levels.map((l) => [l.id, l] as const))("%s: every file a robot line points at is in the player's files", (_, level) => {
+  it.each(everyLevel.map((l) => [l.id, l] as const))("%s: every file a robot line points at is in the player's files", (_, level) => {
     let state = runSteps(engine.createRepo(), level.setup);
     for (const step of openingOf(level)) {
       if (step.kind === "say") {
@@ -109,7 +109,7 @@ describe("level data", () => {
     }
   });
 
-  it.each(levels.map((l) => [l.id, l] as const))("%s: every map pointer has something to highlight", (id, level) => {
+  it.each(everyLevel.map((l) => [l.id, l] as const))("%s: every map pointer has something to highlight", (id, level) => {
     // The state each scene's point steps see: intro points after setup (and earlier intro steps),
     // outro points after the documented solution.
     const check = (state: RepoState, step: ScriptStep) => {
@@ -137,7 +137,7 @@ describe("level data", () => {
   });
 
   it("has exactly one documented solution per level", () => {
-    expect(Object.keys(solutions).sort()).toEqual(levels.map((l) => l.id).sort());
+    expect(Object.keys(solutions).sort()).toEqual(everyLevel.map((l) => l.id).sort());
   });
 });
 
@@ -146,7 +146,7 @@ describe("level data", () => {
 // ---------------------------------------------------------------------------
 
 describe("levels through the engine", () => {
-  for (const level of levels) {
+  for (const level of everyLevel) {
     describe(level.id, () => {
       it("setup runs without errors", () => {
         runSteps(engine.createRepo(), level.setup);
@@ -566,7 +566,7 @@ describe("levels with rule cards", () => {
     expect(shift.documented).toHaveLength(shift.pick);
     for (const c of shift.documented) expect(ids).toContain(c);
     for (const beat of shift.beats) {
-      expect(ids, beat.report).toContain(beat.stoppedBy);
+      if (beat.stoppedBy !== undefined) expect(ids, beat.report).toContain(beat.stoppedBy);
       expect(level.crew).toContain(beat.actor);
       expect(level.crew).toContain(beat.after.actor);
       expect(beat.steps.every((s) => s.kind === "git" || s.kind === "edit")).toBe(true);
@@ -593,6 +593,14 @@ describe("levels with rule cards", () => {
     const start = runSteps(engine.createRepo(), [...level.setup, ...openingOf(level, cards)]);
     const forced = engine.run(start, { actor: "player", argv: ["git", "push", "--force"] });
     expect(goalsFailing(id, forced.state).length).toBeGreaterThan(0);
+  });
+
+  it.each(withCards.map((l) => [l.id, l] as const))("%s: a beat no card can stop runs for every pick", (_, level) => {
+    const always = level.shift!.beats.filter((b) => b.stoppedBy === undefined);
+    for (const cards of allPicks(level)) {
+      const script = openingOf(level, cards);
+      for (const beat of always) for (const step of beat.steps) expect(script).toContain(step);
+    }
   });
 
   it("a stopped beat runs no git, and says which rule stopped it", () => {

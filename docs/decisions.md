@@ -2,6 +2,41 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-11-11 — A Content-Security-Policy that keeps the pages static
+
+- **Every page now sends a Content-Security-Policy:** only this site's own scripts, styles, fonts, images and requests, no framing, no plugins, no form posts elsewhere. The game loads nothing from other origins, so the policy only writes down what was already true and makes the browser hold to it.
+- **`'unsafe-inline'` stays for scripts and styles.** Next.js puts small inline scripts in every page, and allowing exactly those needs a nonce made per request, which turns every static page into one rendered on each visit (Next.js's own guide says so). For a static game that renders no visitor's text as HTML, static pages are worth more than the stricter rule. Revisit if the game ever shows text one player wrote to another.
+- **CI fails on a high or critical `npm audit` finding in shipped dependencies.** The lint tool chain is left out of that check: its advisories do not reach players.
+
+## 2026-11-11 — The sandbox
+
+- **`/sandbox` is the ordinary level screen on a repository with no goals.** The sandbox is a `Level` with empty goals, intro and outro, in no level list. It starts on the player's turn, shows no brief, no job bar and no "Ask Tidy", and can never be won. Nothing new in the engine or the game state machine.
+- **The player can write files there.** "New file" and a click on a working file open a plain editor that writes the working file through the same path the conflict editor uses. Staging and committing stay with git commands, which is the point. File names are limited to letters, digits, dots, dashes and folders, so nothing needs quoting on the command line.
+- **Nothing is saved between visits.** A reload starts over. Saving a sandbox would mean storing a whole repository in the browser and migrating it when the engine's state changes.
+
+## 2026-11-11 — Six incidents made only for the daily
+
+- **The daily pool doubles to twelve.** Six new incidents, each one small mistake with one idea: a commit on the wrong branch, a commit on no branch (detached HEAD), a diverged main that has to stay straight (`pull --rebase`), a password staged by mistake (`restore --staged`), a local reset that hid unpushed commits (reflog), and a useless commit message (`commit --amend`). Four of the six ideas appear in no level of the acts, so the daily teaches something new and is not only a chase for par.
+- **An incident is a level in every way but its address.** It lives in `src/levels` as `daily-NN-*.ts` with a documented solution, a par, a recap line and server-side hint data, and runs through the same tests: the engine plays it to the win, real git referees the solution, and the scripted hints pass the leak check. It is exported as `incidents`, not listed in the acts, and has no page under `/level`.
+- **No eval cases for incidents.** The stuck cases in `evals/hints` cover the acts' levels. Hints for incidents still work: the route knows them and falls back to their scripted hints like any other level.
+- **Incidents' suggestion buttons only look.** A button that fills in the fix would decide the day's result.
+- **Adding incidents changes which level a given day gets,** because the pool is shuffled as a whole. Fine before launch; after launch, append and expect the calendar to shift.
+
+## 2026-11-11 — The daily incident, a result to paste, and challenge links
+
+- **`/daily` plays one level a day, the same for everyone.** The day is counted in UTC from 2026-11-11 (incident #1). The level comes from a pool, shuffled afresh each round with a seeded generator, so no server is involved and no incident repeats two days running (`src/daily/daily.ts`, pure and tested).
+- **The pool is the six existing levels with a par where a robot breaks or hides something** (Act 2, and the review level of Act 3). Levels with rule cards are left out: the pick decides how much there is to fix, so two players' counts could not be compared. Six is thin. A player who has finished the acts has seen them all, and the daily is then a chase for par. Incidents written only for the daily are the way to make it worth coming back for; the spec now says the pool grows and does not promise 20 for v1.
+- **The streak and each day's best result live in browser storage only.** A streak survives until a whole day is missed.
+- **The win card can copy the result as plain text with no spoilers:** the incident number, the title, commands against par, hints used and the link. When the browser refuses the clipboard, the text is shown to copy by hand.
+- **A challenge link is a level address with the sender's count, `/level/act2-01?beat=3`.** The brief says what there is to beat, the win card says whether it was matched, and nothing is stored anywhere. The page stays static: the count is read in the browser.
+
+## 2026-11-11 — The full shift (act3-03) ends the game
+
+- **The last level gives the player two jobs at once: a review and a fix.** Tidy commits honest work on a branch and asks for a review; no card can stop that beat (`ShiftBeat.stoppedBy` is now optional, and `review` marks it in the report). Of the other three robots, the player's two cards stop two. The order of the two jobs is the player's.
+- **Only the beats a card can stop push to origin's main,** and exactly one of them gets through. A beat that always runs commits locally. That keeps every push in the scene valid in real git whatever the pick, without a script that branches on earlier beats.
+- **Drift's mistake differs from level 2:** unread work pushed straight to main, where one commit called "Tidy the folder" deletes the price list. It ties the review card back to the first Act 3 level.
+- **Three picks, three documented solutions, each compared with real git,** as in level 2.
+
 ## 2026-11-11 — Rule cards and the shift (act3-02, "House rules")
 
 - **A shift is data on the level (`Level.shift`): rule cards, how many to pick, and beats.** A beat is one robot's turn: what it says, the git steps it would run, and the id of the card that stops it. `src/levels/shift.ts` turns a shift and a pick into ordinary script steps that play after the intro, so the game, the level tests and the real-git comparison all run the same thing. No new phase, and no level logic in components.

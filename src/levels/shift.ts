@@ -10,7 +10,7 @@ export function defaultCards(level: Pick<Level, "shift">): string[] {
 
 /** Is this beat refused by one of the chosen cards? */
 export function isStopped(beat: ShiftBeat, cards: readonly string[]): boolean {
-  return cards.includes(beat.stoppedBy);
+  return beat.stoppedBy !== undefined && cards.includes(beat.stoppedBy);
 }
 
 export function cardById(level: Pick<Level, "shift">, id: string): RuleCard | undefined {
@@ -28,7 +28,7 @@ export function shiftScript(level: Pick<Level, "shift">, cards: readonly string[
   return shift.beats.flatMap((beat): ScriptStep[] => {
     const attempt: ScriptStep = { kind: "say", actor: beat.actor, text: beat.attempt, mood: "talking" };
     if (isStopped(beat, cards)) {
-      const card = cardById(level, beat.stoppedBy);
+      const card = cardById(level, beat.stoppedBy ?? "");
       return [
         attempt,
         { kind: "note", text: `House rule: ${card?.title ?? beat.stoppedBy}. Refused.` },
@@ -39,7 +39,7 @@ export function shiftScript(level: Pick<Level, "shift">, cards: readonly string[
       attempt,
       ...beat.steps,
       { kind: "pause", ms: 500 },
-      { kind: "say", actor: beat.after.actor, text: beat.after.text, mood: beat.after.mood ?? "scared" },
+      { kind: "say", actor: beat.after.actor, text: beat.after.text, mood: beat.after.mood ?? (beat.review ? "happy" : "scared") },
     ];
   });
 }

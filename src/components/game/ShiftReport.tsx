@@ -18,17 +18,23 @@ export function ShiftReport({ level, cards }: { level: Level; cards: readonly st
         {shift.beats.map((beat) => {
           const stopped = isStopped(beat, cards);
           const who = actorColor(beat.actor);
-          const card = cardById(level, beat.stoppedBy);
+          const card = beat.stoppedBy ? cardById(level, beat.stoppedBy) : undefined;
+          const calm = stopped || !!beat.review;
+          const label = stopped ? "Stopped" : beat.review ? "For review" : "Yours to fix";
           return (
             <li
-              key={`${beat.actor}-${beat.stoppedBy}`}
-              className={`rounded-2xl border px-3 py-2 text-[12.5px] leading-snug ${stopped ? "border-line bg-card text-soft" : "border-warn-edge bg-warn-wash text-warn-ink"}`}
+              key={`${beat.actor}-${beat.report}`}
+              className={`rounded-2xl border px-3 py-2 text-[12.5px] leading-snug ${calm ? "border-line bg-card text-soft" : "border-warn-edge bg-warn-wash text-warn-ink"}`}
             >
               <p className="flex items-center gap-1.5 font-bold">
                 <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: who.line }} aria-hidden />
-                <span className={stopped ? "text-ink" : "text-warn-deep"}>{who.name}</span>
-                <span className={`ml-auto rounded-full px-2 py-px text-[10.5px] font-bold tracking-wide uppercase ${stopped ? "bg-success-wash text-success-deep" : "bg-warn text-white"}`}>
-                  {stopped ? "Stopped" : "Yours to fix"}
+                <span className={calm ? "text-ink" : "text-warn-deep"}>{who.name}</span>
+                <span
+                  className={`ml-auto rounded-full px-2 py-px text-[10.5px] font-bold tracking-wide uppercase ${
+                    stopped ? "bg-success-wash text-success-deep" : beat.review ? "bg-sunk text-soft" : "bg-warn text-white"
+                  }`}
+                >
+                  {label}
                 </span>
               </p>
               <p className="mt-1">
@@ -36,7 +42,8 @@ export function ShiftReport({ level, cards }: { level: Level; cards: readonly st
                   <>Stopped by your rule: <span className="font-semibold text-ink">{card?.title}</span>.</>
                 ) : (
                   <>
-                    {who.name} {beat.report}. <span className="text-warn-note">The rule you left out: {card?.title}.</span>
+                    {who.name} {beat.report}.{" "}
+                    {card && <span className="text-warn-note">The rule you left out: {card.title}.</span>}
                   </>
                 )}
               </p>

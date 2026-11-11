@@ -5,6 +5,8 @@ import { motion } from "motion/react";
 import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 import type { Level, RuleCard } from "@/engine/types";
 import { actorColor } from "@/lib/palette";
+import { shareText } from "@/daily/daily";
+import { validFileName } from "@/levels/sandbox";
 import { againstPar, type ParResult } from "./moves";
 import { RobotPortrait } from "./RobotPortrait";
 
@@ -121,7 +123,21 @@ function CloseButton({ label, onClick }: { label: string; onClick: () => void })
 }
 
 /** The level's brief. The X and Esc go back to the level list, Start begins the level. */
-export function BriefCard({ level, onStart, onBack }: { level: Level; onStart: (cards: string[]) => void; onBack: () => void }) {
+export function BriefCard({
+  level,
+  daily,
+  beat,
+  onStart,
+  onBack,
+}: {
+  level: Level;
+  /** Today's incident number, when the level is played as the daily incident. */
+  daily?: number;
+  /** A challenge link's count to beat. */
+  beat?: number | null;
+  onStart: (cards: string[]) => void;
+  onBack: () => void;
+}) {
   const shift = level.shift;
   const [picked, setPicked] = useState<string[]>([]);
   const ready = !shift || picked.length === shift.pick;
@@ -131,7 +147,7 @@ export function BriefCard({ level, onStart, onBack }: { level: Level; onStart: (
     <Modal label={`${level.title}: level brief`} wide onClose={onBack} closeOnBackdrop={false}>
       <CloseButton label="Back to all levels" onClick={onBack} />
       <p className="pr-10 text-[12px] font-bold tracking-[0.12em] text-muted uppercase">
-        {levelLabel(level)} · {ACT_NAMES[level.act]}
+        {daily === undefined ? `${levelLabel(level)} · ${ACT_NAMES[level.act]}` : `Today's incident · #${daily}`}
       </p>
       <h1 className="mt-1.5 text-3xl leading-tight font-extrabold tracking-tight md:text-[34px]">{level.title}</h1>
 
@@ -146,16 +162,36 @@ export function BriefCard({ level, onStart, onBack }: { level: Level; onStart: (
         ))}
       </div>
 
+      {(daily !== undefined || beat) && (
+        <p className="mt-3 rounded-2xl bg-sunk px-4 py-2.5 text-[14px] leading-snug text-body">
+          {beat ? (
+            <>
+              <span className="font-bold text-ink">A challenge.</span> Someone fixed this in {beat} {beat === 1 ? "command" : "commands"}. Looking around is free. Can you match it?
+            </>
+          ) : (
+            <>
+              <span className="font-bold text-ink">The same incident for everyone today.</span>{" "}
+              {level.par !== undefined && <>Par is {level.par} {level.par === 1 ? "command" : "commands"}, and looking around is free. </>}
+              A new one tomorrow.
+            </>
+          )}
+        </p>
+      )}
       {level.mission ? <MissionCard mission={level.mission} /> : <p className="mt-3 text-[16px] leading-relaxed text-body">{level.brief}</p>}
-      <h2 className="mt-6 text-[12px] font-bold tracking-[0.12em] text-muted uppercase">Done when</h2>
-      <ul className="mt-2 flex flex-col gap-1.5">
-        {level.goals.map((g) => (
-          <li key={g.id} className="flex gap-2.5 text-[14.5px] leading-snug">
-            <span className="mt-[3px] h-3.5 w-3.5 shrink-0 rounded-full border-2 border-line-strong" aria-hidden />
-            {g.description}
-          </li>
-        ))}
-      </ul>
+      {/* A level with rule cards shows the cards here instead: the job bar lists the goals once the shift is over. */}
+      {!shift && (
+        <>
+          <h2 className="mt-6 text-[12px] font-bold tracking-[0.12em] text-muted uppercase">Done when</h2>
+          <ul className="mt-2 flex flex-col gap-1.5">
+            {level.goals.map((g) => (
+              <li key={g.id} className="flex gap-2.5 text-[14.5px] leading-snug">
+                <span className="mt-[3px] h-3.5 w-3.5 shrink-0 rounded-full border-2 border-line-strong" aria-hidden />
+                {g.description}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       {shift && (
         <section aria-labelledby="rules-title" className="mt-6">
@@ -268,6 +304,9 @@ export function WinCard({
   level,
   moves,
   cards = [],
+  hints = 0,
+  beat = null,
+  daily,
   next,
   tryIt,
   onReplay,
@@ -276,6 +315,12 @@ export function WinCard({
   level: Level;
   /** Act 3: the ids of the house rules the player picked. */
   cards?: readonly string[];
+  /** Hints asked for in this run. */
+  hints?: number;
+  /** A challenge link's count to beat. */
+  beat?: number | null;
+  /** Set when the level was played as the daily incident. */
+  daily?: { number: number; streak: number; best: number };
   /** The commands that counted, in the order the player ran them. */
   moves: readonly string[];
   next: Level | null;
@@ -289,6 +334,10 @@ export function WinCard({
   );
   const count = moves.length;
   const result = level.par === undefined ? null : againstPar(count, level.par);
+  // Built on click, in the browser: the link has to carry this page's own address.
+  const origin = () => window.location.origin;
+  const resultText = () =>
+    shareText({ number: daily?.number, title: level.title, moves: count, par: level.par, hints, url: daily ? `${origin()}/daily` : `${origin()}/level/${level.id}?beat=${count}` });
   return (
     <Modal label={`${level.title}: level complete`} onClose={onClose} closeOnBackdrop={false}>
       <CloseButton label="Close and look at the map" onClick={onClose} />
@@ -356,8 +405,28 @@ export function WinCard({
         )}
       </div>
 
+      {(daily || beat !== null) && (
+        <p className="mt-3 text-center text-[14px] font-semibold text-ink">
+          {daily ? (
+            <>
+              {daily.streak > 1 ? `${daily.streak} days in a row.` : "First day of a new streak."}{" "}
+              <span className="font-normal text-soft">A new incident tomorrow.</span>
+            </>
+          ) : beat !== null && count <= beat ? (
+            count < beat ? `You beat the challenge: ${count} against ${beat}.` : `You matched the challenge: ${count} commands.`
+          ) : (
+            <span className="text-soft">The challenge was {beat}. You took {count}.</span>
+          )}
+        </p>
+      )}
+      {count > 0 && <CopyButton text={resultText} label={daily ? "Copy my result" : "Challenge a friend"} hint={daily ? "No spoilers in it" : "Copies a link with your count to beat"} />}
+
       <div className="mt-6 flex flex-col items-center gap-3">
-        {tryIt ? (
+        {daily ? (
+          <Link href="/" data-autofocus className={`${primary} w-full sm:w-auto`}>
+            Back to all levels
+          </Link>
+        ) : tryIt ? (
           <>
             <Link href={`/level/${tryIt.id}`} data-autofocus className={`${primary} w-full sm:w-auto`}>
               Try it for real: {tryIt.title}
@@ -379,10 +448,117 @@ export function WinCard({
         )}
         <div className="flex gap-2">
           <button type="button" onClick={onReplay} className={secondary}>{result === "over" ? "Try for par" : "Play again"}</button>
-          {(next || tryIt) && <Link href="/" className={secondary}>Back to all levels</Link>}
+          {(next || tryIt) && !daily && <Link href="/" className={secondary}>Back to all levels</Link>}
         </div>
       </div>
     </Modal>
+  );
+}
+
+/**
+ * A plain editor for one of the player's working files (the sandbox). With no `path` it also asks for
+ * a file name and makes a new file. Saving writes the working file only: staging and committing stay
+ * with the player's git commands.
+ */
+export function FileEditor({
+  path,
+  content = "",
+  taken = [],
+  onSave,
+  onClose,
+}: {
+  /** The file being edited. Left out for a new file. */
+  path?: string;
+  content?: string;
+  /** File names that already exist, for a new file. */
+  taken?: readonly string[];
+  onSave: (path: string, content: string) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(path ?? "");
+  const [text, setText] = useState(content);
+  const fresh = path === undefined;
+  const problem = !fresh || name === ""
+    ? null
+    : !validFileName(name)
+      ? "Use letters, digits, dots and dashes. Folders with a slash are fine."
+      : taken.includes(name)
+        ? "That file already exists. Click it in the list to edit it."
+        : null;
+  const ready = name !== "" && problem === null;
+  const save = () => {
+    if (ready) onSave(name, text === "" || text.endsWith("\n") ? text : `${text}\n`);
+  };
+  return (
+    <Modal label={fresh ? "New file" : `Edit ${path}`} onClose={onClose} closeOnBackdrop={false}>
+      <p className="text-[11px] font-bold tracking-[0.12em] text-muted uppercase">{fresh ? "New file" : "Working file"}</p>
+      {fresh ? (
+        <>
+          <label htmlFor="new-file-name" className="sr-only">File name</label>
+          <input
+            id="new-file-name"
+            data-autofocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="menu.txt"
+            autoComplete="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            className="mt-1 w-full rounded-xl border border-line-strong bg-card px-3 py-2 font-mono text-[15px] font-bold text-ink focus-visible:ring-4 focus-visible:ring-focus/30 focus-visible:outline-none"
+          />
+          <p className="mt-1 min-h-[1.2em] text-[12px] text-warn-deep" aria-live="polite">{problem}</p>
+        </>
+      ) : (
+        <h2 className="mt-1 truncate font-mono text-lg font-bold">{path}</h2>
+      )}
+      <label htmlFor="file-text" className="sr-only">File contents</label>
+      <textarea
+        id="file-text"
+        {...(fresh ? {} : { "data-autofocus": true })}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={10}
+        spellCheck={false}
+        maxLength={4000}
+        className="mt-2 w-full resize-y rounded-2xl bg-ink px-4 py-3 font-mono text-[13px] leading-relaxed text-paper caret-term-prompt focus-visible:ring-4 focus-visible:ring-focus/40 focus-visible:outline-none"
+      />
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button type="button" onClick={save} disabled={!ready} className={`${primary} disabled:cursor-not-allowed disabled:opacity-45`}>
+          Save file
+        </button>
+        <button type="button" onClick={onClose} className={secondary}>Cancel</button>
+        <span className="ml-auto text-[12px] text-muted">Saving changes the file. git add and git commit are still yours.</span>
+      </div>
+    </Modal>
+  );
+}
+
+/** Copies a line of text for the player to paste somewhere. Shows the text itself when the browser refuses. */
+function CopyButton({ text, label, hint }: { text: () => string; label: string; hint: string }) {
+  const [state, setState] = useState<"idle" | "copied" | "shown">("idle");
+  const [shown, setShown] = useState("");
+  const copy = async () => {
+    const value = text();
+    try {
+      await navigator.clipboard.writeText(value);
+      setState("copied");
+    } catch {
+      setShown(value);
+      setState("shown");
+    }
+  };
+  return (
+    <div className="mt-3 flex flex-col items-center gap-1.5">
+      <button type="button" onClick={copy} className={secondary}>
+        {state === "copied" ? "Copied. Paste it anywhere" : label}
+      </button>
+      <p className="text-[12px] text-muted" aria-live="polite">
+        {state === "shown" ? "Copy it from here:" : hint}
+      </p>
+      {state === "shown" && (
+        <textarea readOnly value={shown} rows={2} onFocus={(e) => e.currentTarget.select()} className="w-full rounded-xl border border-line bg-card px-3 py-2 font-mono text-[12px] text-ink" aria-label="Your result" />
+      )}
+    </div>
   );
 }
 

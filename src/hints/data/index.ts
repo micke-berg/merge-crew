@@ -2,7 +2,7 @@
 // /api/hint route, the hint tests and the evals, never by client code.
 
 import "server-only";
-import { levels } from "@/levels";
+import { everyLevel } from "@/levels";
 import { solutions, variantSolutions } from "@/levels/solutions";
 import type { Level } from "@/engine/types";
 import type { SolutionCommand } from "../leak";
@@ -27,6 +27,13 @@ import { hints as act2_04 } from "./act2-04-undo-politely";
 import { hints as act2_05 } from "./act2-05-just-that-one-fix";
 import { hints as act3_01 } from "./act3-01-read-before-you-merge";
 import { hints as act3_02 } from "./act3-02-house-rules";
+import { hints as act3_03 } from "./act3-03-the-full-shift";
+import { hints as daily_01 } from "./daily-01-the-wrong-line";
+import { hints as daily_02 } from "./daily-02-no-branch-at-all";
+import { hints as daily_03 } from "./daily-03-straight-home";
+import { hints as daily_04 } from "./daily-04-not-that-file";
+import { hints as daily_05 } from "./daily-05-blaze-cleaned-up";
+import { hints as daily_06 } from "./daily-06-say-what-you-did";
 import type { LevelHints } from "./types";
 
 export type { LevelHints } from "./types";
@@ -53,6 +60,13 @@ const HINTS: Readonly<Record<string, LevelHints>> = {
   "act2-05": act2_05,
   "act3-01": act3_01,
   "act3-02": act3_02,
+  "act3-03": act3_03,
+  "daily-01": daily_01,
+  "daily-02": daily_02,
+  "daily-03": daily_03,
+  "daily-04": daily_04,
+  "daily-05": daily_05,
+  "daily-06": daily_06,
 };
 
 /** Everything the hint route knows about one level. */
@@ -63,7 +77,7 @@ export type HintLevel = LevelHints & {
 };
 
 export function hintLevel(levelId: string): HintLevel | undefined {
-  const level = levels.find((l) => l.id === levelId);
+  const level = everyLevel.find((l) => l.id === levelId);
   const data = HINTS[levelId];
   if (!level || !data) return undefined;
   // A level with rule cards has one fix per pick; a hint must not give any of them away.

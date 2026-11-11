@@ -4,11 +4,20 @@ A free browser game that teaches git. You lead a crew of small robot coding agen
 
 **Play it at [merge-crew.vercel.app](https://merge-crew.vercel.app).** It runs in the browser, needs no account, and keeps your progress on your device.
 
+![A level in play: Blaze has force-pushed, two commits sit in the lost band of the history map, and the job bar says what to fix](docs/screenshots/level.webp)
+
+| The crew's shift, with two mistakes stopped by your house rules | The win: what you learned, and your commands against par |
+|---|---|
+| ![After a shift: the report beside the files shows Blaze and Hoarder stopped by rules and Drift's mistake left to fix](docs/screenshots/shift.webp) | ![The win card: what the level taught, the house rules with the real tool for each, and the commands that counted](docs/screenshots/win.webp) |
+
 ## What you learn
 
 - **Act 1 (learn):** commit, branch, switch, merge, push and pull, then short practice levels for the everyday tools and the ones Act 2 relies on (looking at changes with diff and saving only part of them, undoing an unsaved edit, the stash, cherry-pick, revert, reset, the reflog, a first merge conflict, rebase and blame), taught by Tidy.
 - **Act 2 (fix):** recover commits lost to a force-push with the reflog, bring a diverged branch home and resolve the conflict, find a forgotten stash, undo a pushed change with revert, and cherry-pick one fix.
-- **Act 3 (lead), in progress:** you do what a person leading coding agents does. First a review: three robots say their branches are ready, and you read what each one really changes before you merge it. Then house rules: you pick rule cards before the crew's shift, the rules stop some mistakes on screen, and you fix the one that got through. Still to come: the full shift with all four robots.
+- **Act 3 (lead):** you do what a person leading coding agents does. First a review: three robots say their branches are ready, and you read what each one really changes before you merge it. Then house rules: you pick rule cards before the crew's shift, the rules stop some mistakes on screen, and you fix the one that got through. Last, the full shift: all four robots at once, a branch to review and a mistake to fix, in the order you choose.
+
+- **Sandbox:** a repository of your own with no goals. Make files, commit, branch and merge, and watch the map draw it.
+- **Today's incident:** one broken repository a day, the same for everyone, with a par to beat, a streak, and a result you can paste to a colleague without spoiling it.
 
 Every command you type runs in a simulated git repository that behaves like real git. The history is drawn as a metro map, and each commit, merge and lost commit is animated.
 
