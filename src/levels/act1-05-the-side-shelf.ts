@@ -29,6 +29,8 @@ export const level: Level = {
   act: 1,
   order: 7,
   title: "The side shelf",
+  par: 4,
+  learned: "The stash is a shelf for unfinished changes: git stash puts them aside, and git stash pop brings them back.",
   brief: "Your edit is not ready to be saved, but you have to look at another branch. Put it aside, look, and bring it back.",
   mission: {
     situation:

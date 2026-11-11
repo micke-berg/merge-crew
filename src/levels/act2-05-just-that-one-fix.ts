@@ -46,6 +46,8 @@ export const level: Level = {
   act: 2,
   order: 2,
   title: "Just that one fix",
+  par: 2,
+  learned: "You do not have to take a whole branch. Cherry-pick the one commit you need and leave the rest.",
   brief:
     "The café's table wobbles. Drift fixed it ages ago, on a branch full of other half-finished dreams. Bring over the fix, and only the fix.",
   mission: {

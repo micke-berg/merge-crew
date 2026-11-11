@@ -51,6 +51,8 @@ export const level: Level = {
   act: 2,
   order: 4,
   title: "Blaze was in a hurry",
+  par: 3,
+  learned: "A force-push hides commits, it does not delete them. The reflog still knows where they were.",
   brief:
     "Blaze pushed to main with --force. Tidy's work has vanished from origin and from your checkout. Find it and bring it back without rewriting anything.",
   mission: {

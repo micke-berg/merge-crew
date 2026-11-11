@@ -16,6 +16,8 @@ export const level: Level = {
   act: 1,
   order: 1,
   title: "First save",
+  par: 2,
+  learned: "A commit is a saved version. You choose what goes in with git add, then save it with git commit.",
   brief: "Tidy changed the café's shopping list, but the change is not saved yet. Save it with a commit.",
   mission: {
     situation: "Tidy added batteries to the café's shopping list, list.txt, but git has not saved that change yet.",

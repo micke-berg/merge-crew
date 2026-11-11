@@ -2,6 +2,15 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-11-11 — Par, a recap and a celebration on the win
+
+- **Every level has a par: the number of commands in its documented solution that change something.** Looking is free (`status`, `log`, `diff`, `show`, `reflog`, `blame`, listing branches or stashes, `ls`, `cat`, `help`), because looking is how a player learns and a count that punishes it teaches the wrong habit. A typo or a command git refuses is not counted either. The rule is one function, `countsAsMove` in `src/components/game/moves.ts`.
+- **Par is written in the level file, and a test holds it to the solution.** The solution itself must not reach the browser, so the number is copied; the test fails when they drift apart, and a second test plays each solution and requires it to land on par.
+- **The win card says what was learned in one or two sentences (`Level.learned`), shows the count against par, and lists the commands that counted.** The old line counted everything typed, `ls` included, and meant nothing.
+- **A short fall of confetti in the crew's colours marks the win on the map,** not drawn with reduced motion.
+- **The fewest moves per level are kept in browser storage,** and the level list marks a level solved at or under par.
+- **Contract change (additive, in `src/engine/types.ts`):** `Level.par?: number` and `Level.learned?: string`.
+
 ## 2026-11-11 — Help, a guess for a mistyped command, and Tab
 
 - **`help`, `git help` and `git --help` list what the game runs,** one plain line per command. The list is checked against the engine's command table in a test, so a new command needs a help line.

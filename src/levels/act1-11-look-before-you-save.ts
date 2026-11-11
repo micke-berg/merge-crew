@@ -29,6 +29,8 @@ export const level: Level = {
   act: 1,
   order: 5,
   title: "Look before you save",
+  par: 2,
+  learned: "git diff shows what changed before you save, and git add lets you save one file and leave another.",
   brief: "Two files are changed and only one change is wanted. Look at what changed, then save just that file.",
   mission: {
     situation:

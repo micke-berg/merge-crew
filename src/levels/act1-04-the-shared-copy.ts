@@ -59,6 +59,8 @@ export const level: Level = {
   act: 1,
   order: 4,
   title: "The shared copy",
+  par: 4,
+  learned: "Origin is the shared copy. Pull to get what others pushed, and push to share your own.",
   brief:
     "Origin is the shared copy the café's website is built from. Tidy pushed to it, so your copy is behind. Catch up, then push your own change.",
   mission: {

@@ -20,6 +20,7 @@ import { LevelPicker } from "./LevelPicker";
 import { PremiseCard } from "./Premise";
 import { markPremiseSeen, premiseSeen as premiseSeenInStorage, usePremiseSeen } from "./premiseStorage";
 import { Logo } from "./Logo";
+import { Confetti } from "./Confetti";
 import { ConflictEditor } from "./ConflictEditor";
 import type { CompletionWords } from "./completion";
 import { conflictSource } from "./conflicts";
@@ -226,6 +227,7 @@ export function LevelGame({ level }: { level: Level }) {
               focusColor={pointColor}
             />
             <Legend actors={cast.filter((a) => game.repo.worktrees[a])} />
+            {(game.phase === "outro" || game.phase === "won") && <Confetti key={`confetti-${g.run}`} actors={cast} reduce={reduce} />}
             <AnimatePresence>
               {talking && (
                 <motion.button
@@ -313,7 +315,7 @@ export function LevelGame({ level }: { level: Level }) {
             <WinCard
               key="won"
               level={level}
-              commands={game.commands}
+              moves={game.moves}
               next={next}
               tryIt={tryIt}
               onReplay={() => {

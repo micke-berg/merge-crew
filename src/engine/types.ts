@@ -281,6 +281,13 @@ export type Level = {
    * own heading.
    */
   usedIn?: string;
+  /**
+   * How many commands the documented solution needs, not counting the ones that only look
+   * (`status`, `log`, `diff` and so on). The win card compares the player's count with it.
+   */
+  par?: number;
+  /** One or two plain sentences on the win card: what the player just learned. */
+  learned?: string;
   crew: RobotId[];
   /** Runs instantly from createRepo() to build the starting repository. */
   setup: ScriptStep[];

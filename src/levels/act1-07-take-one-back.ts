@@ -28,6 +28,8 @@ export const level: Level = {
   act: 1,
   order: 9,
   title: "Take one back",
+  par: 1,
+  learned: "git revert undoes an old commit by adding a new one, so no history is deleted.",
   brief: "A save two steps back put a typo on the sign. Cancel just that save with a new one, and keep everything after it.",
   mission: {
     situation:

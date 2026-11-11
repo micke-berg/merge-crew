@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { useEffect, useEffectEvent, useRef, type ReactNode } from "react";
 import type { Level } from "@/engine/types";
 import { actorColor } from "@/lib/palette";
+import { againstPar, type ParResult } from "./moves";
 import { RobotPortrait } from "./RobotPortrait";
 
 export const ACT_NAMES: Record<number, string> = { 1: "Learn", 2: "Fix", 3: "Lead" };
@@ -196,17 +197,20 @@ export function nextLabel(level: Level, next: Level): string {
   return `Next ${kind}: ${next.title}${act}`;
 }
 
+const PAR_TEXT: Record<ParResult, string> = { under: "Under par", on: "On par", over: "Over par" };
+
 /** The win card. The X and Esc close it, so the player can look at the finished map. */
 export function WinCard({
   level,
-  commands,
+  moves,
   next,
   tryIt,
   onReplay,
   onClose,
 }: {
   level: Level;
-  commands: number;
+  /** The commands that counted, in the order the player ran them. */
+  moves: readonly string[];
   next: Level | null;
   /** A later level that uses this practice level's tool for real. */
   tryIt: Level | null;
@@ -216,6 +220,8 @@ export function WinCard({
   const arrow = (
     <svg width="12" height="12" viewBox="0 0 10 10" aria-hidden><path d="M1.5 0.8 L9 5 L1.5 9.2 Z" fill="currentColor" /></svg>
   );
+  const count = moves.length;
+  const result = level.par === undefined ? null : againstPar(count, level.par);
   return (
     <Modal label={`${level.title}: level complete`} onClose={onClose} closeOnBackdrop={false}>
       <CloseButton label="Close and look at the map" onClick={onClose} />
@@ -233,10 +239,44 @@ export function WinCard({
       </div>
       <p className="mt-5 text-center text-[12px] font-bold tracking-[0.12em] text-success-strong uppercase">Level complete</p>
       <h1 className="mt-1 text-center text-3xl font-extrabold tracking-tight">{level.title}</h1>
-      <p className="mt-2 text-center text-[15px] text-soft">
-        Done in {commands} {commands === 1 ? "command" : "commands"}.
-      </p>
-      <div className="mt-7 flex flex-col items-center gap-3">
+
+      {level.learned && (
+        <div className="mt-4 rounded-2xl border border-success-edge bg-success-tint px-4 py-3">
+          <p className="text-[11px] font-bold tracking-[0.12em] text-success-deep uppercase">What you learned</p>
+          <p className="mt-0.5 text-[15px] leading-snug text-ink">{level.learned}</p>
+        </div>
+      )}
+
+      <div className="mt-3 rounded-2xl border border-line bg-card px-4 py-3">
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          <p className="text-[14.5px] font-bold text-ink">
+            {count} {count === 1 ? "command" : "commands"}
+            {level.par !== undefined && <span className="font-semibold text-soft"> · par {level.par}</span>}
+          </p>
+          {result && (
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-[11.5px] font-bold ${
+                result === "over" ? "bg-sunk text-soft" : "bg-success-strong text-white"
+              }`}
+            >
+              {PAR_TEXT[result]}
+            </span>
+          )}
+          <span className="ml-auto text-[12px] text-muted">Looking around is free</span>
+        </div>
+        {count > 0 && (
+          <ol className="mt-2 max-h-[7.5rem] overflow-y-auto rounded-xl bg-ink px-3 py-2 font-mono text-[12.5px] leading-relaxed text-paper" aria-label="The commands you ran">
+            {moves.map((m, i) => (
+              <li key={i} className="flex gap-2.5">
+                <span className="w-4 shrink-0 text-right text-term-muted select-none" aria-hidden>{i + 1}</span>
+                <span className="break-all whitespace-pre-wrap">{m}</span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+
+      <div className="mt-6 flex flex-col items-center gap-3">
         {tryIt ? (
           <>
             <Link href={`/level/${tryIt.id}`} data-autofocus className={`${primary} w-full sm:w-auto`}>
@@ -258,7 +298,7 @@ export function WinCard({
           </Link>
         )}
         <div className="flex gap-2">
-          <button type="button" onClick={onReplay} className={secondary}>Play again</button>
+          <button type="button" onClick={onReplay} className={secondary}>{result === "over" ? "Try for par" : "Play again"}</button>
           {(next || tryIt) && <Link href="/" className={secondary}>Back to all levels</Link>}
         </div>
       </div>

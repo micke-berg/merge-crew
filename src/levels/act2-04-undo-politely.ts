@@ -37,6 +37,8 @@ export const level: Level = {
   act: 2,
   order: 3,
   title: "Undo, politely",
+  par: 3,
+  learned: "Once others have built on a commit, undo it with revert. Rewriting shared history would break their work.",
   brief:
     "Blaze shipped a change to main that makes everything free, and Tidy has already built on top of it. Undo Blaze's change without rewriting the history everyone shares.",
   mission: {

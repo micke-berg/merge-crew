@@ -23,6 +23,8 @@ export const level: Level = {
   act: 1,
   order: 13,
   title: "A straight line",
+  par: 1,
+  learned: "git rebase replays your commits on top of another branch, which keeps the history in one straight line.",
   brief: "Your branch is behind main. Bring it up to date so the history stays one straight line.",
   mission: {
     situation:

@@ -4,6 +4,7 @@
 
 import { engine, queries, validateCommandLine } from "@/engine";
 import { MAX_HINTS_PER_RUN } from "@/hints/types";
+import { countsAsMove } from "./moves";
 import type {
   ActorId,
   EngineEvent,
@@ -71,6 +72,11 @@ export type GameState = {
   kept: boolean[];
   /** Commands the player has run, including refused ones. */
   commands: number;
+  /**
+   * The commands that count toward par, in the order the player ran them: accepted by git, and not
+   * only looking (see moves.ts). A typo or a refused command is not held against the player.
+   */
+  moves: string[];
 };
 
 /** What the driver should do after a step: wait for the player, wait some time, or go on at once. */
@@ -139,6 +145,7 @@ export function startLevel(level: Level): GameState {
     goals: level.goals.map(() => false),
     kept: level.goals.map(() => false),
     commands: 0,
+    moves: [],
   };
 }
 
@@ -305,6 +312,7 @@ export function runPlayerCommand(s: GameState, line: string): CommandOutcome {
     events: changed ? r.events : s.events,
     goals,
     commands: s.commands + 1,
+    moves: r.ok && countsAsMove(argv) ? [...s.moves, text] : s.moves,
     ...addLines(s, lines),
   };
   if (won) state = enterScript({ ...state, phase: "outro", cursor: 0 });

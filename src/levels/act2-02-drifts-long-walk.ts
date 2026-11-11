@@ -53,6 +53,8 @@ export const level: Level = {
   act: 2,
   order: 5,
   title: "Drift's long walk",
+  par: 4,
+  learned: "A branch that never pulls drifts away from main. The longer it waits, the more there is to settle by hand.",
   brief:
     "Drift started a branch long ago and never looked back at main. Now it wants in, and main has moved on. Bring Drift's work home and settle the conflict fairly.",
   mission: {

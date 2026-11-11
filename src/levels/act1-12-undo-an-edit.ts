@@ -29,6 +29,8 @@ export const level: Level = {
   act: 1,
   order: 6,
   title: "Undo an edit",
+  par: 1,
+  learned: "git restore puts a file back to its last saved version. An edit you never saved is gone for good.",
   brief: "One file has an edit nobody wants and another has a good one. Put the first file back, and keep the good edit.",
   mission: {
     situation:
