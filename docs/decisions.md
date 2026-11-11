@@ -2,6 +2,16 @@
 
 Newest first. Each entry: date, what was decided, why.
 
+## 2026-11-11 — Goals that start true are rules, not steps
+
+- **The job bar shows a goal that is already met when the player's turn begins under "Keep it that way", apart from the numbered steps.** Every Act 2 level has one or two such goals ("Blaze's commit stays in the history"). They were drawn as ticked steps, so a level opened on "2 of 3 done" before the player had typed anything. The earlier rule against pre-done goals removed them from the practice levels; in Act 2 they have to stay, because they are what rejects a shortcut.
+- **A kept rule is quiet, a broken one is loud.** It is not counted in the progress line. If a command makes it false it turns into a warning, and it becomes the current line once every step is done.
+- **No level or contract change.** Which goals are rules is worked out from the game state at the start of the turn (`GameState.kept`), so `Level` and `Goal` are untouched and every level gets it for free. A test plays each level to the player's turn and requires at least one step, none of them ticked.
+
+## 2026-11-11 — Robot names avoid the tags of other stops
+
+- **Name pills treat the tags under a stop on the row above as obstacles,** and go above the robots when both sides are taken. After a merge, the names of robots on main could cover the `origin/main` tag hanging from the branch above them, which is the label several levels are about.
+
 ## 2026-10-11 — `git blame` in the engine, and a level for it
 
 - **`git blame <file>` (and `git blame <rev> <file>`) is in the engine.** A line is blamed on the commit that introduced it: starting from the commit, a line unchanged in a parent is handed to the first parent that has it, and a line no parent has stays with the commit. This is git's own rule, in parent order, using the same line diff as `git diff`.

@@ -64,6 +64,11 @@ export type GameState = {
   nextLineId: number;
   /** One entry per level goal, in order. */
   goals: boolean[];
+  /**
+   * Which goals were already met when the player's turn began. Those are rules to keep ("Blaze's
+   * commit stays in the history"), not steps to do; the job bar shows them apart.
+   */
+  kept: boolean[];
   /** Commands the player has run, including refused ones. */
   commands: number;
 };
@@ -132,6 +137,7 @@ export function startLevel(level: Level): GameState {
     log: [],
     nextLineId: 1,
     goals: level.goals.map(() => false),
+    kept: level.goals.map(() => false),
     commands: 0,
   };
 }
@@ -156,12 +162,14 @@ export function currentScript(s: GameState): ScriptStep[] {
 
 function endScript(s: GameState): GameState {
   if (s.phase === "intro") {
+    const goals = checkGoals(s.level, s.repo);
     return {
       ...s,
       phase: "play",
       cursor: 0,
       bubble: null,
-      goals: checkGoals(s.level, s.repo),
+      goals,
+      kept: goals,
       log: [...s.log, { id: s.nextLineId, kind: "note", text: "Your turn. Type a git command." }],
       nextLineId: s.nextLineId + 1,
     };

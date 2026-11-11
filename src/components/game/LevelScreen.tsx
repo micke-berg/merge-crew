@@ -246,7 +246,7 @@ export function LevelGame({ level }: { level: Level }) {
             {/* Phones stack the task above the hint button; wider screens put them side by side. */}
             <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
               <div className="min-w-0 flex-1">
-                <JobBar goals={level.goals} done={game.goals} won={game.phase === "outro" || game.phase === "won"} />
+                <JobBar goals={level.goals} done={game.goals} kept={game.kept} won={game.phase === "outro" || game.phase === "won"} />
               </div>
               <AskTidyButton left={g.hintsLeft} playing={playing && !touring} thinking={g.hintStatus === "thinking"} onAsk={askHint} />
             </div>
