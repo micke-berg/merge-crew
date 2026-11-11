@@ -4,6 +4,12 @@ A free browser game that teaches git. You lead a crew of small robot coding agen
 
 **Play it at [merge-crew.vercel.app](https://merge-crew.vercel.app).** It runs in the browser, needs no account, and keeps your progress on your device.
 
+![A level in play: Blaze has force-pushed, two commits sit in the lost band of the history map, and the job bar says what to fix](docs/screenshots/level.webp)
+
+| The crew's shift, with two mistakes stopped by your house rules | The win: what you learned, and your commands against par |
+|---|---|
+| ![After a shift: the report beside the files shows Blaze and Hoarder stopped by rules and Drift's mistake left to fix](docs/screenshots/shift.webp) | ![The win card: what the level taught, the house rules with the real tool for each, and the commands that counted](docs/screenshots/win.webp) |
+
 ## What you learn
 
 - **Act 1 (learn):** commit, branch, switch, merge, push and pull, then short practice levels for the everyday tools and the ones Act 2 relies on (looking at changes with diff and saving only part of them, undoing an unsaved edit, the stash, cherry-pick, revert, reset, the reflog, a first merge conflict, rebase and blame), taught by Tidy.

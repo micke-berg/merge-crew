@@ -178,15 +178,20 @@ export function BriefCard({
         </p>
       )}
       {level.mission ? <MissionCard mission={level.mission} /> : <p className="mt-3 text-[16px] leading-relaxed text-body">{level.brief}</p>}
-      <h2 className="mt-6 text-[12px] font-bold tracking-[0.12em] text-muted uppercase">Done when</h2>
-      <ul className="mt-2 flex flex-col gap-1.5">
-        {level.goals.map((g) => (
-          <li key={g.id} className="flex gap-2.5 text-[14.5px] leading-snug">
-            <span className="mt-[3px] h-3.5 w-3.5 shrink-0 rounded-full border-2 border-line-strong" aria-hidden />
-            {g.description}
-          </li>
-        ))}
-      </ul>
+      {/* A level with rule cards shows the cards here instead: the job bar lists the goals once the shift is over. */}
+      {!shift && (
+        <>
+          <h2 className="mt-6 text-[12px] font-bold tracking-[0.12em] text-muted uppercase">Done when</h2>
+          <ul className="mt-2 flex flex-col gap-1.5">
+            {level.goals.map((g) => (
+              <li key={g.id} className="flex gap-2.5 text-[14.5px] leading-snug">
+                <span className="mt-[3px] h-3.5 w-3.5 shrink-0 rounded-full border-2 border-line-strong" aria-hidden />
+                {g.description}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       {shift && (
         <section aria-labelledby="rules-title" className="mt-6">
